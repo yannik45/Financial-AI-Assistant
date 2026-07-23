@@ -1,0 +1,9 @@
+{
+  "source": "ECB Data Portal",
+  "series": "EXR/D.USD+GBP+JPY.EUR.SP00.A",
+  "start_period": "2024-01-01",
+  "end_period": "2026-06-30",
+  "retrieved_at": "2026-07-23",
+  "format": "csvdata",
+  "transformation": "none; quote inversion occurs only at runtime"
+}

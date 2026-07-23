@@ -1,0 +1,4 @@
+symbol,quantity,purchase_price,purchase_date,asset_class,sector,region,currency
+WORLD-ETF,10,104.00,2024-02-15,Equity ETF,Broad Market,Global,EUR
+US-TECH-A,5,145.00,2024-02-15,Equity,Technology,North America,USD
+
