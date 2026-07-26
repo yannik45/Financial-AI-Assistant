@@ -7,7 +7,14 @@ from financial_ai.market_data import ASSETS
 from financial_ai.models import Portfolio, Position
 
 EXPECTED_COLUMNS = [
-    "symbol", "quantity", "purchase_price", "purchase_date", "asset_class", "sector", "region", "currency"
+    "symbol",
+    "quantity",
+    "purchase_price",
+    "purchase_date",
+    "asset_class",
+    "sector",
+    "region",
+    "currency",
 ]
 
 
@@ -21,10 +28,14 @@ def parse_portfolio_csv(content: bytes, name: str) -> Portfolio:
     try:
         text = content.decode("utf-8-sig")
     except UnicodeDecodeError as exc:
-        raise PortfolioImportError([{"field": "file", "message": "CSV must be UTF-8 encoded"}]) from exc
+        raise PortfolioImportError(
+            [{"field": "file", "message": "CSV must be UTF-8 encoded"}]
+        ) from exc
     reader = csv.DictReader(io.StringIO(text))
     if reader.fieldnames != EXPECTED_COLUMNS:
-        raise PortfolioImportError([{"field": "header", "message": f"Expected columns: {', '.join(EXPECTED_COLUMNS)}"}])
+        raise PortfolioImportError(
+            [{"field": "header", "message": f"Expected columns: {', '.join(EXPECTED_COLUMNS)}"}]
+        )
 
     positions: list[Position] = []
     errors: list[dict[str, object]] = []
@@ -32,7 +43,9 @@ def parse_portfolio_csv(content: bytes, name: str) -> Portfolio:
         symbol = row["symbol"].strip().upper()
         asset = ASSETS.get(symbol)
         if asset is None:
-            errors.append({"row": row_number, "field": "symbol", "message": f"Unknown symbol: {symbol}"})
+            errors.append(
+                {"row": row_number, "field": "symbol", "message": f"Unknown symbol: {symbol}"}
+            )
             continue
         try:
             quantity = Decimal(row["quantity"])
@@ -46,12 +59,28 @@ def parse_portfolio_csv(content: bytes, name: str) -> Portfolio:
         supplied = (row["asset_class"], row["sector"], row["region"], row["currency"].upper())
         expected = (asset.asset_class, asset.sector, asset.region, asset.currency)
         if supplied != expected:
-            errors.append({"row": row_number, "field": "metadata", "message": "Asset metadata does not match the market catalog"})
+            errors.append(
+                {
+                    "row": row_number,
+                    "field": "metadata",
+                    "message": "Asset metadata does not match the market catalog",
+                }
+            )
             continue
-        positions.append(Position(symbol=symbol, quantity=quantity, purchase_price=price, purchase_date=purchase_date, asset_class=asset.asset_class, sector=asset.sector, region=asset.region, currency=asset.currency))
+        positions.append(
+            Position(
+                symbol=symbol,
+                quantity=quantity,
+                purchase_price=price,
+                purchase_date=purchase_date,
+                asset_class=asset.asset_class,
+                sector=asset.sector,
+                region=asset.region,
+                currency=asset.currency,
+            )
+        )
     if not positions and not errors:
         errors.append({"field": "file", "message": "CSV contains no positions"})
     if errors:
         raise PortfolioImportError(errors)
     return Portfolio(name=name.strip(), kind="imported", positions=positions)
-

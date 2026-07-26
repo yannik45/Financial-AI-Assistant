@@ -15,7 +15,9 @@ class Portfolio(Base):
     name: Mapped[str] = mapped_column(String(120))
     base_currency: Mapped[str] = mapped_column(String(3), default="EUR")
     kind: Mapped[str] = mapped_column(String(20), default="imported")
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
     positions: Mapped[list["Position"]] = relationship(
         back_populates="portfolio", cascade="all, delete-orphan", lazy="selectin"
     )

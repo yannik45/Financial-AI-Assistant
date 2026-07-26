@@ -2,6 +2,7 @@ import json
 import logging
 import time
 from contextlib import asynccontextmanager
+from typing import Annotated
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -21,6 +22,7 @@ from financial_ai.seed import seed_demo_portfolios
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("financial_ai")
+SessionDependency = Annotated[Session, Depends(get_session)]
 
 
 @asynccontextmanager
@@ -53,17 +55,31 @@ async def request_context(request: Request, call_next):
         raise
     elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
     response.headers["X-Correlation-ID"] = correlation_id
-    logger.info(json.dumps({"event": "request_completed", "correlation_id": correlation_id, "method": request.method, "path": request.url.path, "status": response.status_code, "duration_ms": elapsed_ms}))
+    logger.info(
+        json.dumps(
+            {
+                "event": "request_completed",
+                "correlation_id": correlation_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": elapsed_ms,
+            }
+        )
+    )
     return response
 
 
 @app.exception_handler(PortfolioImportError)
 async def import_error_handler(_: Request, exc: PortfolioImportError):
-    return JSONResponse(status_code=422, content={"code": "invalid_portfolio_csv", "message": str(exc), "details": exc.details})
+    return JSONResponse(
+        status_code=422,
+        content={"code": "invalid_portfolio_csv", "message": str(exc), "details": exc.details},
+    )
 
 
 @app.get("/health")
-def health(session: Session = Depends(get_session)) -> dict[str, str]:
+def health(session: SessionDependency) -> dict[str, str]:
     session.execute(text("SELECT 1"))
     return {"status": "ok", "database": "ok"}
 
@@ -74,7 +90,7 @@ def market_catalog() -> list[CatalogAsset]:
 
 
 @app.get("/v1/portfolios", response_model=list[PortfolioSummary])
-def list_portfolios(session: Session = Depends(get_session)) -> list[PortfolioSummary]:
+def list_portfolios(session: SessionDependency) -> list[PortfolioSummary]:
     portfolios = session.scalars(select(Portfolio).order_by(Portfolio.kind, Portfolio.name)).all()
     return [
         PortfolioSummary(
@@ -92,17 +108,24 @@ def list_portfolios(session: Session = Depends(get_session)) -> list[PortfolioSu
 def get_portfolio_or_404(portfolio_id: str, session: Session) -> Portfolio:
     portfolio = session.get(Portfolio, portfolio_id)
     if portfolio is None:
-        raise HTTPException(status_code=404, detail={"code": "portfolio_not_found", "message": "Portfolio not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "portfolio_not_found", "message": "Portfolio not found"},
+        )
     return portfolio
 
 
 @app.get("/v1/portfolios/{portfolio_id}", response_model=PortfolioRead)
-def get_portfolio(portfolio_id: str, session: Session = Depends(get_session)) -> Portfolio:
+def get_portfolio(portfolio_id: str, session: SessionDependency) -> Portfolio:
     return get_portfolio_or_404(portfolio_id, session)
 
 
 @app.post("/v1/portfolios/import", response_model=PortfolioRead, status_code=201)
-async def import_portfolio(name: str = Form(min_length=1, max_length=120), file: UploadFile = File(), session: Session = Depends(get_session)) -> Portfolio:
+async def import_portfolio(
+    name: Annotated[str, Form(min_length=1, max_length=120)],
+    file: Annotated[UploadFile, File()],
+    session: SessionDependency,
+) -> Portfolio:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise PortfolioImportError([{"field": "file", "message": "A .csv file is required"}])
     content = await file.read()
@@ -116,14 +139,17 @@ async def import_portfolio(name: str = Form(min_length=1, max_length=120), file:
 
 
 @app.get("/v1/portfolios/{portfolio_id}/analytics", response_model=AnalyticsResponse)
-def portfolio_analytics(portfolio_id: str, session: Session = Depends(get_session)) -> AnalyticsResponse:
+def portfolio_analytics(portfolio_id: str, session: SessionDependency) -> AnalyticsResponse:
     portfolio = get_portfolio_or_404(portfolio_id, session)
     try:
         return calculate_analytics(portfolio)
     except AnalyticsError as exc:
-        raise HTTPException(status_code=422, detail={"code": "analytics_unavailable", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=422, detail={"code": "analytics_unavailable", "message": str(exc)}
+        ) from exc
 
 
 def run() -> None:
     import uvicorn
+
     uvicorn.run("financial_ai.main:app", host="127.0.0.1", port=8000, reload=True)
