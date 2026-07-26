@@ -22,16 +22,108 @@ class Asset:
 
 
 ASSETS: dict[str, Asset] = {
-    "WORLD-ETF": Asset("WORLD-ETF", "Global Equity Demo ETF", "EUR", "Equity ETF", "Broad Market", "Global", 104, 0.08, 0.15),
-    "EURO-BOND": Asset("EURO-BOND", "Euro Aggregate Bond Demo ETF", "EUR", "Bond ETF", "Fixed Income", "Europe", 98, 0.025, 0.045),
-    "EU-TECH": Asset("EU-TECH", "European Technology Demo", "EUR", "Equity", "Technology", "Europe", 82, 0.11, 0.24),
-    "EU-HEALTH": Asset("EU-HEALTH", "European Healthcare Demo", "EUR", "Equity", "Healthcare", "Europe", 76, 0.065, 0.14),
-    "US-TECH-A": Asset("US-TECH-A", "US Technology Demo A", "USD", "Equity", "Technology", "North America", 145, 0.13, 0.28),
-    "US-TECH-B": Asset("US-TECH-B", "US Technology Demo B", "USD", "Equity", "Technology", "North America", 118, 0.12, 0.25),
-    "US-HEALTH": Asset("US-HEALTH", "US Healthcare Demo", "USD", "Equity", "Healthcare", "North America", 92, 0.07, 0.16),
-    "UK-DIVIDEND": Asset("UK-DIVIDEND", "UK Dividend Demo ETF", "GBP", "Equity ETF", "Broad Market", "Europe", 64, 0.055, 0.13),
-    "JP-EQUITY": Asset("JP-EQUITY", "Japan Equity Demo ETF", "JPY", "Equity ETF", "Broad Market", "Asia Pacific", 12800, 0.07, 0.18),
-    "GOLD-ETC": Asset("GOLD-ETC", "Gold Demo ETC", "USD", "Commodity", "Commodities", "Global", 181, 0.045, 0.17),
+    "WORLD-ETF": Asset(
+        "WORLD-ETF",
+        "Global Equity Demo ETF",
+        "EUR",
+        "Equity ETF",
+        "Broad Market",
+        "Global",
+        104,
+        0.08,
+        0.15,
+    ),
+    "EURO-BOND": Asset(
+        "EURO-BOND",
+        "Euro Aggregate Bond Demo ETF",
+        "EUR",
+        "Bond ETF",
+        "Fixed Income",
+        "Europe",
+        98,
+        0.025,
+        0.045,
+    ),
+    "EU-TECH": Asset(
+        "EU-TECH",
+        "European Technology Demo",
+        "EUR",
+        "Equity",
+        "Technology",
+        "Europe",
+        82,
+        0.11,
+        0.24,
+    ),
+    "EU-HEALTH": Asset(
+        "EU-HEALTH",
+        "European Healthcare Demo",
+        "EUR",
+        "Equity",
+        "Healthcare",
+        "Europe",
+        76,
+        0.065,
+        0.14,
+    ),
+    "US-TECH-A": Asset(
+        "US-TECH-A",
+        "US Technology Demo A",
+        "USD",
+        "Equity",
+        "Technology",
+        "North America",
+        145,
+        0.13,
+        0.28,
+    ),
+    "US-TECH-B": Asset(
+        "US-TECH-B",
+        "US Technology Demo B",
+        "USD",
+        "Equity",
+        "Technology",
+        "North America",
+        118,
+        0.12,
+        0.25,
+    ),
+    "US-HEALTH": Asset(
+        "US-HEALTH",
+        "US Healthcare Demo",
+        "USD",
+        "Equity",
+        "Healthcare",
+        "North America",
+        92,
+        0.07,
+        0.16,
+    ),
+    "UK-DIVIDEND": Asset(
+        "UK-DIVIDEND",
+        "UK Dividend Demo ETF",
+        "GBP",
+        "Equity ETF",
+        "Broad Market",
+        "Europe",
+        64,
+        0.055,
+        0.13,
+    ),
+    "JP-EQUITY": Asset(
+        "JP-EQUITY",
+        "Japan Equity Demo ETF",
+        "JPY",
+        "Equity ETF",
+        "Broad Market",
+        "Asia Pacific",
+        12800,
+        0.07,
+        0.18,
+    ),
+    "GOLD-ETC": Asset(
+        "GOLD-ETC", "Gold Demo ETC", "USD", "Commodity", "Commodities", "Global", 181, 0.045, 0.17
+    ),
 }
 
 
@@ -88,7 +180,9 @@ class DemoMarketDataProvider:
         frame["TIME_PERIOD"] = pd.to_datetime(frame["TIME_PERIOD"])
         result: dict[str, pd.Series] = {"EUR": pd.Series(1.0, index=self._dates)}
         for currency in ("USD", "GBP", "JPY"):
-            quoted_per_eur = frame.loc[frame["CURRENCY"] == currency].set_index("TIME_PERIOD")["OBS_VALUE"]
+            quoted_per_eur = frame.loc[frame["CURRENCY"] == currency].set_index("TIME_PERIOD")[
+                "OBS_VALUE"
+            ]
             # ECB series are quoted as foreign-currency units per EUR; analytics need EUR per unit.
             result[currency] = (1.0 / quoted_per_eur).reindex(self._dates).ffill().bfill()
         return result

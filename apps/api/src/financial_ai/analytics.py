@@ -1,6 +1,5 @@
 from collections import defaultdict
-from datetime import date
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 
 import numpy as np
 import pandas as pd
@@ -96,7 +95,9 @@ def calculate_analytics(
             position_share = float(position.quantity) / symbol_total_quantity
             grouped[getter(position)] += float(current_by_symbol[position.symbol]) * position_share
         allocations[dimension] = [
-            AllocationItem(label=label, value_eur=money(value), weight=round(value / market_value, 6))
+            AllocationItem(
+                label=label, value_eur=money(value), weight=round(value / market_value, 6)
+            )
             for label, value in sorted(grouped.items(), key=lambda item: item[1], reverse=True)
         ]
 
@@ -120,10 +121,12 @@ def calculate_analytics(
         largest_position_weight=round(float(weights[largest_symbol]), 6),
         positions=position_results,
         allocations=allocations,
-        value_series=[SeriesPoint(date=index.date(), value_eur=money(float(value))) for index, value in sampled_series.items()],
+        value_series=[
+            SeriesPoint(date=index.date(), value_eur=money(float(value)))
+            for index, value in sampled_series.items()
+        ],
         warnings=[
             "Historical risk uses current holdings and is not actual account performance.",
             "Security prices are deterministic synthetic demo data.",
         ],
     )
-

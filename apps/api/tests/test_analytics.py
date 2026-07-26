@@ -1,9 +1,9 @@
 import math
 
 from financial_ai.analytics import calculate_analytics
+from financial_ai.database import SessionLocal
 from financial_ai.models import Portfolio
 from financial_ai.seed import DEMO_PORTFOLIOS, seed_demo_portfolios
-from financial_ai.database import SessionLocal
 
 
 def test_demo_analytics_are_deterministic():
@@ -21,4 +21,3 @@ def test_demo_analytics_are_deterministic():
 
 def test_all_five_demo_profiles_exist():
     assert len(DEMO_PORTFOLIOS) == 5
-
