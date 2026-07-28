@@ -4,11 +4,10 @@ from pathlib import Path
 TEST_DB = Path(__file__).parent / "test.db"
 os.environ["FINANCIAL_AI_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 
-import pytest
-from fastapi.testclient import TestClient
-
-from financial_ai.database import Base, engine
-from financial_ai.main import app
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+from financial_ai.database import Base, engine  # noqa: E402
+from financial_ai.main import app  # noqa: E402
 
 
 @pytest.fixture(autouse=True)

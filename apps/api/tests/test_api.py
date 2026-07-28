@@ -18,17 +18,26 @@ def test_demo_portfolio_can_be_analyzed(client):
 
 
 def test_csv_import_is_atomic(client):
-    valid = "\n".join([
-        ",".join(EXPECTED_COLUMNS),
-        "WORLD-ETF,10,104,2024-02-15,Equity ETF,Broad Market,Global,EUR",
-    ])
-    response = client.post("/v1/portfolios/import", data={"name": "Imported"}, files={"file": ("positions.csv", valid, "text/csv")})
+    valid = "\n".join(
+        [
+            ",".join(EXPECTED_COLUMNS),
+            "WORLD-ETF,10,104,2024-02-15,Equity ETF,Broad Market,Global,EUR",
+        ]
+    )
+    response = client.post(
+        "/v1/portfolios/import",
+        data={"name": "Imported"},
+        files={"file": ("positions.csv", valid, "text/csv")},
+    )
     assert response.status_code == 201
     assert len(client.get("/v1/portfolios").json()) == 6
 
     invalid = valid + "\nUNKNOWN,1,10,2024-01-01,Equity,Other,Global,EUR"
-    response = client.post("/v1/portfolios/import", data={"name": "Invalid"}, files={"file": ("positions.csv", invalid, "text/csv")})
+    response = client.post(
+        "/v1/portfolios/import",
+        data={"name": "Invalid"},
+        files={"file": ("positions.csv", invalid, "text/csv")},
+    )
     assert response.status_code == 422
     assert response.json()["code"] == "invalid_portfolio_csv"
     assert len(client.get("/v1/portfolios").json()) == 6
-

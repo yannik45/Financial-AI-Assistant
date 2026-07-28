@@ -1,2 +1,1 @@
 """Financial AI Assistant API."""
-

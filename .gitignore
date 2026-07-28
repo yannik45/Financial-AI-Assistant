@@ -10,6 +10,8 @@ __pycache__/
 node_modules/
 dist/
 *.tsbuildinfo
+apps/web/vite.config.js
+apps/web/vite.config.d.ts
 coverage/
 data/runtime/
 
