@@ -1,4 +1,12 @@
-import type { Analytics, Portfolio } from "./types";
+import type {
+  Account,
+  Analytics,
+  Portfolio,
+  Transaction,
+  TransactionCreate,
+  TransactionFilters,
+  TransactionPage,
+} from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
@@ -7,7 +15,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     const details = payload?.details?.map((item: { row?: number; field: string; message: string }) => `${item.row ? `Row ${item.row}, ` : ""}${item.field}: ${item.message}`).join("\n");
-    throw new Error(details || payload?.detail?.message || payload?.message || `Request failed (${response.status})`);
+    throw new Error(
+      details ||
+        payload?.detail?.message ||
+        payload?.message ||
+        `Request failed (${response.status})`,
+    );
   }
   return response.json() as Promise<T>;
 }
@@ -15,6 +28,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   portfolios: () => request<Portfolio[]>("/v1/portfolios"),
   analytics: (id: string) => request<Analytics>(`/v1/portfolios/${id}/analytics`),
+  accounts: () => request<Account[]>("/v1/accounts"),
+  transactions: (filters: TransactionFilters) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== "") params.set(key, String(value));
+    });
+    return request<TransactionPage>(`/v1/transactions?${params}`);
+  },
+  createTransaction: (payload: TransactionCreate) =>
+    request<Transaction>("/v1/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
   importPortfolio: (name: string, file: File) => {
     const body = new FormData();
     body.append("name", name);

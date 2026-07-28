@@ -2,32 +2,45 @@ import json
 import logging
 import time
 from contextlib import asynccontextmanager
+from datetime import date
+from typing import Annotated
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from financial_ai.analytics import AnalyticsError, calculate_analytics
 from financial_ai.config import get_settings
-from financial_ai.database import Base, SessionLocal, engine, get_session
+from financial_ai.database import SessionLocal, get_session
 from financial_ai.importer import PortfolioImportError, parse_portfolio_csv
 from financial_ai.market_data import market_data_provider
-from financial_ai.models import Portfolio
-from financial_ai.schemas import AnalyticsResponse, CatalogAsset, PortfolioRead, PortfolioSummary
-from financial_ai.seed import seed_demo_portfolios
+from financial_ai.models import Account, Portfolio, Transaction
+from financial_ai.schemas import (
+    AccountRead,
+    AnalyticsResponse,
+    CatalogAsset,
+    PortfolioRead,
+    PortfolioSummary,
+    TransactionCreate,
+    TransactionPage,
+    TransactionRead,
+    TransactionType,
+)
+from financial_ai.seed import seed_demo_accounts, seed_demo_portfolios
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("financial_ai")
+SessionDependency = Annotated[Session, Depends(get_session)]
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
     with SessionLocal() as session:
         seed_demo_portfolios(session)
+        seed_demo_accounts(session)
     yield
 
 
@@ -53,17 +66,31 @@ async def request_context(request: Request, call_next):
         raise
     elapsed_ms = round((time.perf_counter() - started) * 1000, 2)
     response.headers["X-Correlation-ID"] = correlation_id
-    logger.info(json.dumps({"event": "request_completed", "correlation_id": correlation_id, "method": request.method, "path": request.url.path, "status": response.status_code, "duration_ms": elapsed_ms}))
+    logger.info(
+        json.dumps(
+            {
+                "event": "request_completed",
+                "correlation_id": correlation_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": elapsed_ms,
+            }
+        )
+    )
     return response
 
 
 @app.exception_handler(PortfolioImportError)
 async def import_error_handler(_: Request, exc: PortfolioImportError):
-    return JSONResponse(status_code=422, content={"code": "invalid_portfolio_csv", "message": str(exc), "details": exc.details})
+    return JSONResponse(
+        status_code=422,
+        content={"code": "invalid_portfolio_csv", "message": str(exc), "details": exc.details},
+    )
 
 
 @app.get("/health")
-def health(session: Session = Depends(get_session)) -> dict[str, str]:
+def health(session: SessionDependency) -> dict[str, str]:
     session.execute(text("SELECT 1"))
     return {"status": "ok", "database": "ok"}
 
@@ -74,7 +101,7 @@ def market_catalog() -> list[CatalogAsset]:
 
 
 @app.get("/v1/portfolios", response_model=list[PortfolioSummary])
-def list_portfolios(session: Session = Depends(get_session)) -> list[PortfolioSummary]:
+def list_portfolios(session: SessionDependency) -> list[PortfolioSummary]:
     portfolios = session.scalars(select(Portfolio).order_by(Portfolio.kind, Portfolio.name)).all()
     return [
         PortfolioSummary(
@@ -92,17 +119,24 @@ def list_portfolios(session: Session = Depends(get_session)) -> list[PortfolioSu
 def get_portfolio_or_404(portfolio_id: str, session: Session) -> Portfolio:
     portfolio = session.get(Portfolio, portfolio_id)
     if portfolio is None:
-        raise HTTPException(status_code=404, detail={"code": "portfolio_not_found", "message": "Portfolio not found"})
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "portfolio_not_found", "message": "Portfolio not found"},
+        )
     return portfolio
 
 
 @app.get("/v1/portfolios/{portfolio_id}", response_model=PortfolioRead)
-def get_portfolio(portfolio_id: str, session: Session = Depends(get_session)) -> Portfolio:
+def get_portfolio(portfolio_id: str, session: SessionDependency) -> Portfolio:
     return get_portfolio_or_404(portfolio_id, session)
 
 
 @app.post("/v1/portfolios/import", response_model=PortfolioRead, status_code=201)
-async def import_portfolio(name: str = Form(min_length=1, max_length=120), file: UploadFile = File(), session: Session = Depends(get_session)) -> Portfolio:
+async def import_portfolio(
+    name: Annotated[str, Form(min_length=1, max_length=120)],
+    file: Annotated[UploadFile, File()],
+    session: SessionDependency,
+) -> Portfolio:
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise PortfolioImportError([{"field": "file", "message": "A .csv file is required"}])
     content = await file.read()
@@ -116,14 +150,138 @@ async def import_portfolio(name: str = Form(min_length=1, max_length=120), file:
 
 
 @app.get("/v1/portfolios/{portfolio_id}/analytics", response_model=AnalyticsResponse)
-def portfolio_analytics(portfolio_id: str, session: Session = Depends(get_session)) -> AnalyticsResponse:
+def portfolio_analytics(portfolio_id: str, session: SessionDependency) -> AnalyticsResponse:
     portfolio = get_portfolio_or_404(portfolio_id, session)
     try:
         return calculate_analytics(portfolio)
     except AnalyticsError as exc:
-        raise HTTPException(status_code=422, detail={"code": "analytics_unavailable", "message": str(exc)}) from exc
+        raise HTTPException(
+            status_code=422, detail={"code": "analytics_unavailable", "message": str(exc)}
+        ) from exc
+
+
+def get_account_or_404(account_id: str, session: Session) -> Account:
+    account = session.get(Account, account_id)
+    if account is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "account_not_found", "message": "Account not found"},
+        )
+    return account
+
+
+@app.get("/v1/accounts", response_model=list[AccountRead])
+def list_accounts(session: SessionDependency) -> list[AccountRead]:
+    accounts = session.scalars(select(Account).order_by(Account.account_type, Account.name)).all()
+    return [
+        AccountRead(
+            id=account.id,
+            name=account.name,
+            account_type=account.account_type,
+            currency=account.currency,
+            kind=account.kind,
+            created_at=account.created_at,
+            transaction_count=len(account.transactions),
+        )
+        for account in accounts
+    ]
+
+
+@app.get("/v1/accounts/{account_id}", response_model=AccountRead)
+def get_account(account_id: str, session: SessionDependency) -> AccountRead:
+    account = get_account_or_404(account_id, session)
+    return AccountRead(
+        id=account.id,
+        name=account.name,
+        account_type=account.account_type,
+        currency=account.currency,
+        kind=account.kind,
+        created_at=account.created_at,
+        transaction_count=len(account.transactions),
+    )
+
+
+@app.get("/v1/transactions", response_model=TransactionPage)
+def list_transactions(
+    session: SessionDependency,
+    account_id: str | None = None,
+    transaction_type: TransactionType | None = None,
+    category: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> TransactionPage:
+    filters = []
+    if account_id:
+        get_account_or_404(account_id, session)
+        filters.append(Transaction.account_id == account_id)
+    if transaction_type:
+        filters.append(Transaction.transaction_type == transaction_type.value)
+    if category:
+        filters.append(func.lower(Transaction.category) == category.lower())
+    if date_from:
+        filters.append(Transaction.booked_at >= date_from)
+    if date_to:
+        filters.append(Transaction.booked_at <= date_to)
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "invalid_date_range", "message": "date_from must not exceed date_to"},
+        )
+
+    total = session.scalar(select(func.count()).select_from(Transaction).where(*filters)) or 0
+    statement = (
+        select(Transaction)
+        .where(*filters)
+        .order_by(Transaction.booked_at.desc(), Transaction.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+    )
+    items = list(session.scalars(statement).all())
+    return TransactionPage(items=items, total=total, limit=limit, offset=offset)
+
+
+@app.get("/v1/transactions/{transaction_id}", response_model=TransactionRead)
+def get_transaction(transaction_id: str, session: SessionDependency) -> Transaction:
+    transaction = session.get(Transaction, transaction_id)
+    if transaction is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "transaction_not_found", "message": "Transaction not found"},
+        )
+    return transaction
+
+
+@app.post("/v1/transactions", response_model=TransactionRead, status_code=201)
+def create_transaction(payload: TransactionCreate, session: SessionDependency) -> Transaction:
+    account = get_account_or_404(payload.account_id, session)
+    security_types = {TransactionType.SECURITY_BUY, TransactionType.SECURITY_SELL}
+    if payload.transaction_type in security_types and account.account_type != "brokerage":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_account_type",
+                "message": "Security transactions require a brokerage account",
+            },
+        )
+
+    transaction = Transaction(
+        **payload.model_dump(
+            mode="python", exclude={"currency", "transaction_type", "security_symbol"}
+        ),
+        currency=payload.currency.upper(),
+        transaction_type=payload.transaction_type.value,
+        security_symbol=payload.security_symbol.upper() if payload.security_symbol else None,
+        source="manual",
+    )
+    session.add(transaction)
+    session.commit()
+    session.refresh(transaction)
+    return transaction
 
 
 def run() -> None:
     import uvicorn
+
     uvicorn.run("financial_ai.main:app", host="127.0.0.1", port=8000, reload=True)

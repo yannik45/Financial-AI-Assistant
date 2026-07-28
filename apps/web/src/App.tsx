@@ -1,57 +1,810 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Area, AreaChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { api } from "./api";
-import type { Allocation, Analytics } from "./types";
+import type {
+  Account,
+  Allocation,
+  Analytics,
+  TransactionCreate,
+  TransactionFilters,
+  TransactionType,
+} from "./types";
 
 const COLORS = ["#7cf4c5", "#68a7ff", "#b991ff", "#ffce6d", "#ff7887", "#54d6e8"];
-const euro = new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const TRANSACTION_CATEGORIES = [
+  "Income",
+  "Housing",
+  "Groceries",
+  "Dining",
+  "Transport",
+  "Utilities",
+  "Healthcare",
+  "Shopping",
+  "Entertainment",
+  "Travel",
+  "Education",
+  "Insurance",
+  "Savings",
+  "Investments",
+  "Fees",
+  "Taxes",
+  "Cash",
+  "Other",
+];
+const TRANSACTION_TYPES: Array<{ value: TransactionType; label: string }> = [
+  { value: "card_payment", label: "Card payment" },
+  { value: "transfer", label: "Transfer" },
+  { value: "direct_debit", label: "Direct debit" },
+  { value: "cash_withdrawal", label: "Cash withdrawal" },
+  { value: "salary", label: "Salary" },
+  { value: "deposit", label: "Deposit" },
+  { value: "withdrawal", label: "Withdrawal" },
+  { value: "security_buy", label: "Security buy" },
+  { value: "security_sell", label: "Security sell" },
+  { value: "dividend", label: "Dividend" },
+  { value: "interest", label: "Interest" },
+  { value: "fee", label: "Fee" },
+  { value: "tax", label: "Tax" },
+];
+const euro = new Intl.NumberFormat("en-IE", {
+  style: "currency",
+  currency: "EUR",
+  maximumFractionDigits: 0,
+});
 const pct = (value: number) => `${value.toFixed(1)}%`;
+const formatMoney = (value: string, currency: string) =>
+  new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(Number(value));
+const typeLabel = (value: TransactionType) =>
+  TRANSACTION_TYPES.find((item) => item.value === value)?.label ?? value;
 
-function MetricCard({ label, value, note, tone }: { label: string; value: string; note: string; tone?: "good" | "risk" }) {
-  return <article className={`metric ${tone ?? ""}`}><p>{label}</p><strong>{value}</strong><span>{note}</span></article>;
+function MetricCard({
+  label,
+  value,
+  note,
+  tone,
+}: {
+  label: string;
+  value: string;
+  note: string;
+  tone?: "good" | "risk";
+}) {
+  return (
+    <article className={`metric ${tone ?? ""}`}>
+      <p>{label}</p>
+      <strong>{value}</strong>
+      <span>{note}</span>
+    </article>
+  );
 }
 
 function AllocationChart({ title, data }: { title: string; data: Allocation[] }) {
-  return <section className="panel allocation"><div className="panel-title"><div><span className="eyebrow">EXPOSURE</span><h3>{title}</h3></div></div><div className="allocation-body"><ResponsiveContainer width="52%" height={210}><PieChart><Pie data={data} dataKey="weight" nameKey="label" innerRadius={55} outerRadius={84} paddingAngle={3}>{data.map((entry, index) => <Cell key={entry.label} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={(value) => pct(Number(value) * 100)} /></PieChart></ResponsiveContainer><div className="legend">{data.map((entry, index) => <div key={entry.label}><i style={{ background: COLORS[index % COLORS.length] }} /><span>{entry.label}</span><b>{pct(entry.weight * 100)}</b></div>)}</div></div></section>;
+  return (
+    <section className="panel allocation">
+      <div className="panel-title">
+        <div>
+          <span className="eyebrow">EXPOSURE</span>
+          <h3>{title}</h3>
+        </div>
+      </div>
+      <div className="allocation-body">
+        <ResponsiveContainer width="52%" height={210}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="weight"
+              nameKey="label"
+              innerRadius={55}
+              outerRadius={84}
+              paddingAngle={3}
+            >
+              {data.map((entry, index) => (
+                <Cell key={entry.label} fill={COLORS[index % COLORS.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value) => pct(Number(value) * 100)} />
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="legend">
+          {data.map((entry, index) => (
+            <div key={entry.label}>
+              <i style={{ background: COLORS[index % COLORS.length] }} />
+              <span>{entry.label}</span>
+              <b>{pct(entry.weight * 100)}</b>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 function Dashboard({ analytics }: { analytics: Analytics }) {
   const positive = Number(analytics.unrealized_pnl_eur) >= 0;
-  return <>
-    <div className="metrics-grid">
-      <MetricCard label="Portfolio value" value={euro.format(Number(analytics.market_value_eur))} note={`As of ${analytics.as_of}`} />
-      <MetricCard label="Unrealized P&L" value={`${positive ? "+" : ""}${euro.format(Number(analytics.unrealized_pnl_eur))}`} note={pct(analytics.unrealized_pnl_percent)} tone={positive ? "good" : "risk"} />
-      <MetricCard label="Annualized volatility" value={pct(analytics.annualized_volatility_percent)} note="252-day estimate" tone="risk" />
-      <MetricCard label="Maximum drawdown" value={pct(analytics.max_drawdown_percent)} note="Trailing period" tone="risk" />
-      <MetricCard label="Concentration HHI" value={analytics.concentration_hhi.toFixed(3)} note={`${analytics.largest_position_symbol} · ${pct(analytics.largest_position_weight * 100)}`} />
-    </div>
-    <section className="panel performance"><div className="panel-title"><div><span className="eyebrow">PORTFOLIO PATH</span><h3>Current holdings, reconstructed</h3></div><span className="return-pill">{analytics.trailing_return_percent >= 0 ? "+" : ""}{pct(analytics.trailing_return_percent)}</span></div><ResponsiveContainer width="100%" height={300}><AreaChart data={analytics.value_series}><defs><linearGradient id="valueFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#7cf4c5" stopOpacity={0.35}/><stop offset="100%" stopColor="#7cf4c5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#203047" vertical={false}/><XAxis dataKey="date" stroke="#7890aa" tickLine={false}/><YAxis stroke="#7890aa" tickLine={false} tickFormatter={(v) => `€${Math.round(v / 1000)}k`}/><Tooltip formatter={(v) => euro.format(Number(v))}/><Area type="monotone" dataKey="value_eur" stroke="#7cf4c5" fill="url(#valueFill)" strokeWidth={2}/></AreaChart></ResponsiveContainer></section>
-    <div className="chart-grid"><AllocationChart title="Asset class allocation" data={analytics.allocations.asset_class}/><AllocationChart title="Regional allocation" data={analytics.allocations.region}/></div>
-    <section className="panel"><div className="panel-title"><div><span className="eyebrow">HOLDINGS</span><h3>Position contribution</h3></div></div><div className="table-wrap"><table><thead><tr><th>Symbol</th><th>Market value</th><th>Cost basis</th><th>P&L</th><th>Weight</th></tr></thead><tbody>{analytics.positions.map((position) => <tr key={position.symbol}><td><b>{position.symbol}</b></td><td>{euro.format(Number(position.market_value_eur))}</td><td>{euro.format(Number(position.cost_basis_eur))}</td><td className={Number(position.pnl_eur) >= 0 ? "positive" : "negative"}>{euro.format(Number(position.pnl_eur))}</td><td>{pct(position.weight * 100)}</td></tr>)}</tbody></table></div></section>
-    <div className="warnings">{analytics.warnings.map((warning) => <p key={warning}>ⓘ {warning}</p>)}</div>
-  </>;
+  return (
+    <>
+      <div className="metrics-grid">
+        <MetricCard
+          label="Portfolio value"
+          value={euro.format(Number(analytics.market_value_eur))}
+          note={`As of ${analytics.as_of}`}
+        />
+        <MetricCard
+          label="Unrealized P&L"
+          value={`${positive ? "+" : ""}${euro.format(Number(analytics.unrealized_pnl_eur))}`}
+          note={pct(analytics.unrealized_pnl_percent)}
+          tone={positive ? "good" : "risk"}
+        />
+        <MetricCard
+          label="Annualized volatility"
+          value={pct(analytics.annualized_volatility_percent)}
+          note="252-day estimate"
+          tone="risk"
+        />
+        <MetricCard
+          label="Maximum drawdown"
+          value={pct(analytics.max_drawdown_percent)}
+          note="Trailing period"
+          tone="risk"
+        />
+        <MetricCard
+          label="Concentration HHI"
+          value={analytics.concentration_hhi.toFixed(3)}
+          note={`${analytics.largest_position_symbol} · ${pct(analytics.largest_position_weight * 100)}`}
+        />
+      </div>
+      <section className="panel performance">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">PORTFOLIO PATH</span>
+            <h3>Current holdings, reconstructed</h3>
+          </div>
+          <span className="return-pill">
+            {analytics.trailing_return_percent >= 0 ? "+" : ""}
+            {pct(analytics.trailing_return_percent)}
+          </span>
+        </div>
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={analytics.value_series}>
+            <defs>
+              <linearGradient id="valueFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#7cf4c5" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#7cf4c5" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#203047" vertical={false} />
+            <XAxis dataKey="date" stroke="#7890aa" tickLine={false} />
+            <YAxis
+              stroke="#7890aa"
+              tickLine={false}
+              tickFormatter={(value) => `€${Math.round(value / 1000)}k`}
+            />
+            <Tooltip formatter={(value) => euro.format(Number(value))} />
+            <Area
+              type="monotone"
+              dataKey="value_eur"
+              stroke="#7cf4c5"
+              fill="url(#valueFill)"
+              strokeWidth={2}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </section>
+      <div className="chart-grid">
+        <AllocationChart title="Asset class allocation" data={analytics.allocations.asset_class} />
+        <AllocationChart title="Regional allocation" data={analytics.allocations.region} />
+      </div>
+      <section className="panel">
+        <div className="panel-title">
+          <div>
+            <span className="eyebrow">HOLDINGS</span>
+            <h3>Position contribution</h3>
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Market value</th>
+                <th>Cost basis</th>
+                <th>P&amp;L</th>
+                <th>Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.positions.map((position) => (
+                <tr key={position.symbol}>
+                  <td>
+                    <b>{position.symbol}</b>
+                  </td>
+                  <td>{euro.format(Number(position.market_value_eur))}</td>
+                  <td>{euro.format(Number(position.cost_basis_eur))}</td>
+                  <td className={Number(position.pnl_eur) >= 0 ? "positive" : "negative"}>
+                    {euro.format(Number(position.pnl_eur))}
+                  </td>
+                  <td>{pct(position.weight * 100)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <div className="warnings">
+        {analytics.warnings.map((warning) => (
+          <p key={warning}>ⓘ {warning}</p>
+        ))}
+      </div>
+    </>
+  );
 }
 
-export default function App() {
+function AddTransactionModal({
+  accounts,
+  initialAccountId,
+  onClose,
+}: {
+  accounts: Account[];
+  initialAccountId: string;
+  onClose: () => void;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<TransactionCreate>({
+    account_id: initialAccountId || accounts[0]?.id || "",
+    booked_at: new Date().toISOString().slice(0, 10),
+    name: "",
+    amount: "",
+    currency: "EUR",
+    transaction_type: "card_payment",
+    category: "",
+    fees: "0",
+    taxes: "0",
+  });
+  const isSecurity = ["security_buy", "security_sell"].includes(form.transaction_type);
+  const mutation = useMutation({
+    mutationFn: () => api.createTransaction(form),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+      ]);
+      onClose();
+    },
+  });
+  const update = (key: keyof TransactionCreate, value: string) =>
+    setForm((current) => ({ ...current, [key]: value }));
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    mutation.mutate();
+  };
+
+  return (
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <form className="modal transaction-modal" onSubmit={submit} onMouseDown={(e) => e.stopPropagation()}>
+        <span className="eyebrow">NEW TRANSACTION</span>
+        <h2>Add transaction</h2>
+        <p>
+          Enter a signed cash flow. Use a negative amount for spending, fees, withdrawals, and
+          security purchases.
+        </p>
+        <div className="form-grid">
+          <label>
+            Account
+            <select
+              required
+              value={form.account_id}
+              onChange={(event) => update("account_id", event.target.value)}
+            >
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Transaction type
+            <select
+              value={form.transaction_type}
+              onChange={(event) => update("transaction_type", event.target.value)}
+            >
+              {TRANSACTION_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="span-2">
+            Name or description
+            <input
+              required
+              maxLength={160}
+              value={form.name}
+              onChange={(event) => update("name", event.target.value)}
+              placeholder="Example: Weekly groceries"
+            />
+          </label>
+          <label>
+            Amount
+            <input
+              required
+              type="number"
+              step="0.01"
+              value={form.amount}
+              onChange={(event) => update("amount", event.target.value)}
+              placeholder="-45.90"
+            />
+          </label>
+          <label>
+            Date
+            <input
+              required
+              type="date"
+              value={form.booked_at}
+              onChange={(event) => update("booked_at", event.target.value)}
+            />
+          </label>
+          <label>
+            Counterparty
+            <input
+              maxLength={160}
+              value={form.counterparty ?? ""}
+              onChange={(event) => update("counterparty", event.target.value)}
+              placeholder="Example merchant"
+            />
+          </label>
+          <label>
+            Category
+            <select
+              value={form.category ?? ""}
+              onChange={(event) => update("category", event.target.value)}
+            >
+              <option value="">Uncategorized</option>
+              {TRANSACTION_CATEGORIES.map((category) => (
+                <option key={category}>{category}</option>
+              ))}
+            </select>
+          </label>
+          {isSecurity && (
+            <>
+              <label>
+                Security symbol
+                <input
+                  required
+                  value={form.security_symbol ?? ""}
+                  onChange={(event) => update("security_symbol", event.target.value)}
+                  placeholder="WORLD-ETF"
+                />
+              </label>
+              <label>
+                Quantity
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="any"
+                  value={form.quantity ?? ""}
+                  onChange={(event) => update("quantity", event.target.value)}
+                />
+              </label>
+              <label>
+                Unit price
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.000001"
+                  value={form.unit_price ?? ""}
+                  onChange={(event) => update("unit_price", event.target.value)}
+                />
+              </label>
+              <label>
+                Fees
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.fees ?? "0"}
+                  onChange={(event) => update("fees", event.target.value)}
+                />
+              </label>
+              <label>
+                Taxes
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.taxes ?? "0"}
+                  onChange={(event) => update("taxes", event.target.value)}
+                />
+              </label>
+            </>
+          )}
+          <label className="span-2">
+            Notes
+            <textarea
+              maxLength={500}
+              value={form.notes ?? ""}
+              onChange={(event) => update("notes", event.target.value)}
+              placeholder="Optional local demo note"
+            />
+          </label>
+        </div>
+        {mutation.isError && <pre className="error">{mutation.error.message}</pre>}
+        <div className="modal-actions">
+          <button type="button" className="secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button disabled={mutation.isPending || !form.account_id || !form.amount || !form.name}>
+            {mutation.isPending ? "Saving…" : "Add transaction"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function TransactionsView() {
+  const [showAdd, setShowAdd] = useState(false);
+  const [filters, setFilters] = useState<TransactionFilters>({ limit: 10, offset: 0 });
+  const accounts = useQuery({ queryKey: ["accounts"], queryFn: api.accounts });
+  const transactions = useQuery({
+    queryKey: ["transactions", filters],
+    queryFn: () => api.transactions(filters),
+  });
+  const accountNames = new Map(accounts.data?.map((account) => [account.id, account.name]));
+  const setFilter = (key: keyof TransactionFilters, value: string) =>
+    setFilters((current) => ({ ...current, [key]: value || undefined, offset: 0 }));
+  const canGoNext =
+    Boolean(transactions.data) &&
+    filters.offset + filters.limit < (transactions.data?.total ?? 0);
+
+  return (
+    <main>
+      <header>
+        <div>
+          <span className="eyebrow">TRANSACTION LEDGER</span>
+          <h1>Accounts and transaction history</h1>
+          <p>Synthetic local data prepared for transparent categorization and risk models.</p>
+        </div>
+        <div className="header-actions">
+          <button onClick={() => setShowAdd(true)} disabled={!accounts.data?.length}>
+            Add transaction
+          </button>
+        </div>
+      </header>
+      <div className="demo-banner">
+        <b>SYNTHETIC DEMO TRANSACTIONS</b>
+        <span>Educational use only · No real customer data</span>
+      </div>
+      <section className="panel filter-panel">
+        <div className="filter-grid">
+          <label>
+            Account
+            <select
+              aria-label="Filter by account"
+              value={filters.account_id ?? ""}
+              onChange={(event) => setFilter("account_id", event.target.value)}
+            >
+              <option value="">All accounts</option>
+              {accounts.data?.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.name} ({account.transaction_count})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Type
+            <select
+              aria-label="Filter by transaction type"
+              value={filters.transaction_type ?? ""}
+              onChange={(event) => setFilter("transaction_type", event.target.value)}
+            >
+              <option value="">All types</option>
+              {TRANSACTION_TYPES.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Category
+            <select
+              aria-label="Filter by category"
+              value={filters.category ?? ""}
+              onChange={(event) => setFilter("category", event.target.value)}
+            >
+              <option value="">All categories</option>
+              {TRANSACTION_CATEGORIES.map((category) => (
+                <option key={category}>{category}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            From
+            <input
+              aria-label="Filter from date"
+              type="date"
+              value={filters.date_from ?? ""}
+              onChange={(event) => setFilter("date_from", event.target.value)}
+            />
+          </label>
+          <label>
+            To
+            <input
+              aria-label="Filter to date"
+              type="date"
+              value={filters.date_to ?? ""}
+              onChange={(event) => setFilter("date_to", event.target.value)}
+            />
+          </label>
+        </div>
+      </section>
+      {accounts.isError || transactions.isError ? (
+        <div className="error">
+          {(accounts.error as Error | null)?.message ??
+            (transactions.error as Error | null)?.message ??
+            "Could not load transactions."}
+        </div>
+      ) : null}
+      {transactions.isLoading && <div className="loading">Loading transaction history…</div>}
+      {transactions.data && (
+        <section className="panel transaction-panel">
+          <div className="panel-title">
+            <div>
+              <span className="eyebrow">LEDGER</span>
+              <h3>{transactions.data.total} transactions</h3>
+            </div>
+            <span className="page-meta">
+              {transactions.data.total
+                ? `${transactions.data.offset + 1}–${Math.min(
+                    transactions.data.offset + transactions.data.items.length,
+                    transactions.data.total,
+                  )}`
+                : "0"}
+            </span>
+          </div>
+          <div className="table-wrap">
+            <table className="transaction-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Description</th>
+                  <th>Account</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.data.items.map((transaction) => (
+                  <tr key={transaction.id}>
+                    <td>{transaction.booked_at}</td>
+                    <td>
+                      <b>{transaction.name}</b>
+                      <small>{transaction.counterparty ?? transaction.security_symbol ?? "—"}</small>
+                    </td>
+                    <td>{accountNames.get(transaction.account_id) ?? "Unknown account"}</td>
+                    <td>
+                      <span className="category-pill">{transaction.category ?? "Uncategorized"}</span>
+                    </td>
+                    <td>{typeLabel(transaction.transaction_type)}</td>
+                    <td className={Number(transaction.amount) >= 0 ? "positive" : "negative"}>
+                      {formatMoney(transaction.amount, transaction.currency)}
+                    </td>
+                  </tr>
+                ))}
+                {!transactions.data.items.length && (
+                  <tr>
+                    <td colSpan={6} className="empty-state">
+                      No transactions match the selected filters.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="pagination">
+            <button
+              className="secondary"
+              disabled={filters.offset === 0}
+              onClick={() =>
+                setFilters((current) => ({
+                  ...current,
+                  offset: Math.max(0, current.offset - current.limit),
+                }))
+              }
+            >
+              Previous
+            </button>
+            <button
+              className="secondary"
+              disabled={!canGoNext}
+              onClick={() =>
+                setFilters((current) => ({
+                  ...current,
+                  offset: current.offset + current.limit,
+                }))
+              }
+            >
+              Next
+            </button>
+          </div>
+        </section>
+      )}
+      {showAdd && accounts.data && (
+        <AddTransactionModal
+          accounts={accounts.data}
+          initialAccountId={filters.account_id ?? ""}
+          onClose={() => setShowAdd(false)}
+        />
+      )}
+    </main>
+  );
+}
+
+function PortfolioView() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState("");
   const [showImport, setShowImport] = useState(false);
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const portfolios = useQuery({ queryKey: ["portfolios"], queryFn: api.portfolios });
-  useEffect(() => { if (!selected && portfolios.data?.length) setSelected(portfolios.data[0].id); }, [portfolios.data, selected]);
-  const analytics = useQuery({ queryKey: ["analytics", selected], queryFn: () => api.analytics(selected), enabled: Boolean(selected) });
-  const importer = useMutation({ mutationFn: () => api.importPortfolio(name, file!), onSuccess: async (portfolio) => { await queryClient.invalidateQueries({ queryKey: ["portfolios"] }); setSelected(portfolio.id); setShowImport(false); setName(""); setFile(null); } });
+  useEffect(() => {
+    if (!selected && portfolios.data?.length) setSelected(portfolios.data[0].id);
+  }, [portfolios.data, selected]);
+  const analytics = useQuery({
+    queryKey: ["analytics", selected],
+    queryFn: () => api.analytics(selected),
+    enabled: Boolean(selected),
+  });
+  const importer = useMutation({
+    mutationFn: () => api.importPortfolio(name, file!),
+    onSuccess: async (portfolio) => {
+      await queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+      setSelected(portfolio.id);
+      setShowImport(false);
+      setName("");
+      setFile(null);
+    },
+  });
 
-  return <div className="app-shell"><aside><div className="brand"><div className="brand-mark">N</div><div><strong>NORTHSTAR</strong><span>FINANCIAL INTELLIGENCE</span></div></div><nav><a className="active">⌁ Portfolio overview</a><a className="disabled">◈ AI assistant <small>Phase 2</small></a><a className="disabled">◇ Transactions <small>Phase 3</small></a></nav><div className="sidebar-note"><span>LOCAL MODE</span><p>No live market data or cloud services are active.</p></div></aside>
-    <main><header><div><span className="eyebrow">PORTFOLIO INTELLIGENCE</span><h1>Risk, concentration and performance</h1><p>Deterministic analytics for transparent financial exploration.</p></div><div className="header-actions"><select aria-label="Select portfolio" value={selected} onChange={(e) => setSelected(e.target.value)}>{portfolios.data?.map((p) => <option key={p.id} value={p.id}>{p.name} {p.kind === "demo" ? "· Demo" : ""}</option>)}</select><button onClick={() => setShowImport(true)}>Import CSV</button></div></header>
-    <div className="demo-banner"><b>SYNTHETIC DEMO MARKET DATA</b><span>Educational use only · Not financial advice</span></div>
-    {portfolios.isError && <div className="error">Could not reach the API. Start the FastAPI service on port 8000.</div>}
-    {analytics.isLoading && <div className="loading">Calculating portfolio analytics…</div>}
-    {analytics.isError && <div className="error">{(analytics.error as Error).message}</div>}
-    {analytics.data && <Dashboard analytics={analytics.data}/>}</main>
-    {showImport && <div className="modal-backdrop" onMouseDown={() => setShowImport(false)}><form className="modal" onSubmit={(e) => { e.preventDefault(); importer.mutate(); }} onMouseDown={(e) => e.stopPropagation()}><span className="eyebrow">NEW PORTFOLIO</span><h2>Import positions</h2><p>Use the exact market catalog metadata. The complete file is rejected when any row is invalid.</p><label>Portfolio name<input required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="My demo portfolio"/></label><label>UTF-8 CSV<input required type="file" accept=".csv,text/csv" onChange={(e) => setFile(e.target.files?.[0] ?? null)}/></label>{importer.isError && <pre className="error">{(importer.error as Error).message}</pre>}<div className="modal-actions"><a href="/portfolio_template.csv" download>Download template</a><button type="button" className="secondary" onClick={() => setShowImport(false)}>Cancel</button><button disabled={!file || !name || importer.isPending}>{importer.isPending ? "Importing…" : "Import portfolio"}</button></div></form></div>}
-  </div>;
+  return (
+    <main>
+      <header>
+        <div>
+          <span className="eyebrow">PORTFOLIO INTELLIGENCE</span>
+          <h1>Risk, concentration and performance</h1>
+          <p>Deterministic analytics for transparent financial exploration.</p>
+        </div>
+        <div className="header-actions">
+          <select
+            aria-label="Select portfolio"
+            value={selected}
+            onChange={(event) => setSelected(event.target.value)}
+          >
+            {portfolios.data?.map((portfolio) => (
+              <option key={portfolio.id} value={portfolio.id}>
+                {portfolio.name} {portfolio.kind === "demo" ? "· Demo" : ""}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => setShowImport(true)}>Import CSV</button>
+        </div>
+      </header>
+      <div className="demo-banner">
+        <b>SYNTHETIC DEMO MARKET DATA</b>
+        <span>Educational use only · Not financial advice</span>
+      </div>
+      {portfolios.isError && (
+        <div className="error">Could not reach the API. Start the FastAPI service on port 8000.</div>
+      )}
+      {analytics.isLoading && <div className="loading">Calculating portfolio analytics…</div>}
+      {analytics.isError && <div className="error">{analytics.error.message}</div>}
+      {analytics.data && <Dashboard analytics={analytics.data} />}
+      {showImport && (
+        <div className="modal-backdrop" onMouseDown={() => setShowImport(false)}>
+          <form
+            className="modal"
+            onSubmit={(event) => {
+              event.preventDefault();
+              importer.mutate();
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <span className="eyebrow">NEW PORTFOLIO</span>
+            <h2>Import positions</h2>
+            <p>
+              Use the exact market catalog metadata. The complete file is rejected when any row is
+              invalid.
+            </p>
+            <label>
+              Portfolio name
+              <input
+                required
+                maxLength={120}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="My demo portfolio"
+              />
+            </label>
+            <label>
+              UTF-8 CSV
+              <input
+                required
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              />
+            </label>
+            {importer.isError && <pre className="error">{importer.error.message}</pre>}
+            <div className="modal-actions">
+              <a href="/portfolio_template.csv" download>
+                Download template
+              </a>
+              <button type="button" className="secondary" onClick={() => setShowImport(false)}>
+                Cancel
+              </button>
+              <button disabled={!file || !name || importer.isPending}>
+                {importer.isPending ? "Importing…" : "Import portfolio"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+    </main>
+  );
 }
 
+export default function App() {
+  const [view, setView] = useState<"portfolio" | "transactions">("portfolio");
+  return (
+    <div className="app-shell">
+      <aside>
+        <div className="brand">
+          <div className="brand-mark">F</div>
+          <div>
+            <strong>FINANCIAL AI</strong>
+            <span>ASSISTANT</span>
+          </div>
+        </div>
+        <nav>
+          <button
+            className={view === "portfolio" ? "active" : ""}
+            onClick={() => setView("portfolio")}
+          >
+            ⌁ Portfolio overview
+          </button>
+          <button
+            className={view === "transactions" ? "active" : ""}
+            onClick={() => setView("transactions")}
+          >
+            ◇ Transactions
+          </button>
+          <button className="disabled" disabled>
+            ◈ AI assistant <small>Later phase</small>
+          </button>
+        </nav>
+        <div className="sidebar-note">
+          <span>LOCAL MODE</span>
+          <p>No live market data or cloud services are active.</p>
+        </div>
+      </aside>
+      {view === "portfolio" ? <PortfolioView /> : <TransactionsView />}
+    </div>
+  );
+}
