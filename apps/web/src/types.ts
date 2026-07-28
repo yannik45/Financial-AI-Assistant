@@ -28,3 +28,83 @@ export type Analytics = {
   warnings: string[];
 };
 
+export type AccountType = "checking" | "savings" | "brokerage";
+export type Account = {
+  id: string;
+  name: string;
+  account_type: AccountType;
+  currency: string;
+  kind: "demo" | "manual" | "imported";
+  created_at: string;
+  transaction_count: number;
+};
+
+export type TransactionType =
+  | "card_payment"
+  | "transfer"
+  | "direct_debit"
+  | "cash_withdrawal"
+  | "salary"
+  | "deposit"
+  | "withdrawal"
+  | "security_buy"
+  | "security_sell"
+  | "dividend"
+  | "interest"
+  | "fee"
+  | "tax";
+
+export type Transaction = {
+  id: string;
+  account_id: string;
+  booked_at: string;
+  name: string;
+  amount: string;
+  currency: string;
+  transaction_type: TransactionType;
+  counterparty: string | null;
+  category: string | null;
+  notes: string | null;
+  source: "demo" | "manual" | "imported";
+  security_symbol: string | null;
+  quantity: string | null;
+  unit_price: string | null;
+  fees: string;
+  taxes: string;
+  created_at: string;
+};
+
+export type TransactionPage = {
+  items: Transaction[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type TransactionFilters = {
+  account_id?: string;
+  transaction_type?: TransactionType;
+  category?: string;
+  date_from?: string;
+  date_to?: string;
+  limit: number;
+  offset: number;
+};
+
+export type TransactionCreate = {
+  account_id: string;
+  booked_at: string;
+  name: string;
+  amount: string;
+  currency: string;
+  transaction_type: TransactionType;
+  counterparty?: string;
+  category?: string;
+  notes?: string;
+  security_symbol?: string;
+  quantity?: string;
+  unit_price?: string;
+  fees?: string;
+  taxes?: string;
+};
+

@@ -1,7 +1,7 @@
 :root { font-family: Inter, "Segoe UI", sans-serif; color: #eaf2fa; background: #07111e; font-synthesis: none; }
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: radial-gradient(circle at 80% 0%, #14253a 0, #07111e 36%); }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button { border: 0; border-radius: 8px; background: #7cf4c5; color: #082018; padding: 12px 18px; font-weight: 700; cursor: pointer; }
 button:disabled { opacity: .5; cursor: wait; }
 .app-shell { display: grid; grid-template-columns: 238px minmax(0, 1fr); min-height: 100vh; }
@@ -20,6 +20,27 @@ header { display:flex; justify-content:space-between; gap: 32px; align-items:end
 .panel { padding:22px; margin-top:16px; }.panel-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }.panel-title h3 { margin-top:5px; font-size:16px; }.return-pill { color:#7cf4c5; background:#102e2a; padding:7px 10px; border-radius:5px; font-weight:700; }.chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }.allocation-body { display:flex; align-items:center; }.legend { flex:1; display:grid; gap:10px; }.legend div { display:grid; grid-template-columns:12px 1fr auto; gap:8px; font-size:11px; color:#9babbc; }.legend i { width:8px;height:8px;border-radius:50%;margin-top:3px; }.legend b { color:#eaf2fa; }
 .table-wrap { overflow-x:auto; } table { width:100%; border-collapse:collapse; font-size:13px; } th { text-align:left; color:#6f849a; font-size:10px; letter-spacing:.1em; text-transform:uppercase; } th,td { padding:13px 10px; border-bottom:1px solid #1b3044; } td:not(:first-child),th:not(:first-child) { text-align:right; }.warnings { color:#73889f; font-size:11px; }.loading,.error { margin-top:24px;padding:18px;border-radius:8px;background:#112236; }.error { color:#ffc0ba;border:1px solid #693d42;white-space:pre-wrap; }
 .modal-backdrop { position:fixed;inset:0;background:rgba(2,8,14,.78);display:grid;place-items:center;padding:20px;z-index:10; }.modal { width:min(560px,100%);background:#0d1d2c;border:1px solid #2e455e;border-radius:12px;padding:28px;box-shadow:0 24px 80px #0009; }.modal h2 { margin:8px 0; }.modal>p { color:#8ca0b5;font-size:13px;line-height:1.5; }.modal label { display:grid;gap:7px;color:#a8b7c6;font-size:12px;margin-top:18px; }.modal input { background:#081522;color:#eaf2fa;border:1px solid #2a4056;border-radius:7px;padding:12px; }.modal-actions { display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:24px; }.modal-actions a { color:#7cf4c5;font-size:12px;margin-right:auto; }.secondary { background:#182b3d;color:#b9c6d3; }
-@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(3,1fr)}.app-shell{grid-template-columns:78px 1fr}aside{padding:24px 12px}.brand>div:last-child,nav a:not(.active),.sidebar-note{display:none}.brand{justify-content:center}nav a.active{font-size:0;text-align:center}nav a.active::first-letter{font-size:18px}}
-@media(max-width:760px){.app-shell{display:block}aside{display:none}main{padding:24px 16px}header{align-items:start;flex-direction:column}.header-actions{width:100%;flex-wrap:wrap}.header-actions select{flex:1;min-width:190px}.metrics-grid,.chart-grid{grid-template-columns:1fr 1fr}.demo-banner{gap:8px;flex-direction:column}.allocation-body{flex-direction:column}.allocation-body .recharts-responsive-container{width:100%!important}}
+nav button { padding:12px;color:#7f93aa;border-radius:7px;font-size:14px;background:transparent;text-align:left;font-weight:500; }
+nav button.active { color:#dff9ef;background:#14283a;border-left:2px solid #7cf4c5; }
+nav button.disabled { opacity:.55;cursor:not-allowed; }
+.modal input,.modal select,.modal textarea,.filter-panel input,.filter-panel select { background:#081522;color:#eaf2fa;border:1px solid #2a4056;border-radius:7px;padding:12px; }
+.modal textarea { min-height:80px;resize:vertical; }
+.transaction-modal { width:min(760px,100%);max-height:92vh;overflow-y:auto; }
+.form-grid { display:grid;grid-template-columns:1fr 1fr;gap:0 16px; }
+.form-grid .span-2 { grid-column:1/-1; }
+.filter-panel { padding:16px 20px; }
+.filter-grid { display:grid;grid-template-columns:1.3fr 1fr 1fr .9fr .9fr;gap:12px; }
+.filter-grid label { display:grid;gap:6px;color:#7890a6;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase; }
+.transaction-panel { min-height:440px; }
+.transaction-table th,.transaction-table td { text-align:left;white-space:nowrap; }
+.transaction-table th:last-child,.transaction-table td:last-child { text-align:right; }
+.transaction-table td:nth-child(2) { min-width:220px;white-space:normal; }
+.transaction-table small { display:block;color:#71869b;margin-top:4px; }
+.category-pill { display:inline-block;padding:5px 8px;border-radius:999px;background:#162c3e;color:#a9c1d6;font-size:11px; }
+.page-meta { color:#8397ab;font-size:12px; }
+.pagination { display:flex;justify-content:flex-end;gap:10px;margin-top:18px; }
+.pagination button:disabled { cursor:not-allowed; }
+.empty-state { text-align:center!important;color:#71869b;padding:42px!important; }
+@media(max-width:1100px){.metrics-grid{grid-template-columns:repeat(3,1fr)}.app-shell{grid-template-columns:78px 1fr}aside{padding:24px 12px}.brand>div:last-child,.sidebar-note{display:none}.brand{justify-content:center}nav button{font-size:0;text-align:center}nav button::first-letter{font-size:18px}.filter-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.app-shell{display:block}aside{display:none}main{padding:24px 16px}header{align-items:start;flex-direction:column}.header-actions{width:100%;flex-wrap:wrap}.header-actions select{flex:1;min-width:190px}.metrics-grid,.chart-grid{grid-template-columns:1fr 1fr}.demo-banner{gap:8px;flex-direction:column}.allocation-body{flex-direction:column}.allocation-body .recharts-responsive-container{width:100%!important}.filter-grid,.form-grid{grid-template-columns:1fr}.form-grid .span-2{grid-column:auto}}
 @media(max-width:480px){.metrics-grid,.chart-grid{grid-template-columns:1fr}}

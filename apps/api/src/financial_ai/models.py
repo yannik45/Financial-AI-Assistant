@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from financial_ai.database import Base
@@ -37,3 +37,50 @@ class Position(Base):
     region: Mapped[str] = mapped_column(String(40))
     currency: Mapped[str] = mapped_column(String(3))
     portfolio: Mapped[Portfolio] = relationship(back_populates="positions")
+
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String(120))
+    account_type: Mapped[str] = mapped_column(String(20), index=True)
+    currency: Mapped[str] = mapped_column(String(3), default="EUR")
+    kind: Mapped[str] = mapped_column(String(20), default="manual")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    transactions: Mapped[list["Transaction"]] = relationship(
+        back_populates="account", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+    __table_args__ = (
+        Index("ix_transactions_account_booked_at", "account_id", "booked_at"),
+        Index("ix_transactions_type_booked_at", "transaction_type", "booked_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    account_id: Mapped[str] = mapped_column(
+        ForeignKey("accounts.id", ondelete="CASCADE"), index=True
+    )
+    booked_at: Mapped[date] = mapped_column(Date, index=True)
+    name: Mapped[str] = mapped_column(String(160))
+    amount: Mapped[Decimal] = mapped_column(Numeric(20, 2))
+    currency: Mapped[str] = mapped_column(String(3))
+    transaction_type: Mapped[str] = mapped_column(String(30), index=True)
+    counterparty: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    category: Mapped[str | None] = mapped_column(String(60), index=True, nullable=True)
+    notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    source: Mapped[str] = mapped_column(String(20), default="manual")
+    security_symbol: Mapped[str | None] = mapped_column(String(24), nullable=True)
+    quantity: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    unit_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 6), nullable=True)
+    fees: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
+    taxes: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    account: Mapped[Account] = relationship(back_populates="transactions")
