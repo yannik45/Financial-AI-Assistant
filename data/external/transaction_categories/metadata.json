@@ -1,0 +1,20 @@
+{
+  "dataset_id": "DoDataThings/us-bank-transaction-categories-v2",
+  "dataset_name": "US Bank Transaction Categories v2",
+  "source_url": "https://huggingface.co/datasets/DoDataThings/us-bank-transaction-categories-v2",
+  "file_name": "transactions-synthetic.csv",
+  "revision": "c60ce79c60e31532d1f018275cc5c2e06e88af3f",
+  "retrieved_at": "2026-07-28",
+  "sha256": "0424aed6e76f74a5b3b1ff61ccec43bc321622e6806da353b910b3b2c8108f6e",
+  "license": "MIT",
+  "synthetic": true,
+  "language": "English",
+  "rows": 68000,
+  "columns": [
+    "description",
+    "category"
+  ],
+  "category_count": 17,
+  "rows_per_category": 4000,
+  "taxonomy_version": "transaction-categories-v1"
+}
