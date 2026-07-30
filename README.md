@@ -49,6 +49,19 @@ offset filters. Security buy and sell requests require a brokerage account,
 symbol, quantity, and unit price. All bundled transactions and counterparties
 are synthetic demo data.
 
+## Documentation
+
+Detailed technical and ML documentation is maintained under `docs/`:
+
+- [Transaction category taxonomy](docs/ml/transaction_categories.md) defines
+  the versioned expense labels, scope, examples, and boundary rules.
+- [Transaction classification methodology](docs/ml/transaction_classification.md)
+  records dataset provenance, preprocessing decisions, assumptions, evaluation
+  protocol, baseline results, limitations, and planned model development.
+
+New documentation should be added to this index when it is introduced so the
+repository documentation remains discoverable from the project entry point.
+
 ## Tests
 
 ```powershell
