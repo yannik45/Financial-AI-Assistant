@@ -1,0 +1,121 @@
+scenario_id,description,target_category,language,merchant_group,merchant_scope
+de_groceries_001,EDEKA MARKT BERLIN KARTENZAHLUNG,groceries,de,edeka,german_local
+de_groceries_002,REWE SAGT DANKE FILIALE 1842,groceries,de,rewe,german_local
+de_groceries_003,ALDI SUED EINKAUF MUENCHEN,groceries,de,aldi,german_local
+de_groceries_004,LIDL DIENSTLEISTUNG GMBH BONN,groceries,de,lidl,german_local
+de_groceries_005,NETTO MARKEN DISCOUNT KASSE 03,groceries,de,netto,german_local
+de_groceries_006,KAUFLAND LEIPZIG LASTSCHRIFT,groceries,de,kaufland,german_local
+de_groceries_007,DENN BIO MARKT HAMBURG,groceries,de,denn,german_local
+de_groceries_008,SPAR SUPERMARKT SALZBURG EINKAUF,groceries,de,spar,international
+de_groceries_009,CARREFOUR MARKET STRASSBURG KARTE,groceries,de,carrefour,international
+de_groceries_010,TESCO STORES LONDON LEBENSMITTEL,groceries,de,tesco,international
+de_dining_001,RESTAURANT ZUM ALTEN MARKT KARTENZAHLUNG,dining,de,zum_alten_markt,german_local
+de_dining_002,CAFE MORGENROT FRUEHSTUECK BERLIN,dining,de,cafe_morgenrot,german_local
+de_dining_003,LIEFERANDO BESTELLUNG ABENDESSEN,dining,de,lieferando,german_local
+de_dining_004,PIZZERIA BELLA NAPOLI KOELN,dining,de,bella_napoli,german_local
+de_dining_005,GASTHAUS AM SEE RECHNUNG 104,dining,de,gasthaus_am_see,german_local
+de_dining_006,SUSHI HAUS HAMBURG KARTENZAHLUNG,dining,de,sushi_haus,german_local
+de_dining_007,KANTINE CAMPUS MITTAGESSEN,dining,de,campus_kantine,german_local
+de_dining_008,MCDONALDS FRANKFURT BESTELLUNG,dining,de,mcdonalds,international
+de_dining_009,STARBUCKS MUENCHEN HAUPTBAHNHOF,dining,de,starbucks,international
+de_dining_010,DOMINOS PIZZA ONLINE BESTELLUNG,dining,de,dominos,international
+de_transport_001,DB VERTRIEB FAHRKARTE ICE,transport,de,deutsche_bahn,german_local
+de_transport_002,BVG TICKET BERLIN ABONNEMENT,transport,de,bvg,german_local
+de_transport_003,MVG MONATSKARTE MUENCHEN,transport,de,mvg,german_local
+de_transport_004,ARAL TANKSTELLE KRAFTSTOFF,transport,de,aral,german_local
+de_transport_005,SHELL STATION HAMBURG TANKUNG,transport,de,shell,international
+de_transport_006,TAXI ZENTRALE KOELN FAHRT,transport,de,taxi_zentrale,german_local
+de_transport_007,NEXTBIKE LEIHFAHRRAD TAGESPASS,transport,de,nextbike,german_local
+de_transport_008,UBER FAHRT BERLIN INNENSTADT,transport,de,uber,international
+de_transport_009,BOLT MOBILITAET FAHRTKOSTEN,transport,de,bolt,international
+de_transport_010,FLIXBUS FAHRSCHEIN HAMBURG BREMEN,transport,de,flixbus,german_local
+de_housing_001,DAUERAUFTRAG MONATSMIETE WOHNUNG,housing,de,monthly_rent,german_local
+de_housing_002,HAUSVERWALTUNG SONNENHOF MIETE,housing,de,sonnenhof_management,german_local
+de_housing_003,WOHNUNGSBAU GENOSSENSCHAFT NUTZUNGSGEBUEHR,housing,de,housing_cooperative,german_local
+de_housing_004,IMMOBILIENVERWALTUNG NEBENKOSTENVORAUSZAHLUNG,housing,de,property_management,german_local
+de_housing_005,BAUSPARKASSE DARLEHENSRATE EIGENHEIM,housing,de,building_society,german_local
+de_housing_006,GRUNDSTUECKSVERWALTUNG STELLPLATZMIETE,housing,de,parking_rent,german_local
+de_housing_007,STUDENTENWERK WOHNHEIMMIETE,housing,de,student_housing,german_local
+de_housing_008,FERIENWOHNUNG LANGZEITMIETE WIEN,housing,de,long_term_rental,international
+de_housing_009,WOONSTICHTING MONATLICHE MIETE,housing,de,dutch_housing,international
+de_housing_010,RESIDENCE SERVICES APPARTEMENTMIETE,housing,de,residence_services,international
+de_utilities_001,STADTWERKE BERLIN STROM ABSCHLAG,utilities,de,berlin_utilities,german_local
+de_utilities_002,RHEINENERGIE GAS MONATLICHER ABSCHLAG,utilities,de,rheinenergie,german_local
+de_utilities_003,HAMBURG WASSER VERBRAUCHSABSCHLAG,utilities,de,hamburg_water,german_local
+de_utilities_004,EON ENERGIE STROMRECHNUNG,utilities,de,eon,german_local
+de_utilities_005,VATTENFALL WAERME ABSCHLAGSZAHLUNG,utilities,de,vattenfall,international
+de_utilities_006,DEUTSCHE TELEKOM INTERNET FESTNETZ,utilities,de,telekom,german_local
+de_utilities_007,VODAFONE KABEL MONATSRECHNUNG,utilities,de,vodafone,international
+de_utilities_008,O2 DSL RECHNUNG JULI,utilities,de,o2,german_local
+de_utilities_009,ABFALLWIRTSCHAFT MUELLGEBUEHR,utilities,de,waste_management,german_local
+de_utilities_010,ORANGE TELEKOM INTERNETRECHNUNG,utilities,de,orange,international
+de_healthcare_001,APOTHEKE AM RATHAUS MEDIKAMENTE,healthcare,de,rathaus_pharmacy,german_local
+de_healthcare_002,GEMEINSCHAFTSPRAXIS HAUSARZT BEHANDLUNG,healthcare,de,general_practice,german_local
+de_healthcare_003,ZAHNARZTPRAXIS AM PARK RECHNUNG,healthcare,de,dental_practice,german_local
+de_healthcare_004,PHYSIOTHERAPIE BEWEGT TERMIN,healthcare,de,physiotherapy,german_local
+de_healthcare_005,AUGENARZT DIAGNOSTIK EIGENANTEIL,healthcare,de,ophthalmology,german_local
+de_healthcare_006,SANITAETSHAUS MOBIL HILFSMITTEL,healthcare,de,medical_supply,german_local
+de_healthcare_007,LABORZENTRUM BLUTUNTERSUCHUNG,healthcare,de,medical_lab,german_local
+de_healthcare_008,DOCMORRIS ONLINE APOTHEKE BESTELLUNG,healthcare,de,docmorris,international
+de_healthcare_009,SHOP APOTHEKE MEDIKAMENTENVERSAND,healthcare,de,shop_apotheke,international
+de_healthcare_010,OPTIKER FIELMANN SEHHILFE,healthcare,de,fielmann,german_local
+de_shopping_001,GALERIA WARENHAUS EINKAUF,shopping,de,galeria,german_local
+de_shopping_002,MEDIAMARKT ELEKTRONIK BESTELLUNG,shopping,de,mediamarkt,german_local
+de_shopping_003,SATURN TECHNIKMARKT KARTENZAHLUNG,shopping,de,saturn,german_local
+de_shopping_004,ZALANDO MODE ONLINEKAUF,shopping,de,zalando,german_local
+de_shopping_005,OTTO VERSAND BESTELLUNG HAUSHALT,shopping,de,otto,german_local
+de_shopping_006,BAUHAUS HEIMWERKERBEDARF,shopping,de,bauhaus,german_local
+de_shopping_007,DM DROGERIEMARKT EINKAUF,shopping,de,dm,german_local
+de_shopping_008,AMAZON MARKTPLATZ BESTELLUNG,shopping,de,amazon,international
+de_shopping_009,IKEA EINRICHTUNGSHAUS EINKAUF,shopping,de,ikea,international
+de_shopping_010,DECATHLON SPORTARTIKEL KASSE,shopping,de,decathlon,international
+de_entertainment_001,CINEMAXX KINOKARTE ABENDVORSTELLUNG,entertainment,de,cinemaxx,german_local
+de_entertainment_002,THEATERKASSE SCHAUSPIELHAUS TICKET,entertainment,de,theater,german_local
+de_entertainment_003,KONZERTHAUS EINTRITTSKARTE,entertainment,de,concert_hall,german_local
+de_entertainment_004,STADTMUSEUM JAHRESKARTE,entertainment,de,museum,german_local
+de_entertainment_005,FREIZEITPARK TAGESKARTE,entertainment,de,theme_park,german_local
+de_entertainment_006,SKY DEUTSCHLAND MONATSABO,entertainment,de,sky,german_local
+de_entertainment_007,JOYN PLUS STREAMING ABONNEMENT,entertainment,de,joyn,german_local
+de_entertainment_008,NETFLIX MONATLICHES ABONNEMENT,entertainment,de,netflix,international
+de_entertainment_009,SPOTIFY PREMIUM MONATSBEITRAG,entertainment,de,spotify,international
+de_entertainment_010,STEAM SPIELEKAUF ONLINE,entertainment,de,steam,international
+de_travel_001,LUFTHANSA FLUGTICKET BERLIN MADRID,travel,de,lufthansa,german_local
+de_travel_002,EUROWINGS FLUGBUCHUNG HAMBURG ROM,travel,de,eurowings,german_local
+de_travel_003,HOTEL AM DOM UEBERNACHTUNG,travel,de,hotel_am_dom,german_local
+de_travel_004,JUGENDHERBERGE OSTSEE AUFENTHALT,travel,de,youth_hostel,german_local
+de_travel_005,REISEBUERO SONNENKLAR PAUSCHALREISE,travel,de,travel_agency,german_local
+de_travel_006,DEUTSCHE JUGENDHERBERGE RESERVIERUNG,travel,de,german_hostel,german_local
+de_travel_007,FERIENPARK NORDSEE BUCHUNG,travel,de,holiday_park,german_local
+de_travel_008,BOOKING HOTELRESERVIERUNG PRAG,travel,de,booking,international
+de_travel_009,AIRBNB UNTERKUNFT WIEN,travel,de,airbnb,international
+de_travel_010,RYANAIR FLUGBUCHUNG DUBLIN,travel,de,ryanair,international
+de_insurance_001,ALLIANZ HAFTPFLICHT MONATSBEITRAG,insurance,de,allianz,german_local
+de_insurance_002,HUK COBURG KFZ VERSICHERUNG,insurance,de,huk_coburg,german_local
+de_insurance_003,DEVK HAUSRAT JAHRESBEITRAG,insurance,de,devk,german_local
+de_insurance_004,ERGO RECHTSSCHUTZ BEITRAG,insurance,de,ergo,german_local
+de_insurance_005,TECHNIKER KRANKENKASSE ZUSATZBEITRAG,insurance,de,tk,german_local
+de_insurance_006,DEBEKA BERUFSUNFAEHIGKEIT VERSICHERUNG,insurance,de,debeka,german_local
+de_insurance_007,ADAC AUSLANDSKRANKENSCHUTZ,insurance,de,adac,german_local
+de_insurance_008,AXA VERSICHERUNG MONATLICHE PRAEMIE,insurance,de,axa,international
+de_insurance_009,ZURICH REISEVERSICHERUNG BEITRAG,insurance,de,zurich,international
+de_insurance_010,GENERALI LEBENSVERSICHERUNG RATE,insurance,de,generali,international
+de_education_001,VOLKSHOCHSCHULE DEUTSCHKURS GEBUEHR,education,de,adult_education,german_local
+de_education_002,UNIVERSITAET SEMESTERBEITRAG,education,de,university,german_local
+de_education_003,FAHRSCHULE LERNPAKET THEORIE,education,de,driving_school,german_local
+de_education_004,MUSIKSCHULE KLAVIERUNTERRICHT,education,de,music_school,german_local
+de_education_005,SPRACHSCHULE ABENDKURS SPANISCH,education,de,language_school,german_local
+de_education_006,NACHHILFEZENTRUM MATHEMATIK UNTERRICHT,education,de,tutoring,german_local
+de_education_007,FACHBUCHHANDEL LEHRBUCH DATENANALYSE,education,de,academic_books,german_local
+de_education_008,UDEMY ONLINEKURS PYTHON,education,de,udemy,international
+de_education_009,COURSERA KURSZERTIFIKAT,education,de,coursera,international
+de_education_010,DUOLINGO SPRACHKURS JAHRESABO,education,de,duolingo,international
+de_other_001,FRISEURSALON HAARSCHNITT,other,de,hairdresser,german_local
+de_other_002,TIERPFLEGE HUNDESALON TERMIN,other,de,pet_grooming,german_local
+de_other_003,SCHLUESSELDIENST TUEROEFFNUNG,other,de,locksmith,german_local
+de_other_004,REINIGUNGSSERVICE HEMDEN,other,de,laundry_service,german_local
+de_other_005,FOTOSTUDIO PASSBILDER,other,de,photo_studio,german_local
+de_other_006,DEUTSCHE POST BRIEFMARKEN,other,de,deutsche_post,german_local
+de_other_007,TIERSCHUTZVEREIN SPENDE,other,de,animal_charity,german_local
+de_other_008,PAYPAL PRIVATZAHLUNG GESCHENK,other,de,paypal,international
+de_other_009,WEWORK TAGESPASS ARBEITSPLATZ,other,de,wework,international
+de_other_010,ETSY PERSONALISIERTES GESCHENK,other,de,etsy,international

@@ -58,6 +58,15 @@ Detailed technical and ML documentation is maintained under `docs/`:
 - [Transaction classification methodology](docs/ml/transaction_classification.md)
   records dataset provenance, preprocessing decisions, assumptions, evaluation
   protocol, baseline results, limitations, and planned model development.
+- [German transaction challenge set](docs/ml/german_transaction_challenge.md)
+  defines the versioned synthetic German evaluation dataset, schema, review
+  rules, and multilingual evaluation protocol.
+- [German synthetic transaction training data](docs/ml/german_transaction_training.md)
+  documents the version 1 diagnostic generator, provenance fields, leakage
+  controls, reproducibility contract, and limitations.
+- [German synthetic transaction training data v2](docs/ml/german_transaction_training_v2.md)
+  records the harder merchant-, detail-, and format-holdout design and its
+  validation results.
 
 New documentation should be added to this index when it is introduced so the
 repository documentation remains discoverable from the project entry point.
