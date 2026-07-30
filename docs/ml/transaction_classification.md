@@ -171,6 +171,38 @@ risk that related merchant names and synthetic generator templates occur across
 the random train and validation splits. A grouped merchant/template challenge
 split must be evaluated before claiming generalization to unseen descriptions.
 
+### Validation error analysis
+
+The learned baseline makes 41 incorrect predictions across 5,493 validation
+examples. Per-category results are:
+
+| Category | Precision | Recall | F1 | Support |
+| --- | ---: | ---: | ---: | ---: |
+| shopping | 100.00% | 95.29% | 97.59% | 595 |
+| other | 97.30% | 98.63% | 97.96% | 366 |
+| insurance | 97.89% | 100.00% | 98.93% | 464 |
+| dining | 99.28% | 99.10% | 99.19% | 554 |
+| healthcare | 98.45% | 100.00% | 99.22% | 381 |
+| transport | 99.37% | 99.79% | 99.58% | 471 |
+| entertainment | 99.21% | 100.00% | 99.60% | 375 |
+| groceries | 99.63% | 99.63% | 99.63% | 536 |
+| travel | 99.52% | 100.00% | 99.76% | 411 |
+| utilities | 99.80% | 100.00% | 99.90% | 488 |
+| education | 100.00% | 100.00% | 100.00% | 314 |
+| housing | 100.00% | 100.00% | 100.00% | 538 |
+
+The largest off-diagonal confusion counts are:
+
+- `shopping` predicted as `other`: 8;
+- `shopping` predicted as `healthcare`: 6;
+- `shopping` predicted as `insurance`: 5;
+- `other` predicted as `insurance`: 4;
+- `shopping` predicted as `dining`: 3.
+
+These results are consistent with broad merchants and ambiguous purchase intent,
+but individual examples must be reviewed before changing taxonomy boundaries or
+model configuration. The error analysis is based only on validation data.
+
 ## Reproducibility and future work
 
 - Dataset source revision and checksum are pinned.
