@@ -120,6 +120,7 @@ untouched.
 | --- | ---: | ---: |
 | Majority class (`shopping`) | 10.83% | 1.63% |
 | Ordered keyword rules | 24.74% | 26.03% |
+| Character TF-IDF + logistic regression | 99.25% | 99.28% |
 
 ### Majority-class baseline
 
@@ -146,19 +147,29 @@ This baseline is deterministic and explainable but has known limitations:
 Its purpose is to quantify whether a learned model provides value beyond a
 small hand-written ruleset.
 
-## Planned learned baseline
+## Learned baseline
 
-The next model will use a scikit-learn pipeline:
+The first learned model uses a scikit-learn pipeline:
 
 1. transaction description text;
-2. TF-IDF character n-gram vectorization;
-3. multinomial logistic regression;
+2. `char_wb` TF-IDF character n-grams from 3 to 5 characters;
+3. class-balanced logistic regression;
 4. category prediction and confidence scores.
 
-Character n-grams are planned because bank descriptions contain abbreviations,
+The vectorizer uses `min_df=2` and sublinear term frequency. The logistic
+regression uses `class_weight="balanced"`, `max_iter=1000`, and random seed `42`.
+The fitted validation model contains 52,365 TF-IDF features.
+
+Character n-grams are used because bank descriptions contain abbreviations,
 prefixes, identifiers, spelling variants, and compressed merchant names. Model
 selection will use only train and validation data. The test split will be
 evaluated once after the approach and hyperparameters are fixed.
+
+The 99% validation result is not treated as production-level evidence. It is
+unusually high for transaction categorization and is consistent with the known
+risk that related merchant names and synthetic generator templates occur across
+the random train and validation splits. A grouped merchant/template challenge
+split must be evaluated before claiming generalization to unseen descriptions.
 
 ## Reproducibility and future work
 
