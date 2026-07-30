@@ -12,6 +12,7 @@ dependencies = [
   "pandas>=2.2,<3",
   "pydantic-settings>=2.5,<3",
   "python-multipart>=0.0.12,<1",
+  "scikit-learn>=1.6,<2",
   "sqlalchemy>=2.0,<3",
   "uvicorn[standard]>=0.30,<1",
 ]
