@@ -124,6 +124,28 @@ This grouping is a reproducible approximation, not a verified merchant entity
 identifier. It reduces obvious format leakage but cannot guarantee that every
 related merchant or generator template is grouped together.
 
+The grouped split assigns 20 stratified folds as 14 train folds, 3 validation
+folds, and 3 test folds. Because groups are indivisible, row counts are close to
+rather than exactly 70/15/15:
+
+| Grouped split | Rows |
+| --- | ---: |
+| Train | 25,644 |
+| Validation | 5,475 |
+| Test | 5,498 |
+
+No normalized description group overlaps between these splits. Training the
+unchanged TF-IDF and logistic-regression configuration on grouped train data
+produces 97.57% accuracy and 97.66% Macro-F1 on grouped validation data. The
+lower score confirms that the original random validation result benefited from
+related normalized description variants occurring across splits.
+
+`shopping` is the weakest grouped-validation category with 100.00% precision,
+81.07% recall, and 89.54% F1. The low recall means that many actual shopping
+transactions are assigned to other categories, while transactions predicted as
+shopping are highly reliable in this validation sample. The grouped test split
+remains untouched.
+
 ## Evaluation metrics
 
 The primary comparison metrics are:
@@ -145,6 +167,7 @@ untouched.
 | Majority class (`shopping`) | 10.83% | 1.63% |
 | Ordered keyword rules | 24.74% | 26.03% |
 | Character TF-IDF + logistic regression | 99.25% | 99.28% |
+| Character TF-IDF + logistic regression, grouped validation | 97.57% | 97.66% |
 
 ### Majority-class baseline
 
