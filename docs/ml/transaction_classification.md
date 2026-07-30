@@ -100,6 +100,30 @@ merchant-family leakage. Different descriptions derived from the same merchant
 or template may still occur in separate splits. A grouped challenge split by
 merchant or generator template is required before making generalization claims.
 
+### Challenge grouping heuristic
+
+Because the source CSV does not include merchant or generator-template IDs, the
+challenge split derives a heuristic `description_group`. The normalization:
+
+- case-normalizes descriptions;
+- removes debit and credit prefixes;
+- removes known PayPal, Square, and abbreviated payment-processor wrappers;
+- removes ACH `PPD ID` and `WEB ID` suffixes;
+- removes store and transaction reference numbers while preserving merchant
+  names that legitimately contain digits, such as `7-ELEVEN`, `FOOD4LESS`,
+  `DENTAL365`, `23ANDME`, and `1-800-CONTACTS`;
+- normalizes punctuation and whitespace.
+
+The 36,617 prepared descriptions produce 19,366 heuristic groups, including
+3,762 groups with more than one row. Eight groups across 87 rows contain both
+`healthcare` and `shopping` labels. These groups are variants of `CVS`,
+`RITE AID`, and `WALGREENS`; they are retained as genuine purchase-intent
+ambiguities and must remain wholly within a single split.
+
+This grouping is a reproducible approximation, not a verified merchant entity
+identifier. It reduces obvious format leakage but cannot guarantee that every
+related merchant or generator template is grouped together.
+
 ## Evaluation metrics
 
 The primary comparison metrics are:
