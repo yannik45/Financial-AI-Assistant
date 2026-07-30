@@ -146,6 +146,29 @@ transactions are assigned to other categories, while transactions predicted as
 shopping are highly reliable in this validation sample. The grouped test split
 remains untouched.
 
+### Final English baseline test
+
+After fixing the feature and classifier configuration, grouped train and
+validation data were combined into 31,119 fitting rows. The unchanged pipeline
+was refitted and evaluated once on the 5,498-row grouped test split. The fitted
+vectorizer contains 59,979 features.
+
+Final grouped-test results are 99.00% accuracy and 99.05% Macro-F1, with 55
+incorrect predictions. The weakest test categories are:
+
+| Category | Precision | Recall | F1 | Support |
+| --- | ---: | ---: | ---: | ---: |
+| other | 92.34% | 99.23% | 95.66% | 389 |
+| shopping | 99.63% | 92.40% | 95.88% | 579 |
+| dining | 98.40% | 99.64% | 99.01% | 554 |
+
+The largest confusion is `shopping` predicted as `other` for 27 examples,
+followed by `shopping` predicted as `dining` for 9 examples. These test results
+are the frozen final measurement for the current English baseline and must not
+be used for additional parameter tuning. Future model changes require a new
+versioned evaluation protocol rather than repeated optimization against this
+test split.
+
 ## Evaluation metrics
 
 The primary comparison metrics are:
@@ -168,6 +191,7 @@ untouched.
 | Ordered keyword rules | 24.74% | 26.03% |
 | Character TF-IDF + logistic regression | 99.25% | 99.28% |
 | Character TF-IDF + logistic regression, grouped validation | 97.57% | 97.66% |
+| Final grouped test, trained on grouped train + validation | 99.00% | 99.05% |
 
 ### Majority-class baseline
 
