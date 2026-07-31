@@ -10,6 +10,7 @@ are the only stored real market reference data.
 
 - Python 3.12 and [uv](https://docs.astral.sh/uv/) for initial dependency setup
 - Node.js 22 or newer and npm
+- Docker with Compose for the containerized workflow
 
 ## Run locally
 
@@ -57,6 +58,48 @@ This fallback depends on the existing `.venv`. It cannot create or update the
 environment when dependencies change; that still requires `uv` or another
 explicit dependency-installation workflow.
 
+## Run with Docker
+
+Build and start the API and web containers:
+
+```powershell
+docker compose up --build --wait
+```
+
+The first start may take longer because the API initializes the SQLite database
+and builds the local bilingual category-model artifact.
+
+Open:
+
+- Dashboard: `http://localhost:5173`
+- API health: `http://localhost:8000/health`
+- API documentation: `http://localhost:8000/docs`
+- API through the web proxy: `http://localhost:5173/api/health`
+
+Follow container logs:
+
+```powershell
+docker compose logs --follow
+```
+
+Stop the application while retaining the database, model artifacts, and
+feedback snapshots:
+
+```powershell
+docker compose down
+```
+
+The named `financial_ai_runtime` volume persists `data/runtime` independently
+of the API container. To deliberately delete all container-managed runtime
+data:
+
+```powershell
+docker compose down --volumes
+```
+
+The `--volumes` operation permanently removes the container-managed SQLite
+database, model artifacts, feedback snapshots, and candidate models.
+
 ## Transaction API
 
 The local API seeds deterministic demo data for checking, savings, and
@@ -100,8 +143,8 @@ the trusted backend prediction is stored alongside the user's final selection
 for later offline model improvement. This is a synthetic-data learning baseline,
 not a production-ready financial classifier.
 
-Explicitly reviewed category feedback can be exported into a versioned local
-snapshot without triggering retraining:
+Category selections and corrections captured when a transaction is created can
+be exported into a versioned local snapshot without triggering retraining:
 
 ```powershell
 uv run financial-ai-export-category-feedback --version reviewed-v1
@@ -125,6 +168,10 @@ previous artifact and refuses stale, checksum-invalid, or gate-failing results.
 ## Documentation
 
 Detailed technical and ML documentation is maintained under `docs/`:
+
+- [Container architecture](docs/architecture/containerization.md) documents
+  image stages, runtime boundaries, networking, persistence, healthchecks, and
+  CI smoke tests.
 
 - [ML documentation status](docs/ml/README.md) distinguishes active product
   contracts, frozen evaluations, and historical experiments.
