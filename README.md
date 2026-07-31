@@ -13,9 +13,9 @@ mistaken for live financial data.
 ## Run locally
 
 ```powershell
-python -m uv sync --all-groups
-python -m uv run alembic upgrade head
-python -m uv run financial-ai-api
+uv sync --all-groups
+uv run alembic upgrade head
+uv run financial-ai-api
 ```
 
 In a second terminal:
@@ -43,11 +43,22 @@ Available endpoints:
 - `GET /v1/transactions`
 - `GET /v1/transactions/{transaction_id}`
 - `POST /v1/transactions`
+- `POST /v1/transactions/classify`
 
 The transaction list supports account, type, category, date-range, limit, and
 offset filters. Security buy and sell requests require a brokerage account,
 symbol, quantity, and unit price. All bundled transactions and counterparties
 are synthetic demo data.
+
+Build the local bilingual transaction-category model before requesting ML-based
+expense classification:
+
+```powershell
+uv run financial-ai-build-category-model
+```
+
+Structured types such as salary, interest, fees, and security transactions are
+categorized deterministically and do not require the model artifact.
 
 ## Documentation
 
@@ -73,6 +84,9 @@ Detailed technical and ML documentation is maintained under `docs/`:
 - [Controlled English synthetic training data](docs/ml/controlled_english_training.md)
   mirrors the German v2 provenance holdouts and records which aggregate legacy
   train patterns informed its bank-description formats.
+- [Transaction classifier service](docs/ml/transaction_classifier_service.md)
+  documents deterministic routing, model artifact provenance, confidence and
+  review behavior, API usage, configuration, and operational limitations.
 
 New documentation should be added to this index when it is introduced so the
 repository documentation remains discoverable from the project entry point.
@@ -80,16 +94,16 @@ repository documentation remains discoverable from the project entry point.
 ## Tests
 
 ```powershell
-python -m uv run pytest
+uv run pytest
 cd apps/web
 npm.cmd test
 npm.cmd run build
 ```
 
-`python -m uv` also works when the `uv` executable is not yet available on the
-current terminal's `PATH`. Use `npm.cmd` in PowerShell environments where the
-execution policy blocks `npm.ps1`. Generated local content in `.venv`,
-`node_modules`, `dist`, and `data/runtime` is excluded from version control.
+If `uv` is not found after installation, open a new terminal so its updated
+`PATH` is loaded. Use `npm.cmd` in PowerShell environments where the execution
+policy blocks `npm.ps1`. Generated local content in `.venv`, `node_modules`,
+`dist`, and `data/runtime` is excluded from version control.
 
 The application is educational software, not financial advice. All included
 security prices are synthetic demo data.

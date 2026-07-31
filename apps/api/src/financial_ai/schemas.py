@@ -4,6 +4,11 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from financial_ai.ml.transaction_classification import (
+    ClassificationMethod,
+    ClassificationRoute,
+)
+
 
 class PositionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -193,3 +198,20 @@ class TransactionPage(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class TransactionClassificationRequest(BaseModel):
+    transaction_type: TransactionType
+    description: str = Field(min_length=1, max_length=320)
+    counterparty: str | None = Field(default=None, max_length=160)
+
+
+class TransactionClassificationResponse(BaseModel):
+    category: str | None
+    route: ClassificationRoute
+    classification_method: ClassificationMethod
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    needs_review: bool
+    reason: str
+    taxonomy_version: str
+    model_version: str | None

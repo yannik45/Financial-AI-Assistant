@@ -1,3 +1,15 @@
+from financial_ai.main import app
+from financial_ai.ml.category_artifact import ModelArtifactError
+from financial_ai.ml.category_service import (
+    TransactionClassification,
+    get_transaction_classifier,
+)
+from financial_ai.ml.transaction_classification import (
+    ClassificationMethod,
+    ClassificationRoute,
+)
+
+
 def test_demo_accounts_and_transactions_are_seeded(client):
     accounts_response = client.get("/v1/accounts")
     assert accounts_response.status_code == 200
@@ -123,3 +135,88 @@ def test_security_transaction_requires_complete_fields_and_brokerage_account(cli
     )
     assert valid.status_code == 201
     assert valid.json()["security_symbol"] == "WORLD-ETF"
+
+
+def test_classification_endpoint_handles_deterministic_and_review_routes(client):
+    salary = client.post(
+        "/v1/transactions/classify",
+        json={
+            "transaction_type": "salary",
+            "description": "Monthly salary Demo GmbH",
+        },
+    )
+    assert salary.status_code == 200
+    assert salary.json() == {
+        "category": "income",
+        "route": "deterministic",
+        "classification_method": "deterministic",
+        "confidence": 1.0,
+        "needs_review": False,
+        "reason": "Category is determined by the structured transaction type.",
+        "taxonomy_version": "transaction-categories-v1",
+        "model_version": None,
+    }
+
+    transfer = client.post(
+        "/v1/transactions/classify",
+        json={"transaction_type": "transfer", "description": "Transfer reference"},
+    )
+    assert transfer.status_code == 200
+    assert transfer.json()["category"] is None
+    assert transfer.json()["route"] == "needs_review"
+    assert transfer.json()["needs_review"] is True
+
+
+def test_classification_endpoint_returns_ml_provenance(client):
+    class StubClassifier:
+        def classify(self, **_):
+            return TransactionClassification(
+                category="groceries",
+                route=ClassificationRoute.EXPENSE_MODEL,
+                method=ClassificationMethod.ML,
+                confidence=0.81,
+                needs_review=False,
+                reason="Expense category predicted by the versioned model artifact.",
+                taxonomy_version="transaction-categories-v1",
+                model_version="test-model-v1",
+            )
+
+    app.dependency_overrides[get_transaction_classifier] = lambda: StubClassifier()
+    try:
+        response = client.post(
+            "/v1/transactions/classify",
+            json={
+                "transaction_type": "card_payment",
+                "description": "Demo supermarket purchase",
+                "counterparty": "Demo Market",
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(get_transaction_classifier, None)
+
+    assert response.status_code == 200
+    assert response.json()["category"] == "groceries"
+    assert response.json()["classification_method"] == "ml"
+    assert response.json()["confidence"] == 0.81
+    assert response.json()["model_version"] == "test-model-v1"
+
+
+def test_classification_endpoint_reports_unavailable_model(client):
+    class MissingModelClassifier:
+        def classify(self, **_):
+            raise ModelArtifactError("Category model artifact is unavailable")
+
+    app.dependency_overrides[get_transaction_classifier] = lambda: MissingModelClassifier()
+    try:
+        response = client.post(
+            "/v1/transactions/classify",
+            json={
+                "transaction_type": "direct_debit",
+                "description": "Demo utility charge",
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(get_transaction_classifier, None)
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["code"] == "category_model_unavailable"

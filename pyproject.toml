@@ -19,6 +19,7 @@ dependencies = [
 
 [project.scripts]
 financial-ai-api = "financial_ai.main:run"
+financial-ai-build-category-model = "financial_ai.ml.category_artifact:run"
 
 [dependency-groups]
 dev = [
