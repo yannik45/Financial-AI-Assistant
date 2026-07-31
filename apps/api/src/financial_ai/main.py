@@ -3,7 +3,7 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import uuid4
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
@@ -27,7 +27,7 @@ from financial_ai.ml.transaction_classification import (
     TAXONOMY_VERSION,
     ClassificationMethod,
     determine_feedback_status,
-    route_transaction_type,
+    route_transaction_text,
 )
 from financial_ai.models import Account, Portfolio, Transaction, TransactionClassificationRecord
 from financial_ai.schemas import (
@@ -221,6 +221,7 @@ def list_transactions(
     session: SessionDependency,
     account_id: str | None = None,
     transaction_type: TransactionType | None = None,
+    cash_flow: Literal["inflow", "outflow"] | None = None,
     category: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
@@ -233,6 +234,10 @@ def list_transactions(
         filters.append(Transaction.account_id == account_id)
     if transaction_type:
         filters.append(Transaction.transaction_type == transaction_type.value)
+    if cash_flow == "inflow":
+        filters.append(Transaction.amount > 0)
+    elif cash_flow == "outflow":
+        filters.append(Transaction.amount < 0)
     if category:
         filters.append(func.lower(Transaction.category) == category.lower())
     if date_from:
@@ -278,8 +283,8 @@ def classify_transaction(
 ) -> TransactionClassificationResponse:
     try:
         result = classifier.classify(
-            transaction_type=payload.transaction_type.value,
             description=payload.description,
+            amount=payload.amount,
             counterparty=payload.counterparty,
         )
     except ModelArtifactError as exc:
@@ -323,12 +328,12 @@ def create_transaction(
 
     try:
         classification = classifier.classify(
-            transaction_type=payload.transaction_type.value,
             description=payload.name,
+            amount=payload.amount,
             counterparty=payload.counterparty,
         )
     except ModelArtifactError:
-        route = route_transaction_type(payload.transaction_type.value)
+        route = route_transaction_text(payload.name, payload.amount, payload.counterparty)
         classification = TransactionClassification(
             category=None,
             route=route.route,

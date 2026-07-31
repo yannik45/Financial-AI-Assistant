@@ -9,9 +9,10 @@ The transaction classifier predicts one versioned expense category from a bank
 transaction description. It is a decision-support component for transaction
 organization, not a financial calculation or financial-advice system.
 
-Structured transaction types that can be assigned reliably from source data
-remain deterministic and outside this model. The category definitions and
-boundary rules are specified in `docs/ml/transaction_categories.md`.
+The deployed experimental service does not use a manually selected transaction
+type as a classification feature. Categories outside the expense model are
+handled by a small text-rule baseline. The category definitions and boundary
+rules are specified in `docs/ml/transaction_categories.md`.
 
 ## Current scope and assumptions
 
@@ -47,9 +48,9 @@ decisions include:
 - `Rent` and `Mortgage` map to `housing`.
 - `Subscription` maps to `other` in version 1 because the source label mixes
   entertainment, software, and other recurring services.
-- `Income`, `Transfer`, and `Fees` are excluded because they are outside the
-  expense-category model and should preferentially use structured transaction
-  information.
+- `Income`, `Transfer`, and `Fees` are excluded because they are outside this
+  historical expense-category training dataset. The current product baseline
+  handles high-signal income and fee text separately and reviews ambiguity.
 - `Personal Care` is excluded because its examples span several internal
   categories and cannot be mapped consistently without more context.
 

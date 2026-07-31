@@ -19,7 +19,6 @@ import type {
   Analytics,
   TransactionCreate,
   TransactionFilters,
-  TransactionType,
 } from "./types";
 
 const COLORS = ["#7cf4c5", "#68a7ff", "#b991ff", "#ffce6d", "#ff7887", "#54d6e8"];
@@ -43,21 +42,6 @@ const TRANSACTION_CATEGORIES = [
   "Cash",
   "Other",
 ];
-const TRANSACTION_TYPES: Array<{ value: TransactionType; label: string }> = [
-  { value: "card_payment", label: "Card payment" },
-  { value: "transfer", label: "Transfer" },
-  { value: "direct_debit", label: "Direct debit" },
-  { value: "cash_withdrawal", label: "Cash withdrawal" },
-  { value: "salary", label: "Salary" },
-  { value: "deposit", label: "Deposit" },
-  { value: "withdrawal", label: "Withdrawal" },
-  { value: "security_buy", label: "Security buy" },
-  { value: "security_sell", label: "Security sell" },
-  { value: "dividend", label: "Dividend" },
-  { value: "interest", label: "Interest" },
-  { value: "fee", label: "Fee" },
-  { value: "tax", label: "Tax" },
-];
 const euro = new Intl.NumberFormat("en-IE", {
   style: "currency",
   currency: "EUR",
@@ -66,8 +50,6 @@ const euro = new Intl.NumberFormat("en-IE", {
 const pct = (value: number) => `${value.toFixed(1)}%`;
 const formatMoney = (value: string, currency: string) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(Number(value));
-const typeLabel = (value: TransactionType) =>
-  TRANSACTION_TYPES.find((item) => item.value === value)?.label ?? value;
 const categoryValue = (category: string) => category.toLowerCase();
 
 function useDebouncedValue(value: string, delayMs: number) {
@@ -276,7 +258,7 @@ function AddTransactionModal({
     name: "",
     amount: "",
     currency: "EUR",
-    transaction_type: "card_payment",
+    transaction_type: "unspecified",
     category: "",
     fees: "0",
     taxes: "0",
@@ -284,20 +266,21 @@ function AddTransactionModal({
   const [categoryEdited, setCategoryEdited] = useState(false);
   const debouncedName = useDebouncedValue(form.name, 400);
   const debouncedCounterparty = useDebouncedValue(form.counterparty ?? "", 400);
+  const hasClassificationAmount = Boolean(form.amount) && Number(form.amount) !== 0;
   const classification = useQuery({
     queryKey: [
       "transaction-classification",
-      form.transaction_type,
       debouncedName,
       debouncedCounterparty,
+      form.amount,
     ],
     queryFn: () =>
       api.classifyTransaction({
-        transaction_type: form.transaction_type,
         description: debouncedName,
+        amount: form.amount,
         counterparty: debouncedCounterparty || undefined,
       }),
-    enabled: debouncedName.trim().length >= 3,
+    enabled: debouncedName.trim().length >= 3 && hasClassificationAmount,
     retry: false,
     staleTime: 30_000,
   });
@@ -306,7 +289,6 @@ function AddTransactionModal({
       setForm((current) => ({ ...current, category: classification.data.category ?? "" }));
     }
   }, [categoryEdited, classification.data]);
-  const isSecurity = ["security_buy", "security_sell"].includes(form.transaction_type);
   const mutation = useMutation({
     mutationFn: () => api.createTransaction(form),
     onSuccess: async () => {
@@ -352,21 +334,6 @@ function AddTransactionModal({
               ))}
             </select>
           </label>
-          <label>
-            Transaction type
-            <select
-              value={form.transaction_type}
-              onChange={(event) =>
-                updateClassificationInput("transaction_type", event.target.value)
-              }
-            >
-              {TRANSACTION_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
-            </select>
-          </label>
           <label className="span-2">
             Name or description
             <input
@@ -384,7 +351,7 @@ function AddTransactionModal({
               type="number"
               step="0.01"
               value={form.amount}
-              onChange={(event) => update("amount", event.target.value)}
+              onChange={(event) => updateClassificationInput("amount", event.target.value)}
               placeholder="-45.90"
             />
           </label>
@@ -434,66 +401,15 @@ function AddTransactionModal({
                     ? `${categoryEdited ? "Original suggestion" : "Suggested"}: ${classification.data.category} · ${
                         classification.data.classification_method === "ml"
                           ? `${Math.round((classification.data.confidence ?? 0) * 100)}% confidence`
-                          : "deterministic rule"
+                          : classification.data.classification_method === "keyword_rule"
+                            ? "text baseline rule"
+                            : "deterministic rule"
                       }${classification.data.needs_review ? " · review recommended" : ""}`
-                    : "Enter at least three characters to receive a suggestion."}
+                    : classification.data
+                      ? `No reliable suggestion · ${classification.data.reason}`
+                    : "Enter a description and non-zero amount to receive a suggestion."}
             </span>
           </label>
-          {isSecurity && (
-            <>
-              <label>
-                Security symbol
-                <input
-                  required
-                  value={form.security_symbol ?? ""}
-                  onChange={(event) => update("security_symbol", event.target.value)}
-                  placeholder="WORLD-ETF"
-                />
-              </label>
-              <label>
-                Quantity
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="any"
-                  value={form.quantity ?? ""}
-                  onChange={(event) => update("quantity", event.target.value)}
-                />
-              </label>
-              <label>
-                Unit price
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  step="0.000001"
-                  value={form.unit_price ?? ""}
-                  onChange={(event) => update("unit_price", event.target.value)}
-                />
-              </label>
-              <label>
-                Fees
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.fees ?? "0"}
-                  onChange={(event) => update("fees", event.target.value)}
-                />
-              </label>
-              <label>
-                Taxes
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.taxes ?? "0"}
-                  onChange={(event) => update("taxes", event.target.value)}
-                />
-              </label>
-            </>
-          )}
           <label className="span-2">
             Notes
             <textarea
@@ -569,18 +485,15 @@ function TransactionsView() {
             </select>
           </label>
           <label>
-            Type
+            Cash flow
             <select
-              aria-label="Filter by transaction type"
-              value={filters.transaction_type ?? ""}
-              onChange={(event) => setFilter("transaction_type", event.target.value)}
+              aria-label="Filter by cash flow"
+              value={filters.cash_flow ?? ""}
+              onChange={(event) => setFilter("cash_flow", event.target.value)}
             >
-              <option value="">All types</option>
-              {TRANSACTION_TYPES.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
-                </option>
-              ))}
+              <option value="">All flows</option>
+              <option value="inflow">Incoming</option>
+              <option value="outflow">Outgoing</option>
             </select>
           </label>
           <label>
@@ -648,7 +561,7 @@ function TransactionsView() {
                   <th>Description</th>
                   <th>Account</th>
                   <th>Category</th>
-                  <th>Type</th>
+                  <th>Cash flow</th>
                   <th>Amount</th>
                 </tr>
               </thead>
@@ -664,7 +577,7 @@ function TransactionsView() {
                     <td>
                       <span className="category-pill">{transaction.category ?? "Uncategorized"}</span>
                     </td>
-                    <td>{typeLabel(transaction.transaction_type)}</td>
+                    <td>{Number(transaction.amount) >= 0 ? "Incoming" : "Outgoing"}</td>
                     <td className={Number(transaction.amount) >= 0 ? "positive" : "negative"}>
                       {formatMoney(transaction.amount, transaction.currency)}
                     </td>

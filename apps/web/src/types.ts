@@ -40,6 +40,7 @@ export type Account = {
 };
 
 export type TransactionType =
+  | "unspecified"
   | "card_payment"
   | "transfer"
   | "direct_debit"
@@ -75,8 +76,12 @@ export type Transaction = {
   classifications: TransactionClassificationRecord[];
 };
 
-export type ClassificationRoute = "deterministic" | "expense_model" | "needs_review";
-export type ClassificationMethod = "deterministic" | "ml" | "none";
+export type ClassificationRoute =
+  | "deterministic"
+  | "text_rule"
+  | "expense_model"
+  | "needs_review";
+export type ClassificationMethod = "deterministic" | "keyword_rule" | "ml" | "none";
 export type FeedbackStatus = "accepted" | "corrected" | "manual" | "unreviewed";
 
 export type TransactionClassification = {
@@ -99,8 +104,8 @@ export type TransactionClassificationRecord = Omit<TransactionClassification, "c
 };
 
 export type TransactionClassificationRequest = {
-  transaction_type: TransactionType;
   description: string;
+  amount: string;
   counterparty?: string;
 };
 
@@ -114,6 +119,7 @@ export type TransactionPage = {
 export type TransactionFilters = {
   account_id?: string;
   transaction_type?: TransactionType;
+  cash_flow?: "inflow" | "outflow";
   category?: string;
   date_from?: string;
   date_to?: string;
@@ -127,7 +133,7 @@ export type TransactionCreate = {
   name: string;
   amount: string;
   currency: string;
-  transaction_type: TransactionType;
+  transaction_type?: TransactionType;
   counterparty?: string;
   category?: string;
   notes?: string;

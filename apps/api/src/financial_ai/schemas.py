@@ -106,6 +106,7 @@ class AccountType(StrEnum):
 
 
 class TransactionType(StrEnum):
+    UNSPECIFIED = "unspecified"
     CARD_PAYMENT = "card_payment"
     TRANSFER = "transfer"
     DIRECT_DEBIT = "direct_debit"
@@ -179,7 +180,7 @@ class TransactionCreate(BaseModel):
     name: str = Field(min_length=1, max_length=160)
     amount: Decimal = Field(max_digits=20, decimal_places=2)
     currency: str = Field(default="EUR", min_length=3, max_length=3)
-    transaction_type: TransactionType
+    transaction_type: TransactionType = TransactionType.UNSPECIFIED
     counterparty: str | None = Field(default=None, max_length=160)
     category: str | None = Field(default=None, max_length=60)
     notes: str | None = Field(default=None, max_length=500)
@@ -236,8 +237,8 @@ class TransactionPage(BaseModel):
 
 
 class TransactionClassificationRequest(BaseModel):
-    transaction_type: TransactionType
     description: str = Field(min_length=1, max_length=320)
+    amount: Decimal = Field(max_digits=20, decimal_places=2)
     counterparty: str | None = Field(default=None, max_length=160)
 
 

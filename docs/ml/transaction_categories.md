@@ -10,23 +10,20 @@ responses, and user corrections consistent.
 
 ## Model scope
 
-The model categorizes merchant-related expenses from card payments and direct
-debits. Version 1 uses the transaction description and counterparty as its main
-text features. Amount and account information may be evaluated separately, but
-must not replace the merchant-text baseline.
+The learned model categorizes merchant-related expenses from transaction text.
+The product service uses name/description and counterparty as text input plus
+the signed amount for inflow/outflow routing. Detailed transaction types may be
+stored as source metadata but are not classification features.
 
-The following transaction types are handled deterministically and are excluded
-from category-model training:
+The following categories remain outside expense-model training and are handled
+by a small text-rule baseline when high-signal phrases are present:
 
-- `salary` -> `income`
-- `dividend` -> `investments`
-- `interest` -> `income`
-- `security_buy` -> `investments`
-- `security_sell` -> `investments`
-- `fee` -> `fees`
-- `tax` -> `taxes`
-- `deposit` -> `savings`
-- `cash_withdrawal` -> `cash`
+- salary, payroll, income, interest -> `income`
+- dividend, broker, investment or security-purchase text -> `investments`
+- bank/account fee text -> `fees`
+- tax text -> `taxes`
+- savings-account text -> `savings`
+- ATM or cash-withdrawal text -> `cash`
 
 Transfers are excluded from version 1 because their purpose is often ambiguous
 without additional account or counterparty context.
@@ -244,8 +241,8 @@ Boundary rules:
 
 ## Categories outside model scope
 
-The following labels may appear in the product but are assigned from structured
-transaction types rather than predicted by the version 1 category model:
+The following labels may appear in the product but are assigned by the text-rule
+baseline rather than predicted by the version 1 expense model:
 
 - `income`
 - `investments`

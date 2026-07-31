@@ -7,7 +7,7 @@ mistaken for live financial data.
 
 ## Prerequisites
 
-- Python 3.12 and [uv](https://docs.astral.sh/uv/)
+- Python 3.12 and [uv](https://docs.astral.sh/uv/) for initial dependency setup
 - Node.js 22 or newer and npm
 
 ## Run locally
@@ -28,6 +28,29 @@ npm.cmd run dev
 
 Open `http://localhost:5173`. API documentation is available at
 `http://localhost:8000/docs`.
+
+### Windows fallback without a global `uv` command
+
+If the repository already contains the synchronized `.venv`, no administrator
+rights or global `uv` command are required. Run these commands from the
+repository root:
+
+```powershell
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m financial_ai.ml.category_artifact
+.\.venv\Scripts\python.exe -m uvicorn financial_ai.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+Keep that terminal open. Start the frontend in a second terminal:
+
+```powershell
+cd apps\web
+npm.cmd run dev
+```
+
+This fallback depends on the existing `.venv`. It cannot create or update the
+environment when dependencies change; that still requires `uv` or another
+explicit dependency-installation workflow.
 
 ## Transaction API
 
@@ -57,11 +80,19 @@ expense classification:
 uv run financial-ai-build-category-model
 ```
 
-Structured types such as salary, interest, fees, and security transactions are
-categorized deterministically and do not require the model artifact.
-The add-transaction form requests a category suggestion after a short typing
-delay, keeps the category editable, and stores the trusted backend prediction
-alongside the user's final selection for later offline model improvement.
+Without a global `uv` command, use the existing environment:
+
+```powershell
+.\.venv\Scripts\python.exe -m financial_ai.ml.category_artifact
+```
+
+Classification is text-first: the add-transaction form uses name/description,
+counterparty, and signed amount without requiring a detailed transaction type.
+A small bilingual text-rule baseline handles high-signal phrases; unmatched
+outflows use the experimental expense model. Suggestions remain editable, and
+the trusted backend prediction is stored alongside the user's final selection
+for later offline model improvement. This is a synthetic-data learning baseline,
+not a production-ready financial classifier.
 
 ## Documentation
 
@@ -104,6 +135,12 @@ uv run pytest
 cd apps/web
 npm.cmd test
 npm.cmd run build
+```
+
+Backend tests can also use the existing environment directly:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest
 ```
 
 If `uv` is not found after installation, open a new terminal so its updated
