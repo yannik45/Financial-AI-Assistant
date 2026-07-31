@@ -1,5 +1,5 @@
 {
-  "version": "text-classification-challenge-v1",
+  "version": "text-classification-challenge-v2",
   "rows": 252,
   "languages": [
     "de",
@@ -25,9 +25,10 @@
     "travel",
     "utilities"
   ],
-  "sha256": "9693fa6ef78ef202013b156db3283ab81dcf7d37a2d19b98c53bbed247953195",
+  "sha256": "9da88ee6ca4ae9721206859b238da801970bfa94ac91ae0bc02cb0ce3fad9c04",
   "checksum_normalization": "utf-8-lf",
   "known_regression_cases_included": false,
+  "supersedes": "text-classification-challenge-v1",
   "provenance": "manually_authored_development_challenge",
   "limitations": "Created alongside the system; not an independent real-world production benchmark."
 }

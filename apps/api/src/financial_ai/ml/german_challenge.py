@@ -24,18 +24,13 @@ def validate_german_challenge_data(source_data: pd.DataFrame) -> pd.DataFrame:
 
     descriptions = source_data["description"]
 
-    invalid_descriptions = (
-      descriptions.isna()
-      | descriptions.str.strip().eq("")
-    )
+    invalid_descriptions = descriptions.isna() | descriptions.str.strip().eq("")
     if invalid_descriptions.any():
         raise ValueError("Expected non-empty description values")
 
     ids = source_data["scenario_id"]
 
-    invalid_ids = (
-        ids.isna() | ids.str.strip().eq("")
-    )
+    invalid_ids = ids.isna() | ids.str.strip().eq("")
 
     duplicate_ids = ids.duplicated()
 

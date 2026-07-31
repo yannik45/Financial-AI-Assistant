@@ -11,13 +11,10 @@ def make_grouped_training_data(groups_per_category: int = 8) -> pd.DataFrame:
         [
             {
                 "description": (
-                    f"SYNTHETIC {category.value} MERCHANT {merchant_number} "
-                    f"ROW {row_number}"
+                    f"SYNTHETIC {category.value} MERCHANT {merchant_number} ROW {row_number}"
                 ),
                 "target_category": category.value,
-                "merchant_group": (
-                    f"generated_{category.value}_merchant_{merchant_number}"
-                ),
+                "merchant_group": (f"generated_{category.value}_merchant_{merchant_number}"),
             }
             for category in ExpenseCategory
             for merchant_number in range(1, groups_per_category + 1)
@@ -79,9 +76,7 @@ def test_split_german_training_data_is_deterministic():
 
 def test_split_german_training_data_is_independent_of_row_order():
     training_data = make_grouped_training_data()
-    reordered_data = training_data.sample(frac=1, random_state=99).reset_index(
-        drop=True
-    )
+    reordered_data = training_data.sample(frac=1, random_state=99).reset_index(drop=True)
 
     original = split_german_training_data_by_merchant(
         training_data,
@@ -92,15 +87,9 @@ def test_split_german_training_data_is_independent_of_row_order():
         random_state=17,
     )
 
-    assert set(original.train["merchant_group"]) == set(
-        reordered.train["merchant_group"]
-    )
-    assert set(original.validation["merchant_group"]) == set(
-        reordered.validation["merchant_group"]
-    )
-    assert set(original.test["merchant_group"]) == set(
-        reordered.test["merchant_group"]
-    )
+    assert set(original.train["merchant_group"]) == set(reordered.train["merchant_group"])
+    assert set(original.validation["merchant_group"]) == set(reordered.validation["merchant_group"])
+    assert set(original.test["merchant_group"]) == set(reordered.test["merchant_group"])
 
 
 @pytest.mark.parametrize(
@@ -115,16 +104,12 @@ def test_split_german_training_data_supports_variable_group_counts(
     groups_per_category,
     expected_split_counts,
 ):
-    training_data = make_grouped_training_data(
-        groups_per_category=groups_per_category
-    )
+    training_data = make_grouped_training_data(groups_per_category=groups_per_category)
     expected_train, expected_validation, expected_test = expected_split_counts
 
     splits = split_german_training_data_by_merchant(training_data)
 
-    assert len(splits.train) + len(splits.validation) + len(splits.test) == len(
-        training_data
-    )
+    assert len(splits.train) + len(splits.validation) + len(splits.test) == len(training_data)
     for category in ExpenseCategory:
         category_value = category.value
         assert (

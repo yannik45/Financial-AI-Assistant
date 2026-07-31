@@ -82,7 +82,13 @@ export type ClassificationRoute =
   | "expense_model"
   | "needs_review";
 export type ClassificationMethod = "deterministic" | "keyword_rule" | "ml" | "none";
-export type FeedbackStatus = "accepted" | "corrected" | "manual" | "unreviewed";
+export type FeedbackStatus =
+  | "accepted"
+  | "accepted_implicit"
+  | "accepted_explicit"
+  | "corrected"
+  | "manual"
+  | "unreviewed";
 
 export type TransactionClassification = {
   category: string | null;
@@ -136,6 +142,7 @@ export type TransactionCreate = {
   transaction_type?: TransactionType;
   counterparty?: string;
   category?: string;
+  category_confirmed?: boolean;
   notes?: string;
   security_symbol?: string;
   quantity?: string;

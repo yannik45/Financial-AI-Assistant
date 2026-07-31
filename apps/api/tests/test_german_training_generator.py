@@ -12,11 +12,7 @@ from financial_ai.ml.german_training_generator import (
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 GERMAN_CHALLENGE_PATH = (
-    REPOSITORY_ROOT
-    / "data"
-    / "evaluation"
-    / "transaction_categories"
-    / "german_challenge_v1.csv"
+    REPOSITORY_ROOT / "data" / "evaluation" / "transaction_categories" / "german_challenge_v1.csv"
 )
 
 
@@ -47,12 +43,8 @@ def test_generated_training_data_does_not_overlap_challenge_set():
     )
     challenge_data = pd.read_csv(GERMAN_CHALLENGE_PATH)
 
-    assert set(generated_data["description"]).isdisjoint(
-        challenge_data["description"]
-    )
-    assert set(generated_data["merchant_group"]).isdisjoint(
-        challenge_data["merchant_group"]
-    )
+    assert set(generated_data["description"]).isdisjoint(challenge_data["description"])
+    assert set(generated_data["merchant_group"]).isdisjoint(challenge_data["merchant_group"])
 
 
 def test_generate_german_training_data_rejects_non_positive_size():

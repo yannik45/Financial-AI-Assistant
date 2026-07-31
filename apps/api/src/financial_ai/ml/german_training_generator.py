@@ -12,9 +12,7 @@ from financial_ai.ml.categories import ExpenseCategory
 GENERATOR_VERSION = "german-training-generator-v1"
 DEFAULT_RANDOM_SEED = 20260730
 DEFAULT_EXAMPLES_PER_CATEGORY = 1_000
-DEFAULT_OUTPUT_PATH = Path(
-    "data/runtime/ml/transaction_categories/german_training_v1.csv"
-)
+DEFAULT_OUTPUT_PATH = Path("data/runtime/ml/transaction_categories/german_training_v1.csv")
 
 OUTPUT_COLUMNS = [
     "example_id",

@@ -50,7 +50,12 @@ def test_model_artifact_is_built_from_train_and_validation_only(tmp_path):
     assert metadata.languages == ("en", "de")
     assert loaded.metadata.model_version == metadata.model_version
     assert set(loaded.model.classes_) == {"dining", "groceries"}
-    assert json.loads(metadata_path.read_text(encoding="utf-8"))["artifact_sha256"]
+    metadata_payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+    assert metadata_payload["artifact_sha256"]
+    assert metadata_payload["random_state"] == 42
+    assert metadata_payload["feature_configuration"]["ngram_range"] == [3, 5]
+    assert metadata_payload["model_parameters"]["class_weight"] == "balanced"
+    assert metadata_payload["library_versions"]["scikit_learn"]
 
 
 def test_model_artifact_rejects_missing_source_and_checksum_mismatch(tmp_path):

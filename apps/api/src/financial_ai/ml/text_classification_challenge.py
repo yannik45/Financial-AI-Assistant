@@ -7,12 +7,18 @@ import pandas as pd
 from financial_ai.ml.categories import ExpenseCategory
 from financial_ai.ml.transaction_classification import TransactionCategory
 
-CHALLENGE_VERSION = "text-classification-challenge-v1"
-DEFAULT_CHALLENGE_PATH = Path(
+CHALLENGE_VERSION = "text-classification-challenge-v2"
+V1_CHALLENGE_PATH = Path(
     "data/evaluation/transaction_categories/text_classification_challenge_v1.csv"
 )
-DEFAULT_METADATA_PATH = Path(
+V1_METADATA_PATH = Path(
     "data/evaluation/transaction_categories/text_classification_challenge_v1.metadata.json"
+)
+DEFAULT_CHALLENGE_PATH = Path(
+    "data/evaluation/transaction_categories/text_classification_challenge_v2.csv"
+)
+DEFAULT_METADATA_PATH = Path(
+    "data/evaluation/transaction_categories/text_classification_challenge_v2.metadata.json"
 )
 EXPECTED_COLUMNS = [
     "id",
@@ -393,6 +399,26 @@ CURATED_TEXTS: dict[str, dict[str, tuple[str, ...]]] = {
 }
 
 POSITIVE_CATEGORIES = {"income"}
+COUNTERPARTIES = {
+    "income": {"en": "Example Employer", "de": "Beispiel Arbeitgeber"},
+    "investments": {"en": "Demo Securities Broker", "de": "Demo Wertpapierbroker"},
+    "fees": {"en": "Example Bank", "de": "Beispielbank"},
+    "taxes": {"en": "Revenue Authority", "de": "Finanzbehörde"},
+    "savings": {"en": "Reserve Account", "de": "Rücklagenkonto"},
+    "cash": {"en": "Central ATM", "de": "Geldautomat Zentrum"},
+    "groceries": {"en": "Green Market", "de": "Grüner Markt"},
+    "dining": {"en": "Riverside Kitchen", "de": "Küche am Fluss"},
+    "transport": {"en": "City Mobility", "de": "Stadtmobilität"},
+    "housing": {"en": "Example Property Services", "de": "Beispiel Hausverwaltung"},
+    "utilities": {"en": "Home Services", "de": "Versorgung Zuhause"},
+    "healthcare": {"en": "Community Health", "de": "Gesundheitszentrum"},
+    "shopping": {"en": "Town Retail", "de": "Stadthandel"},
+    "entertainment": {"en": "City Culture", "de": "Stadtkultur"},
+    "travel": {"en": "Example Travel", "de": "Beispiel Reisen"},
+    "insurance": {"en": "Demo Insurance", "de": "Demo Versicherung"},
+    "education": {"en": "Learning Center", "de": "Bildungszentrum"},
+    "other": {"en": "Reference Counterparty", "de": "Referenz Gegenpartei"},
+}
 
 
 def build_text_classification_challenge() -> pd.DataFrame:
@@ -405,8 +431,15 @@ def build_text_classification_challenge() -> pd.DataFrame:
                     {
                         "id": f"{language}-{category}-{index:02d}",
                         "description": description,
-                        "counterparty": "",
-                        "amount": 125.0 if category in POSITIVE_CATEGORIES else -42.5,
+                        "counterparty": (
+                            COUNTERPARTIES[category][language] if index in {2, 5, 7} else ""
+                        ),
+                        "amount": (
+                            125.0
+                            if category in POSITIVE_CATEGORIES
+                            or (category == "investments" and index in {1, 4})
+                            else -42.5
+                        ),
                         "expected_category": category,
                         "language": language,
                         "difficulty": difficulty,
@@ -439,6 +472,8 @@ def validate_text_classification_challenge(challenge: pd.DataFrame) -> None:
         raise ValueError("Challenge descriptions must not be blank")
     if challenge["amount"].eq(0).any():
         raise ValueError("Challenge amounts must not be zero")
+    if challenge["counterparty"].str.strip().eq("").all():
+        raise ValueError("Challenge must contain counterparty examples")
     if len(challenge) != len(expected_categories) * 2 * 7:
         raise ValueError("Challenge must contain seven cases per category and language")
     group_sizes = challenge.groupby(["expected_category", "language"]).size()
@@ -446,8 +481,10 @@ def validate_text_classification_challenge(challenge: pd.DataFrame) -> None:
         raise ValueError("Every category-language group must contain seven cases")
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def calculate_canonical_csv_sha256(path: Path) -> str:
+    """Hash CSV content with platform-independent LF line endings."""
+    canonical_bytes = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(canonical_bytes).hexdigest()
 
 
 def write_text_classification_challenge(
@@ -462,8 +499,10 @@ def write_text_classification_challenge(
         "rows": len(challenge),
         "languages": sorted(challenge["language"].unique()),
         "categories": sorted(challenge["expected_category"].unique()),
-        "sha256": _sha256(destination),
+        "sha256": calculate_canonical_csv_sha256(destination),
+        "checksum_normalization": "utf-8-lf",
         "known_regression_cases_included": False,
+        "supersedes": "text-classification-challenge-v1",
         "provenance": "manually_authored_development_challenge",
         "limitations": (
             "Created alongside the system; not an independent real-world production benchmark."
@@ -475,9 +514,22 @@ def write_text_classification_challenge(
 
 def load_text_classification_challenge(
     source: Path = DEFAULT_CHALLENGE_PATH,
+    metadata_source: Path | None = None,
 ) -> pd.DataFrame:
+    metadata_path = metadata_source or source.with_suffix(".metadata.json")
+    if not metadata_path.is_file():
+        raise ValueError(f"Challenge metadata not found: {metadata_path}")
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    if metadata.get("version") != CHALLENGE_VERSION:
+        raise ValueError("Challenge metadata version is incompatible")
+    if metadata.get("checksum_normalization") != "utf-8-lf":
+        raise ValueError("Challenge checksum normalization is incompatible")
+    if metadata.get("sha256") != calculate_canonical_csv_sha256(source):
+        raise ValueError("Challenge checksum does not match its metadata")
     challenge = pd.read_csv(source).fillna({"counterparty": "", "notes": ""})
     validate_text_classification_challenge(challenge)
+    if metadata.get("rows") != len(challenge):
+        raise ValueError("Challenge row count does not match its metadata")
     return challenge
 
 

@@ -1,12 +1,14 @@
 import hashlib
 import json
 import pickle
+import platform
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+import sklearn
 from sklearn.pipeline import Pipeline
 
 from financial_ai.ml.category_model import train_tfidf_category_classifier
@@ -36,6 +38,10 @@ class ModelMetadata:
     languages: tuple[str, ...]
     training_source_sha256: dict[str, str]
     artifact_sha256: str
+    random_state: int | None = None
+    feature_configuration: dict[str, Any] | None = None
+    model_parameters: dict[str, Any] | None = None
+    library_versions: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -92,6 +98,24 @@ def build_category_model_artifact(
             "german": calculate_sha256(german_path),
         },
         artifact_sha256=calculate_sha256(artifact_path),
+        random_state=random_state,
+        feature_configuration={
+            "vectorizer": "TfidfVectorizer",
+            "analyzer": "char_wb",
+            "ngram_range": [3, 5],
+            "min_df": 2,
+            "sublinear_tf": True,
+        },
+        model_parameters={
+            "classifier": "LogisticRegression",
+            "class_weight": "balanced",
+            "max_iter": 1000,
+        },
+        library_versions={
+            "python": platform.python_version(),
+            "pandas": pd.__version__,
+            "scikit_learn": sklearn.__version__,
+        },
     )
     metadata_path.parent.mkdir(parents=True, exist_ok=True)
     metadata_path.write_text(json.dumps(asdict(metadata), indent=2) + "\n", encoding="utf-8")

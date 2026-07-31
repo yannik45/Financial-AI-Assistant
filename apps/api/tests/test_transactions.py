@@ -260,6 +260,7 @@ def test_transaction_creation_persists_corrected_model_feedback(client):
                 "currency": "EUR",
                 "transaction_type": "card_payment",
                 "category": "Dining",
+                "category_confirmed": True,
             },
         )
     finally:
@@ -273,6 +274,28 @@ def test_transaction_creation_persists_corrected_model_feedback(client):
     assert feedback["final_category"] == "dining"
     assert feedback["feedback_status"] == "corrected"
     assert feedback["model_version"] == "test-model-v1"
+
+
+def test_matching_category_tracks_explicit_confirmation(client):
+    checking = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "checking"
+    )
+    response = client.post(
+        "/v1/transactions",
+        json={
+            "account_id": checking["id"],
+            "booked_at": "2026-04-05",
+            "name": "House Payment",
+            "amount": "-950.00",
+            "category": "housing",
+            "category_confirmed": True,
+        },
+    )
+
+    assert response.status_code == 201
+    assert response.json()["classifications"][0]["feedback_status"] == "accepted_explicit"
 
 
 def test_transaction_creation_rejects_unknown_category(client):

@@ -107,7 +107,7 @@ def test_report_is_machine_readable(tmp_path: Path, loaded_category_model):
     )
     report = json.loads(destination.read_text(encoding="utf-8"))
 
-    assert report["evaluation_version"] == "text-classification-evaluation-v1"
+    assert report["evaluation_version"] == "text-classification-evaluation-v2"
     assert report["review_threshold"] == 0.01
     assert report["model_version"] == "evaluation-test-model-v1"
     assert report["model_artifact_sha256"] == "abc123"

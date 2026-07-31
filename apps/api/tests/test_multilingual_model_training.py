@@ -11,9 +11,7 @@ from sklearn.pipeline import Pipeline
 def make_language_splits(language: str) -> CategoryDataSplits:
     train = pd.DataFrame(
         {
-            "description": [
-                f"{language} MARKET FOOD {number}" for number in range(6)
-            ]
+            "description": [f"{language} MARKET FOOD {number}" for number in range(6)]
             + [f"{language} HOTEL TRAVEL {number}" for number in range(6)],
             "target_category": ["groceries"] * 6 + ["travel"] * 6,
             "provenance": [language] * 12,
@@ -53,12 +51,12 @@ def test_train_and_evaluate_multilingual_validation_combines_only_train_rows():
     assert result.english_training_rows == 12
     assert result.german_training_rows == 12
     assert result.combined_training_rows == 24
-    assert sum(
-        metric.support for metric in result.english_validation.per_category
-    ) == len(english_splits.validation)
-    assert sum(
-        metric.support for metric in result.german_validation.per_category
-    ) == len(german_splits.validation)
+    assert sum(metric.support for metric in result.english_validation.per_category) == len(
+        english_splits.validation
+    )
+    assert sum(metric.support for metric in result.german_validation.per_category) == len(
+        german_splits.validation
+    )
 
 
 def test_build_language_balanced_training_data_matches_each_category():
@@ -130,9 +128,9 @@ def test_train_and_evaluate_balanced_multilingual_validation_uses_equal_sizes():
 
     assert result.english_training_rows == result.german_training_rows == 12
     assert result.combined_training_rows == 24
-    assert sum(
-        metric.support for metric in result.english_validation.per_category
-    ) == len(english_splits.validation)
-    assert sum(
-        metric.support for metric in result.german_validation.per_category
-    ) == len(german_splits.validation)
+    assert sum(metric.support for metric in result.english_validation.per_category) == len(
+        english_splits.validation
+    )
+    assert sum(metric.support for metric in result.german_validation.per_category) == len(
+        german_splits.validation
+    )

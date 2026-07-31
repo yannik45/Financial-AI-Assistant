@@ -23,9 +23,9 @@ from financial_ai.ml.text_classification_rules import match_text_category
 from financial_ai.ml.transaction_classification import ClassificationMethod
 
 DEFAULT_REPORT_PATH = Path(
-    "data/runtime/ml/transaction_categories/text_classification_evaluation_v1.json"
+    "data/runtime/ml/transaction_categories/text_classification_evaluation_v2.json"
 )
-EVALUATION_VERSION = "text-classification-evaluation-v1"
+EVALUATION_VERSION = "text-classification-evaluation-v2"
 ABSTENTION_LABEL = "__needs_review__"
 
 

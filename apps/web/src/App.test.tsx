@@ -145,6 +145,47 @@ test("suggests a category and preserves a user correction when saving", async ()
       return url.endsWith("/v1/transactions") && init?.method === "POST";
     });
     expect(createCall).toBeDefined();
-    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({ category: "dining" });
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({
+      category: "dining",
+      category_confirmed: true,
+    });
   });
+});
+
+test("does not auto-apply a suggestion that requires review", async () => {
+  vi.mocked(fetch).mockImplementation((input: string | URL | Request) => {
+    const url = String(input);
+    if (url.includes("/v1/accounts")) return jsonResponse(accounts);
+    if (url.includes("/v1/transactions/classify"))
+      return jsonResponse({
+        category: "housing",
+        route: "expense_model",
+        classification_method: "ml",
+        confidence: 0.42,
+        needs_review: true,
+        reason: "Model confidence is below the review threshold.",
+        taxonomy_version: "transaction-categories-v1",
+        model_version: "test-model-v1",
+      });
+    if (url.includes("/v1/transactions")) return jsonResponse(transactions);
+    return jsonResponse([]);
+  });
+  renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /Transactions/ }));
+  const addButton = await screen.findByRole("button", { name: "Add transaction" });
+  await waitFor(() => expect(addButton).toBeEnabled());
+  fireEvent.click(addButton);
+  const modal = screen.getByRole("heading", { name: "Add transaction" }).closest("form")!;
+  fireEvent.change(within(modal).getByLabelText("Name or description"), {
+    target: { value: "Unknown payment" },
+  });
+  fireEvent.change(within(modal).getByLabelText("Amount"), {
+    target: { value: "-950" },
+  });
+
+  await waitFor(() =>
+    expect(within(modal).getByText(/review recommended/i)).toBeInTheDocument(),
+  );
+  expect(within(modal).getByLabelText("Category")).toHaveValue("");
+  expect(within(modal).getByText(/uncalibrated model score/i)).toBeInTheDocument();
 });

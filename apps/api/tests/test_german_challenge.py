@@ -7,11 +7,7 @@ from financial_ai.ml.german_challenge import validate_german_challenge_data
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 GERMAN_CHALLENGE_PATH = (
-    REPOSITORY_ROOT
-    / "data"
-    / "evaluation"
-    / "transaction_categories"
-    / "german_challenge_v1.csv"
+    REPOSITORY_ROOT / "data" / "evaluation" / "transaction_categories" / "german_challenge_v1.csv"
 )
 
 
@@ -19,9 +15,7 @@ def make_german_challenge_data() -> pd.DataFrame:
     rows = [
         {
             "scenario_id": f"de_{category.value}_{example_number:03d}",
-            "description": (
-                f"SYNTHETISCHE BUCHUNG {category.value} {example_number}"
-            ),
+            "description": (f"SYNTHETISCHE BUCHUNG {category.value} {example_number}"),
             "target_category": category.value,
             "language": "de",
             "merchant_group": f"merchant_{category.value}_{example_number}",

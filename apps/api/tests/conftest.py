@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-TEST_DB = Path(__file__).parent / "test.db"
+TEST_DB = Path(__file__).parent / f"test-{os.getpid()}.db"
 os.environ["FINANCIAL_AI_DATABASE_URL"] = f"sqlite:///{TEST_DB.as_posix()}"
 
 import pytest  # noqa: E402

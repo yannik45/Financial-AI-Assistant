@@ -58,9 +58,7 @@ class TransactionClassifier:
                 category=decision.category.value,
                 route=decision.route,
                 method=decision.method,
-                confidence=(
-                    1.0 if decision.method is ClassificationMethod.DETERMINISTIC else None
-                ),
+                confidence=(1.0 if decision.method is ClassificationMethod.DETERMINISTIC else None),
                 needs_review=False,
                 reason=decision.reason,
                 taxonomy_version=TAXONOMY_VERSION,

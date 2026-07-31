@@ -36,15 +36,11 @@ def evaluate_german_challenge(
         overall=evaluate_category_classifier(model, validated_data),
         german_local=evaluate_category_classifier(
             model,
-            validated_data.loc[
-                validated_data["merchant_scope"].eq("german_local")
-            ],
+            validated_data.loc[validated_data["merchant_scope"].eq("german_local")],
         ),
         international=evaluate_category_classifier(
             model,
-            validated_data.loc[
-                validated_data["merchant_scope"].eq("international")
-            ],
+            validated_data.loc[validated_data["merchant_scope"].eq("international")],
         ),
     )
 

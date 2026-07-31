@@ -27,12 +27,9 @@ EXCLUDED_SOURCE_CATEGORIES: set[str] = {
 def map_source_category(value: str) -> ExpenseCategory | None:
     normalized = value.strip().casefold()
     normalized_mapping = {
-        source.casefold(): target
-        for source, target in SOURCE_CATEGORY_MAPPING.items()
+        source.casefold(): target for source, target in SOURCE_CATEGORY_MAPPING.items()
     }
-    normalized_excluded = {
-        source.casefold() for source in EXCLUDED_SOURCE_CATEGORIES
-    }
+    normalized_excluded = {source.casefold() for source in EXCLUDED_SOURCE_CATEGORIES}
 
     if normalized in normalized_mapping:
         return normalized_mapping[normalized]

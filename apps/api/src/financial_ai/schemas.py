@@ -183,6 +183,7 @@ class TransactionCreate(BaseModel):
     transaction_type: TransactionType = TransactionType.UNSPECIFIED
     counterparty: str | None = Field(default=None, max_length=160)
     category: str | None = Field(default=None, max_length=60)
+    category_confirmed: bool = False
     notes: str | None = Field(default=None, max_length=500)
     security_symbol: str | None = Field(default=None, max_length=24)
     quantity: Decimal | None = Field(default=None, gt=0, max_digits=20, decimal_places=8)

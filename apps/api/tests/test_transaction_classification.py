@@ -55,6 +55,32 @@ def test_unmatched_incoming_text_requires_review():
     assert decision.route is ClassificationRoute.NEEDS_REVIEW
 
 
+@pytest.mark.parametrize(
+    ("description", "amount"),
+    [
+        ("Monthly salary", "-2500"),
+        ("ATM cash withdrawal", "50"),
+        ("Tax office payment", "200"),
+        ("Apartment rent", "950"),
+    ],
+)
+def test_text_rule_conflicting_with_cash_flow_requires_review(description, amount):
+    decision = route_transaction_text(description, Decimal(amount))
+
+    assert decision.route is ClassificationRoute.NEEDS_REVIEW
+    assert decision.category is None
+    assert decision.method is ClassificationMethod.NONE
+    assert "conflicts" in decision.reason
+
+
+def test_investment_text_supports_incoming_distributions_and_outgoing_purchases():
+    incoming = route_transaction_text("Quarterly dividend", Decimal("25"))
+    outgoing = route_transaction_text("Broker securities purchase", Decimal("-250"))
+
+    assert incoming.category is TransactionCategory.INVESTMENTS
+    assert outgoing.category is TransactionCategory.INVESTMENTS
+
+
 def test_text_routing_rejects_empty_description_and_zero_amount():
     with pytest.raises(ValueError, match="Description must not be empty"):
         route_transaction_text("  ", Decimal("10"))
@@ -130,18 +156,19 @@ def test_model_probability_order_matches_classifier_classes():
 
 
 @pytest.mark.parametrize(
-    ("prediction", "final", "expected"),
+    ("prediction", "final", "category_confirmed", "expected"),
     [
-        ("groceries", "Groceries", FeedbackStatus.ACCEPTED),
-        ("groceries", "dining", FeedbackStatus.CORRECTED),
-        (None, "dining", FeedbackStatus.MANUAL),
-        ("groceries", None, FeedbackStatus.UNREVIEWED),
+        ("groceries", "Groceries", False, FeedbackStatus.ACCEPTED_IMPLICIT),
+        ("groceries", "Groceries", True, FeedbackStatus.ACCEPTED_EXPLICIT),
+        ("groceries", "dining", True, FeedbackStatus.CORRECTED),
+        (None, "dining", True, FeedbackStatus.MANUAL),
+        ("groceries", None, False, FeedbackStatus.UNREVIEWED),
     ],
 )
 def test_feedback_status_is_derived_from_prediction_and_final_category(
-    prediction, final, expected
+    prediction, final, category_confirmed, expected
 ):
-    assert determine_feedback_status(prediction, final) is expected
+    assert determine_feedback_status(prediction, final, category_confirmed) is expected
 
 
 def test_product_category_parser_normalizes_and_rejects_unknown_values():

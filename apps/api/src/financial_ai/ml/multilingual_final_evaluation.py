@@ -23,9 +23,7 @@ DEFAULT_GERMAN_PATH = Path("data/runtime/ml/transaction_categories/german_traini
 DEFAULT_GERMAN_CHALLENGE_PATH = Path(
     "data/evaluation/transaction_categories/german_challenge_v1.csv"
 )
-DEFAULT_REPORT_PATH = Path(
-    "data/runtime/ml/transaction_categories/final_model_evaluation_v1.json"
-)
+DEFAULT_REPORT_PATH = Path("data/runtime/ml/transaction_categories/final_model_evaluation_v1.json")
 
 
 @dataclass(frozen=True)
