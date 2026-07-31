@@ -1,7 +1,9 @@
 import math
+from pathlib import Path
 
 from financial_ai.analytics import calculate_analytics
 from financial_ai.database import SessionLocal
+from financial_ai.market_data import DemoMarketDataProvider
 from financial_ai.models import Portfolio
 from financial_ai.seed import DEMO_PORTFOLIOS, seed_demo_portfolios
 
@@ -21,3 +23,12 @@ def test_demo_analytics_are_deterministic():
 
 def test_all_five_demo_profiles_exist():
     assert len(DEMO_PORTFOLIOS) == 5
+
+
+def test_market_data_snapshot_path_is_independent_of_package_location(tmp_path):
+    snapshot = tmp_path / "ecb_fx.csv"
+    snapshot.write_bytes(Path("data/market/ecb_fx.csv").read_bytes())
+
+    provider = DemoMarketDataProvider(ecb_fx_path=snapshot)
+
+    assert provider.fx_on_or_before("USD", provider.prices(["WORLD-ETF"]).index[-1].date()) > 0

@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_name: str = "Financial AI Assistant"
     database_url: str = "sqlite:///./data/runtime/financial_ai.db"
     cors_origins: list[str] = ["http://localhost:5173"]
+    ecb_fx_path: Path = Path("data/market/ecb_fx.csv")
     category_model_artifact_path: Path = Path(
         "data/runtime/ml/models/transaction_category_bilingual_v1.pkl"
     )

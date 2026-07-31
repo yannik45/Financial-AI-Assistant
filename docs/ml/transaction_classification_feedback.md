@@ -16,7 +16,8 @@ lifecycle. It does not retrain or deploy models automatically.
 
 ## Versioned offline export
 
-Reviewed feedback can be converted into an immutable local dataset snapshot:
+Explicit category selections and corrections captured when a transaction is
+created can be converted into an immutable local dataset snapshot:
 
 ```powershell
 uv run financial-ai-export-category-feedback --version reviewed-v1
@@ -50,6 +51,12 @@ text duplicates with the same label are collapsed. If the same normalized text
 has conflicting labels, all affected records are excluded instead of choosing
 an arbitrary target. These controls improve snapshot quality but do not replace
 manual dataset review.
+
+In this document, an export-eligible label means that the user selected,
+confirmed, or corrected the category in the transaction form. This in-app label
+confirmation is not the same as reviewing the exported dataset. Privacy,
+ambiguity, and poisoning checks still happen after export and before candidate
+training.
 
 ### Export schema and privacy boundary
 
