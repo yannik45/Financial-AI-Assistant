@@ -100,6 +100,17 @@ the trusted backend prediction is stored alongside the user's final selection
 for later offline model improvement. This is a synthetic-data learning baseline,
 not a production-ready financial classifier.
 
+Explicitly reviewed category feedback can be exported into a versioned local
+snapshot without triggering retraining:
+
+```powershell
+uv run financial-ai-export-category-feedback --version reviewed-v1
+```
+
+The export omits identifiers, amounts, dates, currency, and notes, while free
+text still requires sensitive-data review. See the feedback-loop documentation
+for eligibility and conflict-handling rules.
+
 ## Documentation
 
 Detailed technical and ML documentation is maintained under `docs/`:
@@ -131,8 +142,8 @@ Detailed technical and ML documentation is maintained under `docs/`:
   documents deterministic routing, model artifact provenance, confidence and
   review behavior, API usage, configuration, and operational limitations.
 - [Transaction classification feedback loop](docs/ml/transaction_classification_feedback.md)
-  documents automatic editable suggestions, persisted model provenance and user
-  outcomes, failure behavior, and the guarded offline-retraining protocol.
+  documents editable suggestions, persisted provenance, versioned offline
+  feedback export, privacy controls, and the guarded retraining protocol.
 - [Text classification evaluation](docs/ml/text_classification_evaluation.md)
   defines the frozen bilingual product challenge, baseline comparison,
   selective-prediction metrics, results, and limitations.
