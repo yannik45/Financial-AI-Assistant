@@ -58,6 +58,11 @@ def test_transactions_can_be_filtered_and_paginated(client):
     assert invalid_range.status_code == 422
     assert invalid_range.json()["detail"]["code"] == "invalid_date_range"
 
+    inflows = client.get("/v1/transactions", params={"cash_flow": "inflow"})
+    assert inflows.status_code == 200
+    assert inflows.json()["items"]
+    assert all(float(item["amount"]) > 0 for item in inflows.json()["items"])
+
 
 def test_manual_bank_transaction_can_be_created(client):
     checking = next(
@@ -143,25 +148,25 @@ def test_classification_endpoint_handles_deterministic_and_review_routes(client)
     salary = client.post(
         "/v1/transactions/classify",
         json={
-            "transaction_type": "salary",
             "description": "Monthly salary Demo GmbH",
+            "amount": "2500.00",
         },
     )
     assert salary.status_code == 200
     assert salary.json() == {
         "category": "income",
-        "route": "deterministic",
-        "classification_method": "deterministic",
-        "confidence": 1.0,
+        "route": "text_rule",
+        "classification_method": "keyword_rule",
+        "confidence": None,
         "needs_review": False,
-        "reason": "Category is determined by the structured transaction type.",
+        "reason": "Category matched a reviewable text rule in the experimental baseline.",
         "taxonomy_version": "transaction-categories-v1",
         "model_version": None,
     }
 
     transfer = client.post(
         "/v1/transactions/classify",
-        json={"transaction_type": "transfer", "description": "Transfer reference"},
+        json={"description": "Unknown incoming reference", "amount": "100.00"},
     )
     assert transfer.status_code == 200
     assert transfer.json()["category"] is None
@@ -188,8 +193,8 @@ def test_classification_endpoint_returns_ml_provenance(client):
         response = client.post(
             "/v1/transactions/classify",
             json={
-                "transaction_type": "card_payment",
                 "description": "Demo supermarket purchase",
+                "amount": "-20.00",
                 "counterparty": "Demo Market",
             },
         )
@@ -213,8 +218,8 @@ def test_classification_endpoint_reports_unavailable_model(client):
         response = client.post(
             "/v1/transactions/classify",
             json={
-                "transaction_type": "direct_debit",
                 "description": "Demo utility charge",
+                "amount": "-80.00",
             },
         )
     finally:
@@ -288,3 +293,28 @@ def test_transaction_creation_rejects_unknown_category(client):
         },
     )
     assert response.status_code == 422
+
+
+def test_transaction_text_not_transaction_type_drives_saved_suggestion(client):
+    checking = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "checking"
+    )
+    response = client.post(
+        "/v1/transactions",
+        json={
+            "account_id": checking["id"],
+            "booked_at": "2026-04-06",
+            "name": "House Payment",
+            "amount": "-900.00",
+            "transaction_type": "salary",
+        },
+    )
+    assert response.status_code == 201
+    transaction = response.json()
+    assert transaction["transaction_type"] == "salary"
+    feedback = transaction["classifications"][0]
+    assert feedback["predicted_category"] == "housing"
+    assert feedback["route"] == "text_rule"
+    assert feedback["classification_method"] == "keyword_rule"

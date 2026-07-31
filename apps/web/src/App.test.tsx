@@ -97,6 +97,7 @@ test("opens the transaction history and add transaction form", async () => {
   await waitFor(() => expect(addButton).toBeEnabled());
   fireEvent.click(addButton);
   const modal = screen.getByRole("heading", { name: "Add transaction" }).closest("form")!;
+  expect(within(modal).queryByLabelText("Transaction type")).not.toBeInTheDocument();
   expect(within(modal).getByLabelText("Category")).toHaveValue("");
   expect(within(modal).getByRole("option", { name: "Transport" })).toBeInTheDocument();
 });
@@ -112,11 +113,23 @@ test("suggests a category and preserves a user correction when saving", async ()
   fireEvent.change(within(modal).getByLabelText("Name or description"), {
     target: { value: "Weekly supermarket purchase" },
   });
+  fireEvent.change(within(modal).getByLabelText("Amount"), {
+    target: { value: "-20.00" },
+  });
   await waitFor(
     () => expect(within(modal).getByLabelText("Category")).toHaveValue("groceries"),
     { timeout: 2_000 },
   );
   expect(within(modal).getByText(/Suggested: groceries/)).toBeInTheDocument();
+  const classifyCall = vi.mocked(fetch).mock.calls.find(([input]) =>
+    String(input).endsWith("/v1/transactions/classify"),
+  );
+  const classificationPayload = JSON.parse(String(classifyCall?.[1]?.body));
+  expect(classificationPayload).toMatchObject({
+    description: "Weekly supermarket purchase",
+    amount: "-20.00",
+  });
+  expect(classificationPayload).not.toHaveProperty("transaction_type");
 
   fireEvent.change(within(modal).getByLabelText("Category"), {
     target: { value: "dining" },
@@ -124,9 +137,6 @@ test("suggests a category and preserves a user correction when saving", async ()
   expect(within(modal).getByLabelText("Category")).toHaveValue("dining");
   expect(within(modal).getByText(/Original suggestion: groceries/)).toBeInTheDocument();
 
-  fireEvent.change(within(modal).getByLabelText("Amount"), {
-    target: { value: "-20.00" },
-  });
   fireEvent.click(within(modal).getByRole("button", { name: "Add transaction" }));
 
   await waitFor(() => {

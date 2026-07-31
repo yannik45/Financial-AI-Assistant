@@ -15,8 +15,7 @@ automatically.
 
 ## User flow
 
-1. The user selects a transaction type and enters at least three description
-   characters.
+1. The user enters a name/description and a signed non-zero amount.
 2. The frontend waits 400 milliseconds to avoid a request for every keystroke.
 3. `POST /v1/transactions/classify` returns a deterministic or ML suggestion.
 4. The category field is populated when a category is available.
@@ -64,8 +63,8 @@ retain this distinction and apply quality checks before using feedback labels.
 
 If the local expense-model artifact is unavailable, manual transaction creation
 still succeeds. The record contains no prediction, uses method `none`, sets
-`needs_review`, and explains that the artifact was unavailable. Deterministic
-transaction types do not depend on the model artifact.
+`needs_review`, and explains that the artifact was unavailable. Text-rule
+matches do not depend on the model artifact.
 
 The category field accepts only versioned product and expense taxonomy values.
 New manual categories cannot silently create uncontrolled labels.

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from functools import lru_cache
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from financial_ai.ml.transaction_classification import (
     TAXONOMY_VERSION,
     ClassificationMethod,
     ClassificationRoute,
-    route_transaction_type,
+    route_transaction_text,
 )
 
 DEFAULT_REVIEW_THRESHOLD = 0.65
@@ -46,18 +47,20 @@ class TransactionClassifier:
 
     def classify(
         self,
-        transaction_type: str,
         description: str,
+        amount: Decimal,
         counterparty: str | None = None,
     ) -> TransactionClassification:
-        decision = route_transaction_type(transaction_type)
-        if decision.route is ClassificationRoute.DETERMINISTIC:
+        decision = route_transaction_text(description, amount, counterparty)
+        if decision.route in {ClassificationRoute.DETERMINISTIC, ClassificationRoute.TEXT_RULE}:
             assert decision.category is not None
             return TransactionClassification(
                 category=decision.category.value,
                 route=decision.route,
                 method=decision.method,
-                confidence=1.0,
+                confidence=(
+                    1.0 if decision.method is ClassificationMethod.DETERMINISTIC else None
+                ),
                 needs_review=False,
                 reason=decision.reason,
                 taxonomy_version=TAXONOMY_VERSION,

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from decimal import Decimal
 from enum import StrEnum
 
 from financial_ai.ml.categories import ExpenseCategory
@@ -30,12 +31,14 @@ def parse_product_category(value: str) -> str:
 
 class ClassificationRoute(StrEnum):
     DETERMINISTIC = "deterministic"
+    TEXT_RULE = "text_rule"
     EXPENSE_MODEL = "expense_model"
     NEEDS_REVIEW = "needs_review"
 
 
 class ClassificationMethod(StrEnum):
     DETERMINISTIC = "deterministic"
+    KEYWORD_RULE = "keyword_rule"
     ML = "ml"
     NONE = "none"
 
@@ -70,46 +73,43 @@ class ClassificationDecision:
     reason: str
 
 
-DETERMINISTIC_CATEGORIES: dict[str, TransactionCategory] = {
-    "salary": TransactionCategory.INCOME,
-    "interest": TransactionCategory.INCOME,
-    "dividend": TransactionCategory.INVESTMENTS,
-    "security_buy": TransactionCategory.INVESTMENTS,
-    "security_sell": TransactionCategory.INVESTMENTS,
-    "fee": TransactionCategory.FEES,
-    "tax": TransactionCategory.TAXES,
-    "deposit": TransactionCategory.SAVINGS,
-    "cash_withdrawal": TransactionCategory.CASH,
-}
+def route_transaction_text(
+    description: str,
+    amount: Decimal,
+    counterparty: str | None = None,
+) -> ClassificationDecision:
+    normalized_description = description.strip()
+    if not normalized_description:
+        raise ValueError("Description must not be empty")
+    if amount == 0:
+        raise ValueError("Transaction amount must not be zero")
 
-EXPENSE_MODEL_TYPES = {"card_payment", "direct_debit"}
+    # Local import avoids a module cycle: the rule taxonomy uses the enums above.
+    from financial_ai.ml.text_classification_rules import match_text_category
 
-
-def route_transaction_type(transaction_type: str) -> ClassificationDecision:
-    normalized = transaction_type.strip().casefold()
-    if not normalized:
-        raise ValueError("Transaction type must not be empty")
-
-    category = DETERMINISTIC_CATEGORIES.get(normalized)
+    text = " ".join(
+        part for part in (normalized_description, (counterparty or "").strip()) if part
+    )
+    category = match_text_category(text)
     if category is not None:
         return ClassificationDecision(
-            route=ClassificationRoute.DETERMINISTIC,
+            route=ClassificationRoute.TEXT_RULE,
             category=category,
-            method=ClassificationMethod.DETERMINISTIC,
-            reason="Category is determined by the structured transaction type.",
+            method=ClassificationMethod.KEYWORD_RULE,
+            reason="Category matched a reviewable text rule in the experimental baseline.",
         )
 
-    if normalized in EXPENSE_MODEL_TYPES:
+    if amount < 0:
         return ClassificationDecision(
             route=ClassificationRoute.EXPENSE_MODEL,
             category=None,
             method=ClassificationMethod.ML,
-            reason="Merchant-related expense requires the category model.",
+            reason="Unmatched outgoing transaction requires the expense category model.",
         )
 
     return ClassificationDecision(
         route=ClassificationRoute.NEEDS_REVIEW,
         category=None,
         method=ClassificationMethod.NONE,
-        reason="Transaction type does not provide enough context for automatic categorization.",
+        reason="Unmatched incoming transaction requires manual review.",
     )

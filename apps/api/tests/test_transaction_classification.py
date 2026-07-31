@@ -1,6 +1,9 @@
+from decimal import Decimal
+
 import numpy as np
 import pandas as pd
 import pytest
+from financial_ai.ml.categories import ExpenseCategory
 from financial_ai.ml.category_artifact import LoadedCategoryModel, ModelMetadata
 from financial_ai.ml.category_model import train_tfidf_category_classifier
 from financial_ai.ml.category_service import TransactionClassifier
@@ -11,45 +14,52 @@ from financial_ai.ml.transaction_classification import (
     TransactionCategory,
     determine_feedback_status,
     parse_product_category,
-    route_transaction_type,
+    route_transaction_text,
 )
 
 
 @pytest.mark.parametrize(
-    ("transaction_type", "expected_category"),
+    ("description", "amount", "expected_category"),
     [
-        ("salary", TransactionCategory.INCOME),
-        ("interest", TransactionCategory.INCOME),
-        ("dividend", TransactionCategory.INVESTMENTS),
-        ("security_buy", TransactionCategory.INVESTMENTS),
-        ("security_sell", TransactionCategory.INVESTMENTS),
-        ("fee", TransactionCategory.FEES),
-        ("tax", TransactionCategory.TAXES),
-        ("deposit", TransactionCategory.SAVINGS),
-        ("cash_withdrawal", TransactionCategory.CASH),
+        ("Monthly salary", "2500", TransactionCategory.INCOME),
+        ("Zinsen Sparkonto", "15", TransactionCategory.INCOME),
+        ("Dividend payment", "40", TransactionCategory.INVESTMENTS),
+        ("Bank fee", "-5", TransactionCategory.FEES),
+        ("Tax office payment", "-200", TransactionCategory.TAXES),
+        ("Transfer to savings account", "-300", TransactionCategory.SAVINGS),
+        ("ATM cash withdrawal", "-50", TransactionCategory.CASH),
+        ("House Payment", "-950", ExpenseCategory.HOUSING),
+        ("Miete Wohnung", "-950", ExpenseCategory.HOUSING),
+        ("Health insurance premium", "-200", ExpenseCategory.INSURANCE),
     ],
 )
-def test_deterministic_transaction_types_are_routed(transaction_type, expected_category):
-    decision = route_transaction_type(transaction_type)
-    assert decision.route is ClassificationRoute.DETERMINISTIC
+def test_reviewable_text_rules_route_product_categories(description, amount, expected_category):
+    decision = route_transaction_text(description, Decimal(amount))
+    assert decision.route is ClassificationRoute.TEXT_RULE
     assert decision.category is expected_category
-    assert decision.method is ClassificationMethod.DETERMINISTIC
+    assert decision.method is ClassificationMethod.KEYWORD_RULE
 
 
-@pytest.mark.parametrize("transaction_type", ["card_payment", "direct_debit"])
-def test_merchant_expenses_are_routed_to_model(transaction_type):
-    assert route_transaction_type(transaction_type).route is ClassificationRoute.EXPENSE_MODEL
+def test_unmatched_outgoing_text_is_routed_to_expense_model():
+    decision = route_transaction_text("Unknown merchant reference", Decimal("-20"))
+    assert decision.route is ClassificationRoute.EXPENSE_MODEL
 
 
-@pytest.mark.parametrize("transaction_type", ["transfer", "withdrawal"])
-def test_ambiguous_transaction_types_require_review(transaction_type):
-    assert route_transaction_type(transaction_type).route is ClassificationRoute.NEEDS_REVIEW
+def test_text_rules_use_boundaries_so_coffee_does_not_match_fee():
+    decision = route_transaction_text("Coffee shop", Decimal("-4"))
+    assert decision.route is ClassificationRoute.EXPENSE_MODEL
 
 
-def test_transaction_type_routing_normalizes_and_rejects_empty_values():
-    assert route_transaction_type(" SALARY ").category is TransactionCategory.INCOME
-    with pytest.raises(ValueError, match="must not be empty"):
-        route_transaction_type("  ")
+def test_unmatched_incoming_text_requires_review():
+    decision = route_transaction_text("Unknown incoming transfer", Decimal("20"))
+    assert decision.route is ClassificationRoute.NEEDS_REVIEW
+
+
+def test_text_routing_rejects_empty_description_and_zero_amount():
+    with pytest.raises(ValueError, match="Description must not be empty"):
+        route_transaction_text("  ", Decimal("10"))
+    with pytest.raises(ValueError, match="amount must not be zero"):
+        route_transaction_text("Salary", Decimal("0"))
 
 
 def _loaded_model() -> LoadedCategoryModel:
@@ -78,17 +88,18 @@ def _loaded_model() -> LoadedCategoryModel:
     return LoadedCategoryModel(model=model, metadata=metadata)
 
 
-def test_classifier_returns_deterministic_result_without_loading_model():
-    result = TransactionClassifier().classify("salary", "Monthly salary")
+def test_classifier_returns_text_rule_result_without_loading_model():
+    result = TransactionClassifier().classify("Monthly salary", Decimal("2500"))
     assert result.category == "income"
-    assert result.confidence == 1.0
+    assert result.method is ClassificationMethod.KEYWORD_RULE
+    assert result.confidence is None
     assert result.model_version is None
     assert result.needs_review is False
 
 
 def test_classifier_predicts_expense_and_reports_model_provenance():
     classifier = TransactionClassifier(_loaded_model(), review_threshold=0.01)
-    result = classifier.classify("card_payment", "supermarket food")
+    result = classifier.classify("market food purchase", Decimal("-20"))
     assert result.category == "groceries"
     assert result.method is ClassificationMethod.ML
     assert result.confidence is not None
@@ -99,11 +110,11 @@ def test_classifier_predicts_expense_and_reports_model_provenance():
 def test_classifier_flags_low_confidence_and_validates_expense_description():
     loaded_model = _loaded_model()
     classifier = TransactionClassifier(loaded_model, review_threshold=1.0)
-    result = classifier.classify("direct_debit", "unknown merchant")
+    result = classifier.classify("unknown merchant", Decimal("-20"))
     assert result.needs_review is True
     assert result.reason == "Model confidence is below the review threshold."
     with pytest.raises(ValueError, match="Description must not be empty"):
-        classifier.classify("card_payment", "  ")
+        classifier.classify("  ", Decimal("-20"))
 
 
 def test_classifier_rejects_invalid_review_threshold():
