@@ -67,6 +67,12 @@ Detailed technical and ML documentation is maintained under `docs/`:
 - [German synthetic transaction training data v2](docs/ml/german_transaction_training_v2.md)
   records the harder merchant-, detail-, and format-holdout design and its
   validation results.
+- [Multilingual transaction classification](docs/ml/multilingual_transaction_classification.md)
+  compares English-only, German-only, and bilingual validation baselines while
+  keeping all test datasets frozen.
+- [Controlled English synthetic training data](docs/ml/controlled_english_training.md)
+  mirrors the German v2 provenance holdouts and records which aggregate legacy
+  train patterns informed its bank-description formats.
 
 New documentation should be added to this index when it is introduced so the
 repository documentation remains discoverable from the project entry point.

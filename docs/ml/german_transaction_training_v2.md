@@ -5,7 +5,7 @@ Base generator version: `german-training-generator-v1`
 Taxonomy version: `transaction-categories-v1`  
 Default seed: `20260730`  
 Default size: 12,000 rows  
-Status: validation completed; test and external challenge remain frozen
+Status: final controlled test and external challenge completed and frozen
 
 ## Versioning policy
 
@@ -138,3 +138,27 @@ generator and unchanged baseline are accepted as the fixed development setup.
 If accepted, refit once on v2 train plus validation, evaluate the v2 test once,
 then evaluate the German challenge once. Later changes require a new model or
 generator version rather than repeated tuning on these frozen evaluations.
+
+## Final German-only evaluation
+
+The frozen character pipeline was refitted on 10,500 German train-plus-validation
+rows and evaluated once on the 1,500-row controlled test:
+
+| Metric | Validation | Final test |
+| --- | ---: | ---: |
+| Accuracy | 87.20% | 80.27% |
+| Macro-F1 | 86.09% | 77.79% |
+
+`healthcare` has 0% controlled-test recall and F1. The result is retained without
+post-test changes.
+
+The same fitted model was evaluated once on German Challenge v1:
+
+| Slice | Rows | Accuracy | Macro-F1 |
+| --- | ---: | ---: | ---: |
+| Overall | 120 | 75.00% | 74.96% |
+| German-local merchants | 85 | 77.65% | 77.64% |
+| International merchants | 35 | 68.57% | 68.33% |
+
+This materially improves on the English-only zero-shot challenge result, but the
+small synthetic challenge remains insufficient for production claims.

@@ -12,7 +12,7 @@ REQUIRED_COLUMNS = {
 }
 
 
-def split_german_training_data_v2(
+def split_declared_training_data(
     generated_data: pd.DataFrame,
 ) -> CategoryDataSplits:
     missing_columns = REQUIRED_COLUMNS.difference(generated_data.columns)
@@ -33,3 +33,9 @@ def split_german_training_data_v2(
         ),
         test=generated_data.loc[generated_data["split"].eq("test")].reset_index(drop=True),
     )
+
+
+def split_german_training_data_v2(
+    generated_data: pd.DataFrame,
+) -> CategoryDataSplits:
+    return split_declared_training_data(generated_data)
