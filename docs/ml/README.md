@@ -9,7 +9,7 @@ the current baseline; they are not alternative production paths.
 |---|---|---|
 | `transaction_categories.md` | Active contract | Versioned product taxonomy and boundaries |
 | `transaction_classifier_service.md` | Active contract | Current text-first hybrid service |
-| `transaction_classification_feedback.md` | Active contract | Current feedback capture and offline-use policy |
+| `transaction_classification_feedback.md` | Active contract | Feedback capture, candidate evaluation, explicit promotion, and rollback policy |
 | `text_classification_evaluation.md` | Active frozen benchmark | Current product-level evaluation and limitations |
 | `multilingual_transaction_classification.md` | Frozen experiment | Selection of the bilingual model artifact |
 | `controlled_english_training.md` | Frozen experiment | Controlled English generator and test |

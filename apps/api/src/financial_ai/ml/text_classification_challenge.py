@@ -1,9 +1,11 @@
-import hashlib
 import json
 from pathlib import Path
 
 import pandas as pd
 
+from financial_ai.ml.artifact_integrity import (
+    calculate_canonical_text_sha256 as calculate_canonical_csv_sha256,
+)
 from financial_ai.ml.categories import ExpenseCategory
 from financial_ai.ml.transaction_classification import TransactionCategory
 
@@ -479,12 +481,6 @@ def validate_text_classification_challenge(challenge: pd.DataFrame) -> None:
     group_sizes = challenge.groupby(["expected_category", "language"]).size()
     if not group_sizes.eq(7).all():
         raise ValueError("Every category-language group must contain seven cases")
-
-
-def calculate_canonical_csv_sha256(path: Path) -> str:
-    """Hash CSV content with platform-independent LF line endings."""
-    canonical_bytes = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
-    return hashlib.sha256(canonical_bytes).hexdigest()
 
 
 def write_text_classification_challenge(

@@ -23,6 +23,9 @@ financial-ai-build-category-model = "financial_ai.ml.category_artifact:run"
 financial-ai-bootstrap-category-model = "financial_ai.ml.category_bootstrap:run"
 financial-ai-build-text-challenge = "financial_ai.ml.text_classification_challenge:run"
 financial-ai-evaluate-text-classification = "financial_ai.ml.text_classification_evaluation:run"
+financial-ai-export-category-feedback = "financial_ai.ml.feedback_export:run"
+financial-ai-train-feedback-candidate = "financial_ai.ml.feedback_candidate:run"
+financial-ai-promote-category-model = "financial_ai.ml.feedback_promotion:run"
 
 [dependency-groups]
 dev = [
