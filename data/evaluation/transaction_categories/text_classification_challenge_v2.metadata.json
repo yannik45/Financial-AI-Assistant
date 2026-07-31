@@ -25,7 +25,8 @@
     "travel",
     "utilities"
   ],
-  "sha256": "3758f9379792e910944f3e96d5fbcec798616b33f48f3c7f0629b1c00c005d85",
+  "sha256": "9da88ee6ca4ae9721206859b238da801970bfa94ac91ae0bc02cb0ce3fad9c04",
+  "checksum_normalization": "utf-8-lf",
   "known_regression_cases_included": false,
   "supersedes": "text-classification-challenge-v1",
   "provenance": "manually_authored_development_challenge",

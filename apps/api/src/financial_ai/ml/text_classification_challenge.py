@@ -481,8 +481,10 @@ def validate_text_classification_challenge(challenge: pd.DataFrame) -> None:
         raise ValueError("Every category-language group must contain seven cases")
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def calculate_canonical_csv_sha256(path: Path) -> str:
+    """Hash CSV content with platform-independent LF line endings."""
+    canonical_bytes = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    return hashlib.sha256(canonical_bytes).hexdigest()
 
 
 def write_text_classification_challenge(
@@ -497,7 +499,8 @@ def write_text_classification_challenge(
         "rows": len(challenge),
         "languages": sorted(challenge["language"].unique()),
         "categories": sorted(challenge["expected_category"].unique()),
-        "sha256": _sha256(destination),
+        "sha256": calculate_canonical_csv_sha256(destination),
+        "checksum_normalization": "utf-8-lf",
         "known_regression_cases_included": False,
         "supersedes": "text-classification-challenge-v1",
         "provenance": "manually_authored_development_challenge",
@@ -519,7 +522,9 @@ def load_text_classification_challenge(
     metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     if metadata.get("version") != CHALLENGE_VERSION:
         raise ValueError("Challenge metadata version is incompatible")
-    if metadata.get("sha256") != _sha256(source):
+    if metadata.get("checksum_normalization") != "utf-8-lf":
+        raise ValueError("Challenge checksum normalization is incompatible")
+    if metadata.get("sha256") != calculate_canonical_csv_sha256(source):
         raise ValueError("Challenge checksum does not match its metadata")
     challenge = pd.read_csv(source).fillna({"counterparty": "", "notes": ""})
     validate_text_classification_challenge(challenge)

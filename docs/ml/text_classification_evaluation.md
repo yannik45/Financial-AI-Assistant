@@ -37,7 +37,9 @@ The committed CSV contains 252 manually authored examples:
 - non-empty counterparties on a declared subset of cases.
 
 The CSV and metadata are stored in
-`data/evaluation/transaction_categories/`. Metadata includes a SHA-256 checksum.
+`data/evaluation/transaction_categories/`. Metadata includes a SHA-256 checksum
+calculated after canonical LF line-ending normalization so integrity checks are
+stable on Windows and Linux.
 Exact development examples such as `Salary`, `House Payment`, `Coffee Shop`,
 `Amazon`, and `Überweisung Mama` remain regression-test inputs and are excluded
 from the challenge.

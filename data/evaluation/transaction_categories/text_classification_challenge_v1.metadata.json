@@ -25,7 +25,8 @@
     "travel",
     "utilities"
   ],
-  "sha256": "b5ba0e7e956893005da697dfab1c4c2b1ac00de08ab53b01bbc9e87f85cfc530",
+  "sha256": "9693fa6ef78ef202013b156db3283ab81dcf7d37a2d19b98c53bbed247953195",
+  "checksum_normalization": "utf-8-lf",
   "known_regression_cases_included": false,
   "provenance": "manually_authored_development_challenge",
   "limitations": "Created alongside the system; not an independent real-world production benchmark."

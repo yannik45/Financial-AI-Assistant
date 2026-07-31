@@ -8,6 +8,7 @@ from financial_ai.ml.text_classification_challenge import (
     V1_CHALLENGE_PATH,
     V1_METADATA_PATH,
     build_text_classification_challenge,
+    calculate_canonical_csv_sha256,
     load_text_classification_challenge,
     validate_text_classification_challenge,
     write_text_classification_challenge,
@@ -78,9 +79,16 @@ def test_committed_challenge_v2_matches_generator_and_checksum():
 def test_frozen_v1_snapshot_checksum_remains_valid():
     metadata = json.loads(V1_METADATA_PATH.read_text(encoding="utf-8"))
 
-    import hashlib
+    assert calculate_canonical_csv_sha256(V1_CHALLENGE_PATH) == metadata["sha256"]
 
-    assert hashlib.sha256(V1_CHALLENGE_PATH.read_bytes()).hexdigest() == metadata["sha256"]
+
+def test_challenge_checksum_is_independent_of_platform_line_endings(tmp_path):
+    lf_path = tmp_path / "lf.csv"
+    crlf_path = tmp_path / "crlf.csv"
+    lf_path.write_bytes(b"description,category\nCoffee,dining\n")
+    crlf_path.write_bytes(b"description,category\r\nCoffee,dining\r\n")
+
+    assert calculate_canonical_csv_sha256(lf_path) == calculate_canonical_csv_sha256(crlf_path)
 
 
 def test_loader_rejects_tampered_challenge(tmp_path):
