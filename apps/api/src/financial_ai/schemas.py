@@ -2,11 +2,13 @@ from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from financial_ai.ml.transaction_classification import (
     ClassificationMethod,
     ClassificationRoute,
+    FeedbackStatus,
+    parse_product_category,
 )
 
 
@@ -131,6 +133,23 @@ class AccountRead(BaseModel):
     transaction_count: int | None = None
 
 
+class TransactionClassificationRecordRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    predicted_category: str | None
+    final_category: str | None
+    route: ClassificationRoute
+    classification_method: ClassificationMethod
+    confidence: float | None
+    needs_review: bool
+    feedback_status: FeedbackStatus
+    reason: str
+    taxonomy_version: str
+    model_version: str | None
+    created_at: datetime
+
+
 class TransactionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -151,6 +170,7 @@ class TransactionRead(BaseModel):
     fees: Decimal
     taxes: Decimal
     created_at: datetime
+    classifications: list[TransactionClassificationRecordRead] = Field(default_factory=list)
 
 
 class TransactionCreate(BaseModel):
@@ -168,6 +188,21 @@ class TransactionCreate(BaseModel):
     unit_price: Decimal | None = Field(default=None, gt=0, max_digits=20, decimal_places=6)
     fees: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=20, decimal_places=2)
     taxes: Decimal = Field(default=Decimal("0.00"), ge=0, max_digits=20, decimal_places=2)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Transaction name must not be empty")
+        return normalized
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        return parse_product_category(value)
 
     @model_validator(mode="after")
     def validate_security_fields(self) -> "TransactionCreate":

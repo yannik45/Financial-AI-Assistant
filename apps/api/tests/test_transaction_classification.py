@@ -7,7 +7,10 @@ from financial_ai.ml.category_service import TransactionClassifier
 from financial_ai.ml.transaction_classification import (
     ClassificationMethod,
     ClassificationRoute,
+    FeedbackStatus,
     TransactionCategory,
+    determine_feedback_status,
+    parse_product_category,
     route_transaction_type,
 )
 
@@ -113,3 +116,25 @@ def test_model_probability_order_matches_classifier_classes():
     probabilities = loaded_model.model.predict_proba(pd.Series(["restaurant dinner"]))[0]
     predicted_index = int(np.argmax(probabilities))
     assert loaded_model.model.classes_[predicted_index] == "dining"
+
+
+@pytest.mark.parametrize(
+    ("prediction", "final", "expected"),
+    [
+        ("groceries", "Groceries", FeedbackStatus.ACCEPTED),
+        ("groceries", "dining", FeedbackStatus.CORRECTED),
+        (None, "dining", FeedbackStatus.MANUAL),
+        ("groceries", None, FeedbackStatus.UNREVIEWED),
+    ],
+)
+def test_feedback_status_is_derived_from_prediction_and_final_category(
+    prediction, final, expected
+):
+    assert determine_feedback_status(prediction, final) is expected
+
+
+def test_product_category_parser_normalizes_and_rejects_unknown_values():
+    assert parse_product_category(" Groceries ") == "groceries"
+    assert parse_product_category("INCOME") == "income"
+    with pytest.raises(ValueError, match="Unsupported transaction category"):
+        parse_product_category("unknown")

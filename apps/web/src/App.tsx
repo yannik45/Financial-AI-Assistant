@@ -68,6 +68,16 @@ const formatMoney = (value: string, currency: string) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(Number(value));
 const typeLabel = (value: TransactionType) =>
   TRANSACTION_TYPES.find((item) => item.value === value)?.label ?? value;
+const categoryValue = (category: string) => category.toLowerCase();
+
+function useDebouncedValue(value: string, delayMs: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedValue(value), delayMs);
+    return () => window.clearTimeout(timeoutId);
+  }, [delayMs, value]);
+  return debouncedValue;
+}
 
 function MetricCard({
   label,
@@ -271,6 +281,31 @@ function AddTransactionModal({
     fees: "0",
     taxes: "0",
   });
+  const [categoryEdited, setCategoryEdited] = useState(false);
+  const debouncedName = useDebouncedValue(form.name, 400);
+  const debouncedCounterparty = useDebouncedValue(form.counterparty ?? "", 400);
+  const classification = useQuery({
+    queryKey: [
+      "transaction-classification",
+      form.transaction_type,
+      debouncedName,
+      debouncedCounterparty,
+    ],
+    queryFn: () =>
+      api.classifyTransaction({
+        transaction_type: form.transaction_type,
+        description: debouncedName,
+        counterparty: debouncedCounterparty || undefined,
+      }),
+    enabled: debouncedName.trim().length >= 3,
+    retry: false,
+    staleTime: 30_000,
+  });
+  useEffect(() => {
+    if (classification.data?.category && !categoryEdited) {
+      setForm((current) => ({ ...current, category: classification.data.category ?? "" }));
+    }
+  }, [categoryEdited, classification.data]);
   const isSecurity = ["security_buy", "security_sell"].includes(form.transaction_type);
   const mutation = useMutation({
     mutationFn: () => api.createTransaction(form),
@@ -284,6 +319,10 @@ function AddTransactionModal({
   });
   const update = (key: keyof TransactionCreate, value: string) =>
     setForm((current) => ({ ...current, [key]: value }));
+  const updateClassificationInput = (key: keyof TransactionCreate, value: string) => {
+    setCategoryEdited(false);
+    update(key, value);
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     mutation.mutate();
@@ -317,7 +356,9 @@ function AddTransactionModal({
             Transaction type
             <select
               value={form.transaction_type}
-              onChange={(event) => update("transaction_type", event.target.value)}
+              onChange={(event) =>
+                updateClassificationInput("transaction_type", event.target.value)
+              }
             >
               {TRANSACTION_TYPES.map((type) => (
                 <option key={type.value} value={type.value}>
@@ -332,7 +373,7 @@ function AddTransactionModal({
               required
               maxLength={160}
               value={form.name}
-              onChange={(event) => update("name", event.target.value)}
+              onChange={(event) => updateClassificationInput("name", event.target.value)}
               placeholder="Example: Weekly groceries"
             />
           </label>
@@ -361,21 +402,42 @@ function AddTransactionModal({
             <input
               maxLength={160}
               value={form.counterparty ?? ""}
-              onChange={(event) => update("counterparty", event.target.value)}
+              onChange={(event) =>
+                updateClassificationInput("counterparty", event.target.value)
+              }
               placeholder="Example merchant"
             />
           </label>
           <label>
             Category
             <select
+              aria-label="Category"
               value={form.category ?? ""}
-              onChange={(event) => update("category", event.target.value)}
+              onChange={(event) => {
+                setCategoryEdited(true);
+                update("category", event.target.value);
+              }}
             >
               <option value="">Uncategorized</option>
               {TRANSACTION_CATEGORIES.map((category) => (
-                <option key={category}>{category}</option>
+                <option key={category} value={categoryValue(category)}>
+                  {category}
+                </option>
               ))}
             </select>
+            <span className="classification-hint" aria-live="polite">
+              {classification.isFetching
+                ? "Finding a category suggestion…"
+                : classification.isError
+                  ? "Suggestion unavailable — choose a category manually."
+                  : classification.data?.category
+                    ? `${categoryEdited ? "Original suggestion" : "Suggested"}: ${classification.data.category} · ${
+                        classification.data.classification_method === "ml"
+                          ? `${Math.round((classification.data.confidence ?? 0) * 100)}% confidence`
+                          : "deterministic rule"
+                      }${classification.data.needs_review ? " · review recommended" : ""}`
+                    : "Enter at least three characters to receive a suggestion."}
+            </span>
           </label>
           {isSecurity && (
             <>

@@ -59,6 +59,9 @@ uv run financial-ai-build-category-model
 
 Structured types such as salary, interest, fees, and security transactions are
 categorized deterministically and do not require the model artifact.
+The add-transaction form requests a category suggestion after a short typing
+delay, keeps the category editable, and stores the trusted backend prediction
+alongside the user's final selection for later offline model improvement.
 
 ## Documentation
 
@@ -87,6 +90,9 @@ Detailed technical and ML documentation is maintained under `docs/`:
 - [Transaction classifier service](docs/ml/transaction_classifier_service.md)
   documents deterministic routing, model artifact provenance, confidence and
   review behavior, API usage, configuration, and operational limitations.
+- [Transaction classification feedback loop](docs/ml/transaction_classification_feedback.md)
+  documents automatic editable suggestions, persisted model provenance and user
+  outcomes, failure behavior, and the guarded offline-retraining protocol.
 
 New documentation should be added to this index when it is introduced so the
 repository documentation remains discoverable from the project entry point.

@@ -4,6 +4,8 @@ import type {
   Portfolio,
   Transaction,
   TransactionCreate,
+  TransactionClassification,
+  TransactionClassificationRequest,
   TransactionFilters,
   TransactionPage,
 } from "./types";
@@ -38,6 +40,12 @@ export const api = {
   },
   createTransaction: (payload: TransactionCreate) =>
     request<Transaction>("/v1/transactions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  classifyTransaction: (payload: TransactionClassificationRequest) =>
+    request<TransactionClassification>("/v1/transactions/classify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

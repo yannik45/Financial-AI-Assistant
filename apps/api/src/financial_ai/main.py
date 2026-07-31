@@ -18,8 +18,18 @@ from financial_ai.database import SessionLocal, get_session
 from financial_ai.importer import PortfolioImportError, parse_portfolio_csv
 from financial_ai.market_data import market_data_provider
 from financial_ai.ml.category_artifact import ModelArtifactError
-from financial_ai.ml.category_service import TransactionClassifier, get_transaction_classifier
-from financial_ai.models import Account, Portfolio, Transaction
+from financial_ai.ml.category_service import (
+    TransactionClassification,
+    TransactionClassifier,
+    get_transaction_classifier,
+)
+from financial_ai.ml.transaction_classification import (
+    TAXONOMY_VERSION,
+    ClassificationMethod,
+    determine_feedback_status,
+    route_transaction_type,
+)
+from financial_ai.models import Account, Portfolio, Transaction, TransactionClassificationRecord
 from financial_ai.schemas import (
     AccountRead,
     AnalyticsResponse,
@@ -295,7 +305,11 @@ def classify_transaction(
 
 
 @app.post("/v1/transactions", response_model=TransactionRead, status_code=201)
-def create_transaction(payload: TransactionCreate, session: SessionDependency) -> Transaction:
+def create_transaction(
+    payload: TransactionCreate,
+    session: SessionDependency,
+    classifier: ClassifierDependency,
+) -> Transaction:
     account = get_account_or_404(payload.account_id, session)
     security_types = {TransactionType.SECURITY_BUY, TransactionType.SECURITY_SELL}
     if payload.transaction_type in security_types and account.account_type != "brokerage":
@@ -305,6 +319,25 @@ def create_transaction(payload: TransactionCreate, session: SessionDependency) -
                 "code": "invalid_account_type",
                 "message": "Security transactions require a brokerage account",
             },
+        )
+
+    try:
+        classification = classifier.classify(
+            transaction_type=payload.transaction_type.value,
+            description=payload.name,
+            counterparty=payload.counterparty,
+        )
+    except ModelArtifactError:
+        route = route_transaction_type(payload.transaction_type.value)
+        classification = TransactionClassification(
+            category=None,
+            route=route.route,
+            method=ClassificationMethod.NONE,
+            confidence=None,
+            needs_review=True,
+            reason="Category model artifact was unavailable when the transaction was saved.",
+            taxonomy_version=TAXONOMY_VERSION,
+            model_version=None,
         )
 
     transaction = Transaction(
@@ -317,6 +350,25 @@ def create_transaction(payload: TransactionCreate, session: SessionDependency) -
         source="manual",
     )
     session.add(transaction)
+    session.flush()
+    transaction.classifications.append(
+        TransactionClassificationRecord(
+            transaction_id=transaction.id,
+            predicted_category=classification.category,
+            final_category=payload.category,
+            route=classification.route.value,
+            classification_method=classification.method.value,
+            confidence=classification.confidence,
+            needs_review=classification.needs_review,
+            feedback_status=determine_feedback_status(
+                classification.category,
+                payload.category,
+            ).value,
+            reason=classification.reason,
+            taxonomy_version=classification.taxonomy_version,
+            model_version=classification.model_version,
+        )
+    )
     session.commit()
     session.refresh(transaction)
     return transaction

@@ -50,6 +50,17 @@ beforeEach(() => {
     vi.fn((input: string | URL | Request) => {
       const url = String(input);
       if (url.includes("/v1/accounts")) return jsonResponse(accounts);
+      if (url.includes("/v1/transactions/classify"))
+        return jsonResponse({
+          category: "groceries",
+          route: "expense_model",
+          classification_method: "ml",
+          confidence: 0.81,
+          needs_review: false,
+          reason: "Expense category predicted by the versioned model artifact.",
+          taxonomy_version: "transaction-categories-v1",
+          model_version: "test-model-v1",
+        });
       if (url.includes("/v1/transactions")) return jsonResponse(transactions);
       return jsonResponse([]);
     }),
@@ -88,4 +99,42 @@ test("opens the transaction history and add transaction form", async () => {
   const modal = screen.getByRole("heading", { name: "Add transaction" }).closest("form")!;
   expect(within(modal).getByLabelText("Category")).toHaveValue("");
   expect(within(modal).getByRole("option", { name: "Transport" })).toBeInTheDocument();
+});
+
+test("suggests a category and preserves a user correction when saving", async () => {
+  renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /Transactions/ }));
+  const addButton = await screen.findByRole("button", { name: "Add transaction" });
+  await waitFor(() => expect(addButton).toBeEnabled());
+  fireEvent.click(addButton);
+
+  const modal = screen.getByRole("heading", { name: "Add transaction" }).closest("form")!;
+  fireEvent.change(within(modal).getByLabelText("Name or description"), {
+    target: { value: "Weekly supermarket purchase" },
+  });
+  await waitFor(
+    () => expect(within(modal).getByLabelText("Category")).toHaveValue("groceries"),
+    { timeout: 2_000 },
+  );
+  expect(within(modal).getByText(/Suggested: groceries/)).toBeInTheDocument();
+
+  fireEvent.change(within(modal).getByLabelText("Category"), {
+    target: { value: "dining" },
+  });
+  expect(within(modal).getByLabelText("Category")).toHaveValue("dining");
+  expect(within(modal).getByText(/Original suggestion: groceries/)).toBeInTheDocument();
+
+  fireEvent.change(within(modal).getByLabelText("Amount"), {
+    target: { value: "-20.00" },
+  });
+  fireEvent.click(within(modal).getByRole("button", { name: "Add transaction" }));
+
+  await waitFor(() => {
+    const createCall = vi.mocked(fetch).mock.calls.find(([input, init]) => {
+      const url = String(input);
+      return url.endsWith("/v1/transactions") && init?.method === "POST";
+    });
+    expect(createCall).toBeDefined();
+    expect(JSON.parse(String(createCall?.[1]?.body))).toMatchObject({ category: "dining" });
+  });
 });

@@ -2,7 +2,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Date, DateTime, ForeignKey, Index, Numeric, String
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from financial_ai.database import Base
@@ -84,3 +84,35 @@ class Transaction(Base):
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
     account: Mapped[Account] = relationship(back_populates="transactions")
+    classifications: Mapped[list["TransactionClassificationRecord"]] = relationship(
+        back_populates="transaction",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="TransactionClassificationRecord.created_at",
+    )
+
+
+class TransactionClassificationRecord(Base):
+    __tablename__ = "transaction_classifications"
+    __table_args__ = (
+        Index("ix_transaction_classifications_transaction_created", "transaction_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    transaction_id: Mapped[str] = mapped_column(
+        ForeignKey("transactions.id", ondelete="CASCADE"), index=True
+    )
+    predicted_category: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    final_category: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    route: Mapped[str] = mapped_column(String(30))
+    classification_method: Mapped[str] = mapped_column(String(20))
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    needs_review: Mapped[bool] = mapped_column(Boolean)
+    feedback_status: Mapped[str] = mapped_column(String(20), index=True)
+    reason: Mapped[str] = mapped_column(String(240))
+    taxonomy_version: Mapped[str] = mapped_column(String(80))
+    model_version: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    transaction: Mapped[Transaction] = relationship(back_populates="classifications")
