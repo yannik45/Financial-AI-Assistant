@@ -1,6 +1,5 @@
 import argparse
 import json
-import re
 from collections import Counter
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -10,7 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from financial_ai.database import SessionLocal
-from financial_ai.ml.artifact_integrity import calculate_canonical_text_sha256
+from financial_ai.ml.artifact_integrity import (
+    calculate_canonical_text_sha256,
+    normalize_artifact_version,
+)
 from financial_ai.ml.categories import ExpenseCategory
 from financial_ai.ml.transaction_classification import FeedbackStatus, parse_product_category
 from financial_ai.models import Transaction, TransactionClassificationRecord
@@ -68,15 +70,6 @@ def _normalize_text(description: str, counterparty: str | None) -> tuple[str, st
     text = " ".join(part for part in (description.strip(), (counterparty or "").strip()) if part)
     text = " ".join(text.split())
     return text, text.casefold()
-
-
-def _validate_snapshot_version(snapshot_version: str) -> str:
-    normalized = snapshot_version.strip().casefold()
-    if not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", normalized):
-        raise ValueError(
-            "Snapshot version must contain only lowercase letters, numbers, '.', '_' or '-'"
-        )
-    return normalized
 
 
 def prepare_feedback_export(session: Session) -> tuple[pd.DataFrame, FeedbackExportReport]:
@@ -187,7 +180,7 @@ def write_feedback_snapshot(
     snapshot_version: str,
     output_directory: Path = DEFAULT_OUTPUT_DIRECTORY,
 ) -> tuple[Path, Path, FeedbackExportReport]:
-    version = _validate_snapshot_version(snapshot_version)
+    version = normalize_artifact_version(snapshot_version)
     exported, report = prepare_feedback_export(session)
     output_directory.mkdir(parents=True, exist_ok=True)
     csv_path = output_directory / f"transaction_category_feedback_{version}.csv"
@@ -227,6 +220,28 @@ def write_feedback_snapshot(
     }
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return csv_path, metadata_path, report
+
+
+def load_feedback_snapshot(
+    snapshot_version: str,
+    input_directory: Path = DEFAULT_OUTPUT_DIRECTORY,
+) -> tuple[pd.DataFrame, dict]:
+    version = normalize_artifact_version(snapshot_version)
+    csv_path = input_directory / f"transaction_category_feedback_{version}.csv"
+    metadata_path = input_directory / f"transaction_category_feedback_{version}.metadata.json"
+    if not csv_path.is_file() or not metadata_path.is_file():
+        raise FileNotFoundError(f"Feedback snapshot not found: {version}")
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    if metadata.get("schema_version") != EXPORT_SCHEMA_VERSION:
+        raise ValueError("Feedback snapshot schema version is incompatible")
+    if metadata.get("snapshot_version") != version:
+        raise ValueError("Feedback snapshot version does not match its metadata")
+    if metadata.get("sha256") != calculate_canonical_text_sha256(csv_path):
+        raise ValueError("Feedback snapshot checksum does not match its metadata")
+    feedback = pd.read_csv(csv_path, keep_default_na=False)
+    if list(feedback.columns) != EXPORT_COLUMNS:
+        raise ValueError("Feedback snapshot columns do not match the export schema")
+    return feedback, metadata
 
 
 def run() -> None:

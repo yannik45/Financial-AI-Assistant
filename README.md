@@ -111,6 +111,17 @@ The export omits identifiers, amounts, dates, currency, and notes, while free
 text still requires sensitive-data review. See the feedback-loop documentation
 for eligibility and conflict-handling rules.
 
+Reviewed snapshots can train an isolated candidate and, only after all
+comparison gates pass, be promoted explicitly:
+
+```powershell
+uv run financial-ai-train-feedback-candidate --feedback-version reviewed-v1 --candidate-version bilingual-feedback-v1
+uv run financial-ai-promote-category-model --candidate-version bilingual-feedback-v1 --yes
+```
+
+Candidate training never overwrites the active model. Promotion archives the
+previous artifact and refuses stale, checksum-invalid, or gate-failing results.
+
 ## Documentation
 
 Detailed technical and ML documentation is maintained under `docs/`:

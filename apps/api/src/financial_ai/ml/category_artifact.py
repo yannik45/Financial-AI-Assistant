@@ -58,7 +58,7 @@ def calculate_sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _training_partition(data: pd.DataFrame) -> pd.DataFrame:
+def training_partition(data: pd.DataFrame) -> pd.DataFrame:
     splits = split_declared_training_data(data)
     return pd.concat(
         [splits.train[MODEL_COLUMNS], splits.validation[MODEL_COLUMNS]],
@@ -77,8 +77,8 @@ def build_category_model_artifact(
         if not source_path.is_file():
             raise ModelArtifactError(f"Training dataset not found: {source_path}")
 
-    english_training = _training_partition(pd.read_csv(english_path))
-    german_training = _training_partition(pd.read_csv(german_path))
+    english_training = training_partition(pd.read_csv(english_path))
+    german_training = training_partition(pd.read_csv(german_path))
     training_data = pd.concat([english_training, german_training], ignore_index=True)
     model = train_tfidf_category_classifier(training_data, random_state=random_state)
 

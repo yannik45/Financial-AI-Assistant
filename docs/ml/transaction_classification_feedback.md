@@ -1,6 +1,6 @@
 # Transaction classification feedback loop
 
-Feature version: `transaction-classification-feedback-v3-offline-export`
+Feature version: `transaction-classification-feedback-v4-candidate-lifecycle`
 
 Taxonomy version: `transaction-categories-v1`
 
@@ -11,8 +11,8 @@ enters a description. The suggestion remains editable. Saving the transaction
 persists both the backend model result and the final category selected by the
 user, creating an auditable source for future model improvement.
 
-This version collects feedback; it does not retrain or deploy models
-automatically.
+This version collects feedback and supports a guarded offline candidate
+lifecycle. It does not retrain or deploy models automatically.
 
 ## Versioned offline export
 
@@ -67,6 +67,74 @@ Account, transaction, and classification identifiers, timestamps, amount
 magnitude, currency, and notes are excluded. Free text can still contain
 sensitive user-entered information, so snapshots must remain local and require
 review or de-identification before wider use.
+
+## Candidate training and evaluation
+
+After reviewing a snapshot, train a new candidate without changing the active
+model:
+
+```powershell
+uv run financial-ai-train-feedback-candidate `
+  --feedback-version reviewed-v1 `
+  --candidate-version bilingual-feedback-v1
+```
+
+The default quality gate requires at least 100 eligible expense rows, at least
+five rows for every represented category, and at least three represented
+expense categories. Product-rule categories such as `income`, `fees`, and
+`investments` are excluded because the current learned model predicts only the
+expense taxonomy.
+
+Feedback is split deterministically and per category: 80% augments the existing
+controlled English and German training partitions, while 20% remains an unseen
+feedback holdout. Exact overlap with the fixed challenge set is excluded before
+the split. The original controlled test partitions and fixed challenge rows are
+never added to training.
+
+Each candidate receives its own pickle, compatible model metadata, and JSON
+evaluation report under `data/runtime/ml/candidates/`. The report contains input
+checksums, row counts, configuration, holdout results, fixed-challenge results,
+and individual promotion gates. Candidate and active models are compared on:
+
+- hybrid expense macro-F1 on the frozen bilingual challenge;
+- selective accuracy for automatically accepted challenge predictions;
+- macro-F1 on the unseen feedback holdout.
+
+Challenge macro-F1 and selective accuracy may regress by at most 0.01. Feedback
+holdout macro-F1 must be at least as high as the active model. These thresholds
+are an explicit learning-project policy, not evidence of production readiness.
+Repeated tuning against the fixed challenge would itself create evaluation
+overfitting, so threshold or feature changes require a separately versioned
+evaluation design.
+
+## Explicit promotion and rollback
+
+An eligible candidate still requires an explicit command:
+
+```powershell
+uv run financial-ai-promote-category-model `
+  --candidate-version bilingual-feedback-v1 `
+  --yes
+```
+
+Promotion fails if a gate is false, the candidate checksum differs from its
+report, or the active baseline changed after candidate evaluation. The previous
+active artifact and metadata are copied to `data/runtime/ml/models/archive/`
+before replacement, and a promotion receipt records both versions and hashes.
+The candidate remains available for audit. Restart the API after promotion so
+its in-process classifier cache loads the new artifact.
+
+Without a global `uv` command, the equivalent module commands are:
+
+```powershell
+.\.venv\Scripts\python.exe -m financial_ai.ml.feedback_candidate `
+  --feedback-version reviewed-v1 `
+  --candidate-version bilingual-feedback-v1
+
+.\.venv\Scripts\python.exe -m financial_ai.ml.feedback_promotion `
+  --candidate-version bilingual-feedback-v1 `
+  --yes
+```
 
 ## User flow
 
@@ -127,19 +195,19 @@ matches do not depend on the model artifact.
 The category field accepts only versioned product and expense taxonomy values.
 New manual categories cannot silently create uncontrolled labels.
 
-## Future retraining protocol
+## Guarded retraining protocol
 
-Feedback must not update the active model online. A later versioned pipeline
-should:
+Feedback never updates the active model online. The implemented and planned
+protocol is:
 
 1. export eligible records into a versioned, checksummed local snapshot;
 2. manually review sensitive, ambiguous, and potentially poisoned examples;
-3. create a separately approved, de-identified training-data release;
-4. split it by merchant or provenance group before model development;
-5. train a new candidate offline;
-6. compare it against fixed acceptance criteria and the frozen benchmark;
-7. deploy it as a new model version only after approval;
-8. retain the previous artifact for rollback.
+3. train a separately versioned candidate from eligible expense feedback;
+4. evaluate it on a deterministic feedback holdout and frozen benchmark;
+5. require every machine-readable promotion gate to pass;
+6. explicitly promote the candidate after human review;
+7. archive the previous artifact for rollback;
+8. add authenticated review and formal de-identification before production use.
 
 This prevents noisy labels, feedback poisoning, test leakage, and untraceable
 model changes.
@@ -149,6 +217,9 @@ model changes.
 - Feedback is collected only when a transaction is created; editing existing
   transactions is not implemented yet.
 - Exporting does not make a snapshot suitable for training automatically.
+- The deterministic feedback split cannot provide true merchant-group isolation
+  because the privacy-reduced export contains no merchant identifier.
+- A small local feedback sample is expected to fail the minimum-data gate.
 - No authenticated user or reviewer identity exists in the local phase.
 - Descriptions and counterparties must be treated as potentially sensitive if
   real financial data is introduced later.

@@ -8,6 +8,7 @@ from financial_ai.database import SessionLocal
 from financial_ai.ml.artifact_integrity import calculate_canonical_text_sha256
 from financial_ai.ml.feedback_export import (
     EXPORT_COLUMNS,
+    load_feedback_snapshot,
     prepare_feedback_export,
     write_feedback_snapshot,
 )
@@ -199,3 +200,17 @@ def test_write_feedback_snapshot_is_versioned_deterministic_and_private(tmp_path
 def test_write_feedback_snapshot_rejects_unsafe_versions(tmp_path, version):
     with SessionLocal() as session, pytest.raises(ValueError):
         write_feedback_snapshot(session, version, tmp_path)
+
+
+def test_load_feedback_snapshot_rejects_tampered_csv(tmp_path):
+    _add_feedback(
+        name="Pharmacy purchase",
+        final_category="healthcare",
+        status=FeedbackStatus.CORRECTED,
+    )
+    with SessionLocal() as session:
+        csv_path, _, _ = write_feedback_snapshot(session, "reviewed-v1", tmp_path)
+    csv_path.write_text(csv_path.read_text(encoding="utf-8") + "tampered", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="checksum"):
+        load_feedback_snapshot("reviewed-v1", tmp_path)
