@@ -18,9 +18,7 @@ def make_challenge_data() -> pd.DataFrame:
                 "target_category": category.value,
                 "language": "de",
                 "merchant_group": f"merchant_{category.value}_{number}",
-                "merchant_scope": (
-                    "german_local" if number <= 5 else "international"
-                ),
+                "merchant_scope": ("german_local" if number <= 5 else "international"),
             }
             for category in ExpenseCategory
             for number in range(1, 11)

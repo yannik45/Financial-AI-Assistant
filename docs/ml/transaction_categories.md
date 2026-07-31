@@ -15,6 +15,10 @@ The product service uses name/description and counterparty as text input plus
 the signed amount for inflow/outflow routing. Detailed transaction types may be
 stored as source metadata but are not classification features.
 
+Text rules are direction-aware. An expense, fee, tax, savings, or cash phrase
+on a positive cash flow and an income phrase on a negative cash flow are sent to
+manual review instead of being forced into a contradictory category.
+
 The following categories remain outside expense-model training and are handled
 by a small text-rule baseline when high-signal phrases are present:
 

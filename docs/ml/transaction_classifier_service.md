@@ -1,6 +1,6 @@
 # Transaction classifier service
 
-Service version: `transaction-classifier-service-v2-text-first`
+Service version: `transaction-classifier-service-v3-direction-aware`
 Expense model: `transaction-category-char-tfidf-bilingual-v1`
 Taxonomy: `transaction-categories-v1`
 Status: experimental portfolio baseline, not production-ready
@@ -22,6 +22,9 @@ name + counterparty + signed amount
 The signed amount provides only cash-flow direction. Negative amounts are
 outgoing and positive amounts are incoming. The amount magnitude is not used as
 an ML feature.
+
+Rule matches must agree with that direction. Contradictory combinations such as
+a negative salary or positive cash withdrawal abstain and require review.
 
 ## Why the contract changed
 
@@ -54,22 +57,24 @@ the configured review threshold.
 ## Model artifact
 
 The expense model is fitted on controlled English v1 and German v2
-`train + validation` partitions. Frozen test rows are excluded. Build the local
-artifact with either:
+`train + validation` partitions. Frozen test rows are excluded. From a fresh
+clone, generate both controlled datasets and build the artifact with:
 
 ```powershell
-uv run financial-ai-build-category-model
+uv run financial-ai-bootstrap-category-model
 ```
 
 or, when an existing `.venv` is available but `uv` is not on `PATH`:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_artifact
+.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
 ```
 
 The generated pickle and checksum-verified JSON metadata remain under
 `data/runtime/ml/models` and are excluded from Git. Pickle must never be loaded
-from an untrusted location.
+from an untrusted location. Metadata records source checksums, taxonomy and model
+versions, random state, feature configuration, model parameters, Python,
+pandas, and scikit-learn versions.
 
 ## API
 

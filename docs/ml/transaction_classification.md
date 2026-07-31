@@ -1,7 +1,14 @@
 # Transaction classification methodology
 
-Status: baseline development  
+Status: historical English baseline; superseded by the controlled bilingual service
+
 Last updated: 2026-07-30
+
+> This document is a chronological experiment record. Statements such as
+> "current", "planned", and "next" describe the state at that experiment stage.
+> The active product contract is documented in `transaction_classifier_service.md`;
+> the current product benchmark is documented in
+> `text_classification_evaluation.md`.
 
 ## Objective
 
@@ -14,7 +21,7 @@ type as a classification feature. Categories outside the expense model are
 handled by a small text-rule baseline. The category definitions and boundary
 rules are specified in `docs/ml/transaction_categories.md`.
 
-## Current scope and assumptions
+## Original scope and assumptions
 
 - Input: one English transaction description.
 - Output: exactly one `transaction-categories-v1` expense label.
@@ -22,8 +29,8 @@ rules are specified in `docs/ml/transaction_categories.md`.
 - No real personal or account data is used.
 - The first model is a transparent local baseline, not a production-ready
   classifier.
-- German descriptions are outside the current training scope. A separate German
-  challenge set and deterministic synthetic generator are planned.
+- German descriptions were outside this original baseline. Later controlled
+  German and bilingual experiments superseded that limitation.
 
 ## Dataset
 
@@ -93,8 +100,8 @@ by `target_category`:
 | Validation | 15% | 5,493 | Compare baselines and model choices |
 | Test | 15% | 5,493 | Final evaluation only |
 
-Descriptions do not overlap across these splits. The test split has not been
-used for baseline selection or reporting.
+Descriptions do not overlap across these splits. At this selection stage, the
+test split had not been used for baseline selection or reporting.
 
 The current random stratified split does not fully prevent generator-pattern or
 merchant-family leakage. Different descriptions derived from the same merchant
@@ -179,12 +186,12 @@ The primary comparison metrics are:
 
 Macro-F1 is essential because deduplication produces unequal category sizes and
 accuracy alone can hide poor performance on smaller categories. Per-category
-precision, recall, F1, and a confusion matrix will be added for trained models.
+precision, recall, F1, and confusion matrices were added in later stages.
 
 ## Baselines
 
-All values below are measured on the validation split. The test split remains
-untouched.
+The model-selection rows below use validation data. The explicitly labeled
+final-test row was added only after model selection was frozen.
 
 | Baseline | Accuracy | Macro-F1 |
 | --- | ---: | ---: |
@@ -281,8 +288,8 @@ model configuration. The error analysis is based only on validation data.
 - Preprocessing and split behavior are covered by automated tests.
 - The split seed is fixed and versioned.
 - Python dependencies are locked with `uv.lock`.
-- Model artifacts will record dataset checksum, taxonomy version, split seed,
-  feature configuration, model parameters, library versions, and metrics.
+- The active artifact records dataset checksums, taxonomy and model versions,
+  random state, feature configuration, model parameters, and library versions.
 - A German synthetic dataset must model German bank-statement formats rather
   than merely translate US descriptions.
 - German and English evaluation results must be reported separately.

@@ -285,12 +285,17 @@ function AddTransactionModal({
     staleTime: 30_000,
   });
   useEffect(() => {
-    if (classification.data?.category && !categoryEdited) {
+    if (
+      classification.data?.category &&
+      !classification.data.needs_review &&
+      !categoryEdited
+    ) {
       setForm((current) => ({ ...current, category: classification.data.category ?? "" }));
     }
   }, [categoryEdited, classification.data]);
   const mutation = useMutation({
-    mutationFn: () => api.createTransaction(form),
+    mutationFn: () =>
+      api.createTransaction({ ...form, category_confirmed: categoryEdited }),
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
@@ -400,7 +405,7 @@ function AddTransactionModal({
                   : classification.data?.category
                     ? `${categoryEdited ? "Original suggestion" : "Suggested"}: ${classification.data.category} · ${
                         classification.data.classification_method === "ml"
-                          ? `${Math.round((classification.data.confidence ?? 0) * 100)}% confidence`
+                          ? `${Math.round((classification.data.confidence ?? 0) * 100)}% uncalibrated model score`
                           : classification.data.classification_method === "keyword_rule"
                             ? "text baseline rule"
                             : "deterministic rule"

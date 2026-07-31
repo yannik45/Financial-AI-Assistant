@@ -1,6 +1,7 @@
 # Transaction classification feedback loop
 
-Feature version: `transaction-classification-feedback-v1`  
+Feature version: `transaction-classification-feedback-v2-review-gate`
+
 Taxonomy version: `transaction-categories-v1`
 
 ## Purpose
@@ -18,7 +19,9 @@ automatically.
 1. The user enters a name/description and a signed non-zero amount.
 2. The frontend waits 400 milliseconds to avoid a request for every keystroke.
 3. `POST /v1/transactions/classify` returns a deterministic or ML suggestion.
-4. The category field is populated when a category is available.
+4. The category field is populated only for an automatically accepted
+   suggestion. A `needs_review` proposal is displayed but requires an explicit
+   user selection.
 5. The user can retain the suggestion, select another taxonomy category, or
    leave the transaction uncategorized.
 6. `POST /v1/transactions` repeats classification on the backend and stores the
@@ -49,14 +52,15 @@ records form the audit and future training-feedback history.
 
 | Status | Meaning |
 | --- | --- |
-| `accepted` | Submitted final category equals the backend suggestion |
+| `accepted_implicit` | An automatically populated suggestion was saved unchanged |
+| `accepted_explicit` | The user actively selected the same category as the suggestion |
 | `corrected` | Submitted final category differs from the suggestion |
 | `manual` | No automatic category was available |
 | `unreviewed` | A suggestion existed but the transaction remained uncategorized |
 
-`accepted` is currently implicit: the suggestion was submitted unchanged, but
-the user did not press a separate confirmation control. It is therefore weaker
-training evidence than an active correction. Future dataset preparation must
+The legacy value `accepted` remains readable for records created before this
+distinction was introduced. `accepted_implicit` remains weaker training evidence
+than an active confirmation or correction. Future dataset preparation must
 retain this distinction and apply quality checks before using feedback labels.
 
 ## Failure behavior

@@ -1,0 +1,33 @@
+{
+  "version": "text-classification-challenge-v2",
+  "rows": 252,
+  "languages": [
+    "de",
+    "en"
+  ],
+  "categories": [
+    "cash",
+    "dining",
+    "education",
+    "entertainment",
+    "fees",
+    "groceries",
+    "healthcare",
+    "housing",
+    "income",
+    "insurance",
+    "investments",
+    "other",
+    "savings",
+    "shopping",
+    "taxes",
+    "transport",
+    "travel",
+    "utilities"
+  ],
+  "sha256": "3758f9379792e910944f3e96d5fbcec798616b33f48f3c7f0629b1c00c005d85",
+  "known_regression_cases_included": false,
+  "supersedes": "text-classification-challenge-v1",
+  "provenance": "manually_authored_development_challenge",
+  "limitations": "Created alongside the system; not an independent real-world production benchmark."
+}

@@ -39,6 +39,12 @@ jobs:
       - name: Lint backend
         run: uv run ruff check apps/api/src apps/api/tests
 
+      - name: Check backend formatting
+        run: uv run ruff format --check apps/api/src apps/api/tests
+
+      - name: Verify database migrations
+        run: uv run alembic upgrade head
+
       - name: Test backend
         run: uv run pytest
 

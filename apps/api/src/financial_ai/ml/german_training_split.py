@@ -25,14 +25,10 @@ def split_german_training_data_by_merchant(
 
         group_count = len(category_groups)
         if group_count < 3:
-            raise ValueError(
-                f"Category {cat!r} requires at least 3 merchant groups"
-            )
+            raise ValueError(f"Category {cat!r} requires at least 3 merchant groups")
 
         shuffled_groups = (
-            pd.Series(category_groups)
-            .sample(frac=1, random_state=random_state)
-            .tolist()
+            pd.Series(category_groups).sample(frac=1, random_state=random_state).tolist()
         )
 
         held_out_count = max(1, group_count // 8)

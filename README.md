@@ -1,9 +1,10 @@
 # Financial AI Assistant
 
-Local-first portfolio intelligence platform with deterministic analytics, a
-FastAPI API, and a React dashboard. Phase 1 intentionally uses synthetic market
-prices and bundled ECB-style FX fixtures so the demo is reproducible and never
-mistaken for live financial data.
+Local-first financial intelligence portfolio project with deterministic
+portfolio analytics, a transaction ledger, an experimental bilingual category
+classifier, a FastAPI API, and a React dashboard. Market prices, portfolios,
+transactions, and ML training data are synthetic; bundled ECB FX observations
+are the only stored real market reference data.
 
 ## Prerequisites
 
@@ -15,6 +16,7 @@ mistaken for live financial data.
 ```powershell
 uv sync --all-groups
 uv run alembic upgrade head
+uv run financial-ai-bootstrap-category-model
 uv run financial-ai-api
 ```
 
@@ -37,7 +39,7 @@ repository root:
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic upgrade head
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_artifact
+.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
 .\.venv\Scripts\python.exe -m uvicorn financial_ai.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -47,6 +49,9 @@ Keep that terminal open. Start the frontend in a second terminal:
 cd apps\web
 npm.cmd run dev
 ```
+
+Copy `.env.example` to `.env` for backend overrides. Frontend overrides belong
+in `apps/web/.env`; use `apps/web/.env.example` as the template.
 
 This fallback depends on the existing `.venv`. It cannot create or update the
 environment when dependencies change; that still requires `uv` or another
@@ -68,22 +73,23 @@ Available endpoints:
 - `POST /v1/transactions`
 - `POST /v1/transactions/classify`
 
-The transaction list supports account, type, category, date-range, limit, and
-offset filters. Security buy and sell requests require a brokerage account,
-symbol, quantity, and unit price. All bundled transactions and counterparties
-are synthetic demo data.
+The transaction API supports account, stored source type, cash-flow direction,
+category, date-range, limit, and offset filters. Security buy and sell requests
+require a brokerage account, symbol, quantity, and unit price. Detailed source
+types are retained as ledger metadata but are not classifier inputs. All bundled
+transactions and counterparties are synthetic demo data.
 
-Build the local bilingual transaction-category model before requesting ML-based
-expense classification:
+Generate the controlled training snapshots and build the local bilingual model
+before requesting ML-based expense classification:
 
 ```powershell
-uv run financial-ai-build-category-model
+uv run financial-ai-bootstrap-category-model
 ```
 
 Without a global `uv` command, use the existing environment:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_artifact
+.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
 ```
 
 Classification is text-first: the add-transaction form uses name/description,
@@ -97,6 +103,9 @@ not a production-ready financial classifier.
 ## Documentation
 
 Detailed technical and ML documentation is maintained under `docs/`:
+
+- [ML documentation status](docs/ml/README.md) distinguishes active product
+  contracts, frozen evaluations, and historical experiments.
 
 - [Transaction category taxonomy](docs/ml/transaction_categories.md) defines
   the versioned expense labels, scope, examples, and boundary rules.

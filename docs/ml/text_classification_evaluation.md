@@ -1,8 +1,8 @@
 # Text classification evaluation
 
-Evaluation version: `text-classification-evaluation-v1`
+Evaluation version: `text-classification-evaluation-v2`
 
-Challenge version: `text-classification-challenge-v1`
+Challenge version: `text-classification-challenge-v2`
 
 Model: `transaction-category-char-tfidf-bilingual-v1`
 
@@ -15,7 +15,8 @@ a product-level comparison of three approaches:
 
 1. `text_rules_only`: the small, reviewable bilingual phrase baseline;
 2. `tfidf_only`: the bilingual character TF-IDF and Logistic Regression expense
-   model without product rules;
+   model without product rules, while retaining the cash-flow gate that prevents
+   positive transactions from being forced into expense labels;
 3. `hybrid`: the current product routing of text rules, expense model, and
    review for unsupported inputs.
 
@@ -33,12 +34,20 @@ The committed CSV contains 252 manually authored examples:
 - easy, medium, and hard descriptions;
 - explicit ambiguity flags;
 - positive and negative signed cash-flow context.
+- non-empty counterparties on a declared subset of cases.
 
 The CSV and metadata are stored in
 `data/evaluation/transaction_categories/`. Metadata includes a SHA-256 checksum.
 Exact development examples such as `Salary`, `House Payment`, `Coffee Shop`,
 `Amazon`, and `Überweisung Mama` remain regression-test inputs and are excluded
 from the challenge.
+
+Version 1 remains committed as an immutable historical snapshot. A repository
+audit found that its dividend-credit descriptions incorrectly had negative
+amounts and that every counterparty was empty. Version 2 supersedes it rather
+than silently rewriting a frozen benchmark. It corrects distribution cash flows,
+adds counterparty coverage, verifies committed checksums on load, and evaluates
+the direction-aware rule behavior.
 
 The set was designed alongside the application and is therefore a development
 benchmark, not an independent real-world test set. It cannot establish
@@ -96,32 +105,33 @@ the model on this same development challenge would leak evaluation information.
 
 | Strategy | Accuracy | Macro-F1 | Prediction coverage | Review rate | Auto-acceptance | Selective accuracy | Rule coverage |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Text rules only | 26.6% | 40.3% | 28.2% | 71.8% | 28.2% | 94.4% | 28.2% |
-| TF-IDF only | 50.8% | 42.0% | 94.4% | 61.9% | 38.1% | 94.8% | 0.0% |
-| Hybrid | 62.3% | 60.8% | 96.8% | 45.6% | 54.4% | 93.4% | 28.2% |
+| Text rules only | 32.1% | 46.1% | 33.7% | 66.3% | 33.7% | 95.3% | 33.7% |
+| TF-IDF only | 57.1% | 47.6% | 92.9% | 56.8% | 43.3% | 96.3% | 0.0% |
+| Hybrid | 69.8% | 68.4% | 96.0% | 39.3% | 60.7% | 96.1% | 33.3% |
 
 ### Expense-only comparison
 
 | Strategy | Accuracy | Macro-F1 |
 |---|---:|---:|
-| Text rules only | 24.4% | 37.8% |
-| TF-IDF only | 76.2% | 75.7% |
-| Hybrid | 78.0% | 78.3% |
+| Text rules only | 28.6% | 42.7% |
+| TF-IDF only | 85.7% | 84.6% |
+| Hybrid | 85.1% | 84.8% |
 
 The hybrid improves broad product coverage and expense accuracy over either
-component alone. Its 62.3% overall accuracy is not production-ready. The more
-useful experimental finding is that it automatically accepts 54.4% of examples
-at 93.4% selective accuracy, while routing the remainder to review.
+component alone across the complete taxonomy. Its 69.8% overall accuracy is not
+production-ready. The more useful experimental finding is that it automatically
+accepts 60.7% of examples at 96.1% selective accuracy, while routing the
+remainder to review.
 
 ### Hybrid slices
 
 | Slice | Accuracy | Macro-F1 | Review rate | Selective accuracy |
 |---|---:|---:|---:|---:|
-| English | 64.3% | 64.1% | 36.5% | 92.5% |
-| German | 60.3% | 58.1% | 54.8% | 94.7% |
-| Easy | 80.6% | 80.5% | 25.0% | 96.3% |
-| Medium | 59.3% | 55.3% | 45.4% | 89.8% |
-| Hard | 48.6% | 44.1% | 66.7% | 95.8% |
+| English | 72.2% | 71.9% | 30.2% | 95.5% |
+| German | 67.5% | 64.8% | 48.4% | 96.9% |
+| Easy | 83.3% | 84.0% | 23.6% | 98.2% |
+| Medium | 63.9% | 60.7% | 40.7% | 93.8% |
+| Hard | 65.3% | 60.3% | 52.8% | 97.1% |
 
 The decreasing accuracy and increasing review rate from easy to hard are
 directionally sensible. German coverage is lower than English coverage. Weak
@@ -129,19 +139,26 @@ full-system categories include `other`, `fees`, `taxes`, `savings`, and
 `investments`; these are candidates for future data work, not post-benchmark
 tuning in this version.
 
+### Historical v1 record
+
+Version 1 reported 62.3% hybrid accuracy, 60.8% Macro-F1, 54.4%
+auto-acceptance, and 93.4% selective accuracy. Those numbers remain historical
+and must not be compared as a model improvement: v2 corrects evaluation inputs
+and cash-flow behavior rather than changing the learned model.
+
 ## Reproduction and artifacts
 
-Build the local model first, then run:
+Bootstrap the local model first, then run:
 
 ```powershell
-uv run financial-ai-build-category-model
+uv run financial-ai-bootstrap-category-model
 uv run financial-ai-evaluate-text-classification
 ```
 
 Windows fallback:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_artifact
+.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
 .\.venv\Scripts\python.exe -m financial_ai.ml.text_classification_evaluation
 ```
 

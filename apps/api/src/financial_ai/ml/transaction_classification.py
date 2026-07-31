@@ -30,6 +30,7 @@ def parse_product_category(value: str) -> str:
 
 
 class ClassificationRoute(StrEnum):
+    # Retained so records created by the pre-text-first service remain readable.
     DETERMINISTIC = "deterministic"
     TEXT_RULE = "text_rule"
     EXPENSE_MODEL = "expense_model"
@@ -37,6 +38,7 @@ class ClassificationRoute(StrEnum):
 
 
 class ClassificationMethod(StrEnum):
+    # Retained so records created by the pre-text-first service remain readable.
     DETERMINISTIC = "deterministic"
     KEYWORD_RULE = "keyword_rule"
     ML = "ml"
@@ -44,15 +46,28 @@ class ClassificationMethod(StrEnum):
 
 
 class FeedbackStatus(StrEnum):
+    # Legacy value retained for records created before explicit confirmation tracking.
     ACCEPTED = "accepted"
+    ACCEPTED_IMPLICIT = "accepted_implicit"
+    ACCEPTED_EXPLICIT = "accepted_explicit"
     CORRECTED = "corrected"
     MANUAL = "manual"
     UNREVIEWED = "unreviewed"
 
 
+OUTFLOW_ONLY_CATEGORIES = {
+    TransactionCategory.FEES,
+    TransactionCategory.TAXES,
+    TransactionCategory.SAVINGS,
+    TransactionCategory.CASH,
+    *ExpenseCategory,
+}
+
+
 def determine_feedback_status(
     predicted_category: str | None,
     final_category: str | None,
+    category_confirmed: bool = False,
 ) -> FeedbackStatus:
     normalized_prediction = predicted_category.strip().casefold() if predicted_category else None
     normalized_final = final_category.strip().casefold() if final_category else None
@@ -61,7 +76,11 @@ def determine_feedback_status(
     if final_category is None:
         return FeedbackStatus.UNREVIEWED
     if normalized_prediction == normalized_final:
-        return FeedbackStatus.ACCEPTED
+        return (
+            FeedbackStatus.ACCEPTED_EXPLICIT
+            if category_confirmed
+            else FeedbackStatus.ACCEPTED_IMPLICIT
+        )
     return FeedbackStatus.CORRECTED
 
 
@@ -87,11 +106,19 @@ def route_transaction_text(
     # Local import avoids a module cycle: the rule taxonomy uses the enums above.
     from financial_ai.ml.text_classification_rules import match_text_category
 
-    text = " ".join(
-        part for part in (normalized_description, (counterparty or "").strip()) if part
-    )
+    text = " ".join(part for part in (normalized_description, (counterparty or "").strip()) if part)
     category = match_text_category(text)
     if category is not None:
+        direction_conflict = (category is TransactionCategory.INCOME and amount < 0) or (
+            category in OUTFLOW_ONLY_CATEGORIES and amount > 0
+        )
+        if direction_conflict:
+            return ClassificationDecision(
+                route=ClassificationRoute.NEEDS_REVIEW,
+                category=None,
+                method=ClassificationMethod.NONE,
+                reason="Text category conflicts with the signed cash-flow direction.",
+            )
         return ClassificationDecision(
             route=ClassificationRoute.TEXT_RULE,
             category=category,

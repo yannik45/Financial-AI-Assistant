@@ -347,7 +347,13 @@ def create_transaction(
 
     transaction = Transaction(
         **payload.model_dump(
-            mode="python", exclude={"currency", "transaction_type", "security_symbol"}
+            mode="python",
+            exclude={
+                "currency",
+                "transaction_type",
+                "security_symbol",
+                "category_confirmed",
+            },
         ),
         currency=payload.currency.upper(),
         transaction_type=payload.transaction_type.value,
@@ -368,6 +374,7 @@ def create_transaction(
             feedback_status=determine_feedback_status(
                 classification.category,
                 payload.category,
+                payload.category_confirmed,
             ).value,
             reason=classification.reason,
             taxonomy_version=classification.taxonomy_version,
