@@ -84,6 +84,8 @@ def test_manual_bank_transaction_can_be_created(client):
     assert transaction["source"] == "manual"
     assert transaction["currency"] == "EUR"
     assert transaction["amount"] == "-4.50"
+    assert transaction["category"] == "dining"
+    assert len(transaction["classifications"]) == 1
     assert client.get(f"/v1/transactions/{transaction['id']}").status_code == 200
     assert client.get("/v1/transactions").json()["total"] == 19
 
@@ -220,3 +222,69 @@ def test_classification_endpoint_reports_unavailable_model(client):
 
     assert response.status_code == 503
     assert response.json()["detail"]["code"] == "category_model_unavailable"
+
+
+def test_transaction_creation_persists_corrected_model_feedback(client):
+    class GroceryClassifier:
+        def classify(self, **_):
+            return TransactionClassification(
+                category="groceries",
+                route=ClassificationRoute.EXPENSE_MODEL,
+                method=ClassificationMethod.ML,
+                confidence=0.88,
+                needs_review=False,
+                reason="Expense category predicted by the versioned model artifact.",
+                taxonomy_version="transaction-categories-v1",
+                model_version="test-model-v1",
+            )
+
+    checking = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "checking"
+    )
+    app.dependency_overrides[get_transaction_classifier] = lambda: GroceryClassifier()
+    try:
+        response = client.post(
+            "/v1/transactions",
+            json={
+                "account_id": checking["id"],
+                "booked_at": "2026-04-05",
+                "name": "Demo mixed merchant",
+                "amount": "-22.00",
+                "currency": "EUR",
+                "transaction_type": "card_payment",
+                "category": "Dining",
+            },
+        )
+    finally:
+        app.dependency_overrides.pop(get_transaction_classifier, None)
+
+    assert response.status_code == 201
+    transaction = response.json()
+    assert transaction["category"] == "dining"
+    feedback = transaction["classifications"][0]
+    assert feedback["predicted_category"] == "groceries"
+    assert feedback["final_category"] == "dining"
+    assert feedback["feedback_status"] == "corrected"
+    assert feedback["model_version"] == "test-model-v1"
+
+
+def test_transaction_creation_rejects_unknown_category(client):
+    checking = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "checking"
+    )
+    response = client.post(
+        "/v1/transactions",
+        json={
+            "account_id": checking["id"],
+            "booked_at": "2026-04-05",
+            "name": "Demo merchant",
+            "amount": "-22.00",
+            "transaction_type": "card_payment",
+            "category": "invented-category",
+        },
+    )
+    assert response.status_code == 422

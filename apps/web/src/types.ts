@@ -72,6 +72,36 @@ export type Transaction = {
   fees: string;
   taxes: string;
   created_at: string;
+  classifications: TransactionClassificationRecord[];
+};
+
+export type ClassificationRoute = "deterministic" | "expense_model" | "needs_review";
+export type ClassificationMethod = "deterministic" | "ml" | "none";
+export type FeedbackStatus = "accepted" | "corrected" | "manual" | "unreviewed";
+
+export type TransactionClassification = {
+  category: string | null;
+  route: ClassificationRoute;
+  classification_method: ClassificationMethod;
+  confidence: number | null;
+  needs_review: boolean;
+  reason: string;
+  taxonomy_version: string;
+  model_version: string | null;
+};
+
+export type TransactionClassificationRecord = Omit<TransactionClassification, "category"> & {
+  id: string;
+  predicted_category: string | null;
+  final_category: string | null;
+  feedback_status: FeedbackStatus;
+  created_at: string;
+};
+
+export type TransactionClassificationRequest = {
+  transaction_type: TransactionType;
+  description: string;
+  counterparty?: string;
 };
 
 export type TransactionPage = {
