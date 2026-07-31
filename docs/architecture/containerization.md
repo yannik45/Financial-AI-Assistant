@@ -60,6 +60,9 @@ The runtime process uses a dedicated unprivileged `financial-ai` user. Only
 
 Conditional model initialization prevents a container restart from
 overwriting a previously promoted model stored in the runtime volume.
+The bundled ECB snapshot path is supplied explicitly through
+`FINANCIAL_AI_ECB_FX_PATH`, so data discovery does not depend on whether the
+Python package runs from source or from an installed site-packages directory.
 
 ## Web image
 

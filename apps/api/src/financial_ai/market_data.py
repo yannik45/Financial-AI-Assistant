@@ -5,6 +5,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from financial_ai.config import get_settings
+
 DATA_VERSION = "demo-market-2026.1"
 
 
@@ -134,7 +136,8 @@ class MarketDataError(ValueError):
 class DemoMarketDataProvider:
     """Deterministic synthetic prices and bundled ECB-attributed FX fixtures."""
 
-    def __init__(self) -> None:
+    def __init__(self, ecb_fx_path: Path | None = None) -> None:
+        self._ecb_fx_path = ecb_fx_path or get_settings().ecb_fx_path
         self._dates = pd.bdate_range("2024-01-02", "2026-06-30")
         self._prices = self._generate_prices()
         self._fx = self._generate_fx_fixture()
@@ -173,7 +176,7 @@ class DemoMarketDataProvider:
         return pd.DataFrame(values, index=self._dates)
 
     def _generate_fx_fixture(self) -> dict[str, pd.Series]:
-        snapshot = Path(__file__).parents[4] / "data" / "market" / "ecb_fx.csv"
+        snapshot = self._ecb_fx_path
         if not snapshot.exists():
             raise MarketDataError(f"ECB FX snapshot is missing: {snapshot}")
         frame = pd.read_csv(snapshot, usecols=["CURRENCY", "TIME_PERIOD", "OBS_VALUE"])

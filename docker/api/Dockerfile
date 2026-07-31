@@ -23,6 +23,7 @@ RUN groupadd --system financial-ai \
     && chown financial-ai:financial-ai /app/data/runtime
 
 ENV FINANCIAL_AI_DATABASE_URL="sqlite:////app/data/runtime/financial_ai.db" \
+    FINANCIAL_AI_ECB_FX_PATH="/app/data/market/ecb_fx.csv" \
     FINANCIAL_AI_CATEGORY_MODEL_ARTIFACT_PATH="/app/data/runtime/ml/models/transaction_category_bilingual_v1.pkl" \
     FINANCIAL_AI_CATEGORY_MODEL_METADATA_PATH="/app/data/runtime/ml/models/transaction_category_bilingual_v1.json"
 
