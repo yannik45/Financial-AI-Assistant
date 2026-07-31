@@ -1,4 +1,5 @@
 from financial_ai.ml.german_model_training import (
+    train_and_evaluate_controlled_validation,
     train_and_evaluate_german_v2_validation,
     train_and_evaluate_german_validation,
 )
@@ -50,3 +51,16 @@ def test_train_and_evaluate_german_v2_validation_uses_declared_splits():
     assert sum(metric.support for metric in result.validation.per_category) == len(
         result.splits.validation
     )
+
+
+def test_train_and_evaluate_controlled_validation_uses_declared_splits():
+    generated_data = generate_german_training_data_v2(
+        examples_per_category=100,
+        random_seed=7,
+    )
+
+    result = train_and_evaluate_controlled_validation(generated_data)
+
+    assert len(result.splits.train) == 76 * 12
+    assert len(result.splits.validation) == 12 * 12
+    assert len(result.splits.test) == 12 * 12

@@ -124,3 +124,22 @@ uv run python -m financial_ai.ml.german_evaluation
 - Results depend on taxonomy clarity and scenario-review quality.
 - A future real-data evaluation requires a lawful, licensed, anonymized source
   and a separate documented protocol.
+
+## Final German-trained model results
+
+After validation-based model selection was frozen, German-only and controlled
+bilingual character models were evaluated once on this challenge:
+
+| Model | Accuracy | Macro-F1 |
+| --- | ---: | ---: |
+| English-only zero-shot | 27.50% | 24.87% |
+| German-only | 75.00% | 74.96% |
+| Controlled bilingual | 75.00% | 74.64% |
+
+The German-only model scores 77.65% / 77.64% on the German-local slice and
+68.57% / 68.33% on the international slice. The bilingual model scores 75.29% /
+74.80% locally and 74.29% / 73.81% internationally. The bilingual model is more
+balanced across merchant scopes, while neither result supports production use.
+
+These results are frozen. Challenge errors must not be used to revise the current
+generator or model while continuing to describe this set as untouched.
