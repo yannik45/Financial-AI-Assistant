@@ -17,6 +17,8 @@ from financial_ai.config import get_settings
 from financial_ai.database import SessionLocal, get_session
 from financial_ai.importer import PortfolioImportError, parse_portfolio_csv
 from financial_ai.market_data import market_data_provider
+from financial_ai.ml.category_artifact import ModelArtifactError
+from financial_ai.ml.category_service import TransactionClassifier, get_transaction_classifier
 from financial_ai.models import Account, Portfolio, Transaction
 from financial_ai.schemas import (
     AccountRead,
@@ -24,6 +26,8 @@ from financial_ai.schemas import (
     CatalogAsset,
     PortfolioRead,
     PortfolioSummary,
+    TransactionClassificationRequest,
+    TransactionClassificationResponse,
     TransactionCreate,
     TransactionPage,
     TransactionRead,
@@ -34,6 +38,7 @@ from financial_ai.seed import seed_demo_accounts, seed_demo_portfolios
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("financial_ai")
 SessionDependency = Annotated[Session, Depends(get_session)]
+ClassifierDependency = Annotated[TransactionClassifier, Depends(get_transaction_classifier)]
 
 
 @asynccontextmanager
@@ -251,6 +256,42 @@ def get_transaction(transaction_id: str, session: SessionDependency) -> Transact
             detail={"code": "transaction_not_found", "message": "Transaction not found"},
         )
     return transaction
+
+
+@app.post(
+    "/v1/transactions/classify",
+    response_model=TransactionClassificationResponse,
+)
+def classify_transaction(
+    payload: TransactionClassificationRequest,
+    classifier: ClassifierDependency,
+) -> TransactionClassificationResponse:
+    try:
+        result = classifier.classify(
+            transaction_type=payload.transaction_type.value,
+            description=payload.description,
+            counterparty=payload.counterparty,
+        )
+    except ModelArtifactError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "category_model_unavailable", "message": str(exc)},
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "classification_input_invalid", "message": str(exc)},
+        ) from exc
+    return TransactionClassificationResponse(
+        category=result.category,
+        route=result.route,
+        classification_method=result.method,
+        confidence=result.confidence,
+        needs_review=result.needs_review,
+        reason=result.reason,
+        taxonomy_version=result.taxonomy_version,
+        model_version=result.model_version,
+    )
 
 
 @app.post("/v1/transactions", response_model=TransactionRead, status_code=201)
