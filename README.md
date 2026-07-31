@@ -124,6 +124,9 @@ Detailed technical and ML documentation is maintained under `docs/`:
 - [Transaction classification feedback loop](docs/ml/transaction_classification_feedback.md)
   documents automatic editable suggestions, persisted model provenance and user
   outcomes, failure behavior, and the guarded offline-retraining protocol.
+- [Text classification evaluation](docs/ml/text_classification_evaluation.md)
+  defines the frozen bilingual product challenge, baseline comparison,
+  selective-prediction metrics, results, and limitations.
 
 New documentation should be added to this index when it is introduced so the
 repository documentation remains discoverable from the project entry point.

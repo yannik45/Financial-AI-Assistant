@@ -20,6 +20,8 @@ dependencies = [
 [project.scripts]
 financial-ai-api = "financial_ai.main:run"
 financial-ai-build-category-model = "financial_ai.ml.category_artifact:run"
+financial-ai-build-text-challenge = "financial_ai.ml.text_classification_challenge:run"
+financial-ai-evaluate-text-classification = "financial_ai.ml.text_classification_evaluation:run"
 
 [dependency-groups]
 dev = [
