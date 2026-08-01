@@ -52,6 +52,11 @@ const pct = (value: number) => `${value.toFixed(1)}%`;
 const formatMoney = (value: string, currency: string) =>
   new Intl.NumberFormat("en-IE", { style: "currency", currency }).format(Number(value));
 const categoryValue = (category: string) => category.toLowerCase();
+const localIsoDate = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+};
 
 function useDebouncedValue(value: string, delayMs: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -255,7 +260,7 @@ function AddTransactionModal({
   const queryClient = useQueryClient();
   const [form, setForm] = useState<TransactionCreate>({
     account_id: initialAccountId || accounts[0]?.id || "",
-    booked_at: new Date().toISOString().slice(0, 10),
+    booked_at: localIsoDate(),
     name: "",
     amount: "",
     currency: "EUR",

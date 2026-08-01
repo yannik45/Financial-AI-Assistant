@@ -89,6 +89,7 @@ test("renders the portfolio view and import action", () => {
 });
 
 test("submits a portfolio order that updates the shared brokerage ledger", async () => {
+  let overviewRequests = 0;
   const instrument = {
     id: "instrument-id",
     provider: "demo",
@@ -122,8 +123,38 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     total_equity: "10000.00",
     total_pnl: "0.00",
     realized_pnl: "0.00",
-    holdings: [],
-    trades: [],
+    holdings: [
+      {
+        instrument,
+        quantity: "4.00",
+        average_cost: "100.00",
+        latest_price: "110.00",
+        market_value: "440.00",
+        unrealized_pnl: "40.00",
+        weight: 1,
+        price_observed_on: "2026-08-01",
+        price_source: "demo",
+        quote_is_stale: false,
+      },
+    ],
+    trades: [
+      {
+        id: "existing-trade",
+        client_order_id: "existing-order",
+        side: "buy",
+        quantity: "4.00",
+        unit_price: "110.00",
+        instrument_currency: "EUR",
+        settlement_amount: "440.00",
+        fees: "0.00",
+        currency: "EUR",
+        booked_at: "2026-08-01",
+        price_observed_on: "2026-06-30",
+        price_source: "demo",
+        executed_at: "2026-08-01T10:00:00Z",
+        instrument,
+      },
+    ],
     warnings: ["Simulation only: no real order is placed."],
   };
   vi.mocked(fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
@@ -132,16 +163,23 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     if (url.endsWith("/v1/portfolios/portfolio-id/orders") && init?.method === "POST") {
       return jsonResponse({ id: "trade-id" });
     }
-    if (url.endsWith("/v1/portfolios/portfolio-id/overview")) return jsonResponse(overview);
+    if (url.endsWith("/v1/portfolios/portfolio-id/overview")) {
+      overviewRequests += 1;
+      if (overviewRequests > 1) return new Promise<Response>(() => undefined);
+      return jsonResponse(overview);
+    }
     if (url.endsWith("/v1/portfolios")) return jsonResponse([summary]);
     if (url.endsWith("/v1/portfolios/portfolio-id/analytics")) return jsonResponse(null);
     return jsonResponse([]);
   });
 
   renderApp();
-  const search = await screen.findByLabelText("Search by symbol or name");
-  fireEvent.change(search, { target: { value: "WORLD" } });
-  fireEvent.click(await screen.findByRole("button", { name: /WORLD-ETF/ }));
+  expect(await screen.findByText("2026-08-01")).toBeInTheDocument();
+  expect(screen.getByText("Price observed 2026-06-30")).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button", { name: "Buy more" }));
+  expect(screen.getByLabelText("Side")).toHaveValue("buy");
+  expect(screen.getByLabelText("Quantity")).toHaveValue(1);
+  expect(screen.getByLabelText("Quantity")).toHaveAttribute("step", "1");
   fireEvent.click(screen.getByRole("button", { name: "Buy position" }));
 
   await waitFor(() => {
@@ -153,6 +191,10 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     expect(payload).toMatchObject({ instrument_id: "instrument-id", side: "buy", quantity: "1" });
     expect(payload).not.toHaveProperty("unit_price");
     expect(payload.client_order_id).toBeTruthy();
+  });
+  await waitFor(() => {
+    expect(screen.queryByRole("button", { name: "Executing…" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Buy position" })).not.toBeInTheDocument();
   });
 });
 

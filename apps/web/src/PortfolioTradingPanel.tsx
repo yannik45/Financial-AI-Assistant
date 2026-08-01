@@ -37,17 +37,17 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
   const executeOrder = useMutation({
     mutationFn: (payload: PortfolioOrderCreate) =>
       api.executePortfolioOrder(portfolioId, payload),
-    onSuccess: async () => {
-      await Promise.all([
+    onSuccess: () => {
+      setInstrument(null);
+      setQuantity("1");
+      setSearchText("");
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
         queryClient.invalidateQueries({ queryKey: ["portfolio-overview", portfolioId] }),
         queryClient.invalidateQueries({ queryKey: ["analytics", portfolioId] }),
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["accounts"] }),
       ]);
-      setInstrument(null);
-      setQuantity("1");
-      setSearchText("");
     },
   });
 
@@ -61,10 +61,10 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
       quantity,
     });
   };
-  const prepareSale = (holding: PortfolioHolding) => {
+  const prepareHoldingOrder = (holding: PortfolioHolding, orderSide: "buy" | "sell") => {
     setInstrument(holding.instrument);
-    setSide("sell");
-    setQuantity(holding.quantity);
+    setSide(orderSide);
+    setQuantity(orderSide === "buy" ? "1" : holding.quantity);
     setSearchText(holding.instrument.symbol);
   };
 
@@ -101,21 +101,22 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
           </div>
         </div>
         {instrument ? (
-          <form className="paper-order-form" onSubmit={submitOrder}>
+          <form className="paper-order-form" noValidate onSubmit={submitOrder}>
             <div><b>{instrument.symbol}</b><span>{instrument.name}</span></div>
             <label>Side<select value={side} onChange={(event) => setSide(event.target.value as "buy" | "sell")}><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
-            <label>Quantity<input required min="0.00000001" step="0.00000001" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>
-            <button disabled={executeOrder.isPending || instrument.currency !== portfolio.base_currency}>{executeOrder.isPending ? "Executing…" : side === "buy" ? "Buy position" : "Sell position"}</button>
+            <label>Quantity<input required min="0.00000001" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>
+            <button disabled={executeOrder.isPending}>{executeOrder.isPending ? "Executing…" : side === "buy" ? "Buy position" : "Sell position"}</button>
+            {instrument.currency !== portfolio.base_currency ? <span className="order-note">The backend converts {instrument.currency} settlement into {portfolio.base_currency} using the stored FX reference rate.</span> : null}
           </form>
         ) : null}
         {executeOrder.isError ? <div className="error">{executeOrder.error.message}</div> : null}
       </section>
 
-      <HoldingsTable holdings={portfolio.holdings} currency={portfolio.base_currency} onSell={prepareSale} />
+      <HoldingsTable holdings={portfolio.holdings} currency={portfolio.base_currency} onOrder={prepareHoldingOrder} />
       <section className="panel">
         <div className="panel-title"><div><span className="eyebrow">PORTFOLIO LEDGER</span><h3>Security transactions</h3></div><span className="page-meta">{portfolio.trade_count} trades</span></div>
         <div className="table-wrap"><table><thead><tr><th>Date</th><th>Instrument</th><th>Side</th><th>Quantity</th><th>Price</th><th>Cash flow</th></tr></thead><tbody>
-          {[...portfolio.trades].reverse().map((trade) => <tr key={trade.id}><td>{trade.price_observed_on}</td><td>{trade.instrument.symbol}</td><td>{trade.side.toUpperCase()}</td><td>{Number(trade.quantity).toLocaleString()}</td><td>{formatMoney(trade.unit_price, trade.currency)}</td><td className={trade.side === "buy" ? "negative" : "positive"}>{trade.side === "buy" ? "−" : "+"}{formatMoney(String(Number(trade.quantity) * Number(trade.unit_price)), trade.currency)}</td></tr>)}
+          {[...portfolio.trades].reverse().map((trade) => <tr key={trade.id}><td>{trade.booked_at}</td><td>{trade.instrument.symbol}</td><td>{trade.side.toUpperCase()}</td><td>{Number(trade.quantity).toLocaleString()}</td><td>{formatMoney(trade.unit_price, trade.instrument_currency)}<small>Price observed {trade.price_observed_on}</small></td><td className={trade.side === "buy" ? "negative" : "positive"}>{trade.side === "buy" ? "−" : "+"}{formatMoney(trade.settlement_amount, trade.currency)}</td></tr>)}
           {!portfolio.trades.length ? <tr><td colSpan={6} className="empty-state">No trades yet.</td></tr> : null}
         </tbody></table></div>
       </section>
@@ -128,9 +129,9 @@ function Metric({ label, value, currency, note }: { label: string; value: string
   return <div className="metric"><p>{label}</p><strong>{formatMoney(value, currency)}</strong><span>{note}</span></div>;
 }
 
-function HoldingsTable({ holdings, currency, onSell }: { holdings: PortfolioHolding[]; currency: string; onSell: (holding: PortfolioHolding) => void }) {
+function HoldingsTable({ holdings, currency, onOrder }: { holdings: PortfolioHolding[]; currency: string; onOrder: (holding: PortfolioHolding, side: "buy" | "sell") => void }) {
   return <section className="panel"><div className="panel-title"><div><span className="eyebrow">HOLDINGS</span><h3>Current positions</h3></div></div><div className="table-wrap"><table><thead><tr><th>Instrument</th><th>Quantity</th><th>Average cost</th><th>Latest close</th><th>Value</th><th>Unrealized P&amp;L</th><th></th></tr></thead><tbody>
-    {holdings.map((holding) => <tr key={holding.instrument.id}><td><b>{holding.instrument.symbol}</b><small>{holding.instrument.name}</small></td><td>{Number(holding.quantity).toLocaleString()}</td><td>{formatMoney(holding.average_cost, currency)}</td><td>{formatMoney(holding.latest_price, currency)}<small>{holding.price_observed_on} · {holding.price_source}</small></td><td>{formatMoney(holding.market_value, currency)}</td><td className={Number(holding.unrealized_pnl) >= 0 ? "positive" : "negative"}>{formatMoney(holding.unrealized_pnl, currency)}</td><td><button className="secondary compact" onClick={() => onSell(holding)}>Sell</button></td></tr>)}
+    {holdings.map((holding) => <tr key={holding.instrument.id}><td><b>{holding.instrument.symbol}</b><small>{holding.instrument.name}</small></td><td>{Number(holding.quantity).toLocaleString()}</td><td>{formatMoney(holding.average_cost, currency)}</td><td>{formatMoney(holding.latest_price, currency)}<small>{holding.price_observed_on} · {holding.price_source}</small></td><td>{formatMoney(holding.market_value, currency)}</td><td className={Number(holding.unrealized_pnl) >= 0 ? "positive" : "negative"}>{formatMoney(holding.unrealized_pnl, currency)}</td><td><div className="position-actions"><button className="secondary compact" type="button" onClick={() => onOrder(holding, "buy")}>Buy more</button><button className="secondary compact" type="button" onClick={() => onOrder(holding, "sell")}>Sell</button></div></td></tr>)}
     {!holdings.length ? <tr><td colSpan={7} className="empty-state">No open positions yet.</td></tr> : null}
   </tbody></table></div></section>;
 }

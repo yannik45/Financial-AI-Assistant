@@ -188,8 +188,11 @@ export type PortfolioTrade = {
   side: "buy" | "sell";
   quantity: string;
   unit_price: string;
+  instrument_currency: string;
+  settlement_amount: string;
   fees: string;
   currency: string;
+  booked_at: string;
   price_observed_on: string;
   price_source: string;
   executed_at: string;

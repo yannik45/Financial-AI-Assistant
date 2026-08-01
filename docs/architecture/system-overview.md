@@ -88,10 +88,18 @@ regular security transaction. The browser cannot supply an execution price.
 
 The signed transaction amount is negative for a buy and positive for a sale.
 Cash is the account opening balance plus all ledger cash flows; holdings replay
-opening positions and security transactions. Orders reject insufficient cash,
-short positions, and currency mismatches. Client order IDs make identical
-retries idempotent. Execution remains simulated: there is no broker connection,
-and fees, taxes, spreads, and slippage are currently zero.
+opening positions and security transactions. Foreign-currency execution values
+are converted into the brokerage account currency with the stored FX reference
+rate. Orders reject insufficient cash, short positions, and currencies without
+an available FX rate. Client order IDs make identical retries idempotent.
+Execution remains simulated: there is no broker connection, and fees, taxes,
+spreads, and slippage are currently zero.
+
+Order dates and market-data dates are separate domain values. `booked_at` is
+the order's calendar date in `FINANCIAL_AI_APP_TIMEZONE`; `created_at` is the
+technical UTC event timestamp; and `price_observed_on` is the date of the market
+observation used for pricing. A stale daily close therefore never backdates the
+ledger transaction.
 
 The general Transactions view reads the same rows. Brokerage accounts expose
 their linked portfolio identity and every account balance is derived from its

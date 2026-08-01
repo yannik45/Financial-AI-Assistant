@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+from financial_ai.clock import business_today
+
 
 def discover(client, query: str, symbol: str) -> dict[str, object]:
     response = client.get("/v1/market/instruments", params={"query": query})
@@ -43,6 +45,8 @@ def test_buy_uses_server_quote_and_updates_cash_holdings_and_transaction_ledger(
 
     assert executed.status_code == 201
     assert executed.json()["price_source"] == "demo"
+    assert executed.json()["booked_at"] == business_today().isoformat()
+    assert executed.json()["price_observed_on"] == "2026-06-30"
     assert detail.status_code == 200
     payload = detail.json()
     execution_price = Decimal(executed.json()["unit_price"])
@@ -58,6 +62,8 @@ def test_buy_uses_server_quote_and_updates_cash_holdings_and_transaction_ledger(
     brokerage = next(item for item in accounts if item["name"] == "Trading Portfolio Brokerage")
     ledger = client.get("/v1/transactions", params={"account_id": brokerage["id"]}).json()
     assert ledger["items"][0]["transaction_type"] == "security_buy"
+    assert ledger["items"][0]["booked_at"] == business_today().isoformat()
+    assert ledger["items"][0]["price_observed_on"] == "2026-06-30"
     assert Decimal(ledger["items"][0]["amount"]) == (-execution_price * 10).quantize(
         Decimal("0.01")
     )
@@ -77,21 +83,26 @@ def test_partial_sale_updates_average_cost_and_realized_pnl(client):
     assert Decimal(detail["total_pnl"]) == Decimal("0.00")
 
 
-def test_orders_reject_insufficient_cash_holdings_and_currency_mismatch(client):
+def test_orders_reject_insufficient_cash_and_holdings_but_convert_foreign_currency(client):
     eur = discover(client, "world", "WORLD-ETF")
     usd = discover(client, "US Technology Demo A", "US-TECH-A")
     portfolio = create_portfolio(client, cash="100.00")
 
     too_expensive = order(client, portfolio["id"], eur["id"], "buy", "100", "buy-1")
     short_sale = order(client, portfolio["id"], eur["id"], "sell", "1", "sell-1")
-    wrong_currency = order(client, portfolio["id"], usd["id"], "buy", "1", "buy-2")
+    foreign_buy = order(client, portfolio["id"], usd["id"], "buy", "0.1", "buy-2")
+    foreign_sell = order(client, portfolio["id"], usd["id"], "sell", "0.1", "sell-2")
 
     assert too_expensive.status_code == 409
     assert too_expensive.json()["detail"]["code"] == "insufficient_cash"
     assert short_sale.status_code == 409
     assert short_sale.json()["detail"]["code"] == "insufficient_holdings"
-    assert wrong_currency.status_code == 409
-    assert wrong_currency.json()["detail"]["code"] == "portfolio_currency_mismatch"
+    assert foreign_buy.status_code == 201
+    assert foreign_buy.json()["instrument_currency"] == "USD"
+    assert foreign_buy.json()["currency"] == "EUR"
+    assert Decimal(foreign_buy.json()["settlement_amount"]) > 0
+    assert foreign_sell.status_code == 201
+    assert foreign_sell.json()["instrument_currency"] == "USD"
 
 
 def test_client_order_id_is_idempotent_but_cannot_be_reused_for_different_order(client):

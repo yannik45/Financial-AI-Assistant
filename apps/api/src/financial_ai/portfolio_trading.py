@@ -1,10 +1,12 @@
 from dataclasses import dataclass
-from datetime import UTC
+from datetime import UTC, date
 from decimal import ROUND_HALF_UP, Decimal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from financial_ai.clock import business_today
+from financial_ai.market_data import MarketDataError, market_data_provider
 from financial_ai.market_data_service import MarketDataService
 from financial_ai.models import Account, MarketInstrument, Portfolio, Transaction
 from financial_ai.schemas import (
@@ -119,11 +121,14 @@ class PortfolioTradingService:
             return self._trade_read(existing)
 
         quote = self._market_data.quote(payload.instrument_id)
-        if quote.instrument.currency != portfolio.base_currency:
-            raise CurrencyMismatchError("The instrument currency must match the portfolio currency")
         states, cash = self._replay(portfolio)
         state = states.get(payload.instrument_id, HoldingState())
-        notional = money(payload.quantity * quote.close)
+        conversion_rate = self._currency_rate(
+            quote.instrument.currency,
+            portfolio.base_currency,
+            quote.observed_on,
+        )
+        notional = money(payload.quantity * quote.close * conversion_rate)
         if payload.side == TradeSide.BUY and notional > cash:
             raise InsufficientCashError(
                 f"Order requires {notional} {portfolio.base_currency}, "
@@ -140,7 +145,7 @@ class PortfolioTradingService:
         signed_amount = -notional if payload.side == TradeSide.BUY else notional
         transaction = Transaction(
             account_id=account.id,
-            booked_at=quote.observed_on,
+            booked_at=business_today(),
             name=f"{payload.side.value.title()} {instrument.symbol}",
             amount=signed_amount,
             currency=portfolio.base_currency,
@@ -166,39 +171,59 @@ class PortfolioTradingService:
         portfolio = self._get_portfolio(portfolio_id)
         account = self._get_account(portfolio)
         states, cash = self._replay(portfolio)
-        valued: list[tuple[HoldingState, MarketQuoteRead]] = []
+        valued: list[tuple[HoldingState, MarketQuoteRead, Decimal]] = []
         warnings: list[str] = []
         for instrument_id, state in states.items():
             if state.quantity > ZERO:
-                valued.append((state, self._market_data.quote(instrument_id)))
-        holdings_value = sum((state.quantity * quote.close for state, quote in valued), start=ZERO)
+                quote = self._market_data.quote(instrument_id)
+                conversion_rate = self._currency_rate(
+                    quote.instrument.currency,
+                    portfolio.base_currency,
+                    quote.observed_on,
+                )
+                valued.append((state, quote, quote.close * conversion_rate))
+        holdings_value = sum(
+            (state.quantity * price_base for state, _, price_base in valued), start=ZERO
+        )
         holdings = [
             PortfolioHoldingRead(
                 instrument=quote.instrument,
                 quantity=state.quantity,
                 average_cost=price(state.book_cost / state.quantity),
-                latest_price=quote.close,
-                market_value=money(state.quantity * quote.close),
-                unrealized_pnl=money(state.quantity * quote.close - state.book_cost),
-                weight=round(float(state.quantity * quote.close / holdings_value), 6)
+                latest_price=price(price_base),
+                market_value=money(state.quantity * price_base),
+                unrealized_pnl=money(state.quantity * price_base - state.book_cost),
+                weight=round(float(state.quantity * price_base / holdings_value), 6)
                 if holdings_value
                 else 0,
                 price_observed_on=quote.observed_on,
                 price_source=quote.source,
                 quote_is_stale=quote.is_stale,
             )
-            for state, quote in sorted(
-                valued, key=lambda item: item[0].quantity * item[1].close, reverse=True
+            for state, quote, price_base in sorted(
+                valued, key=lambda item: item[0].quantity * item[2], reverse=True
             )
         ]
-        trades = [
-            item
-            for item in account.transactions
-            if item.transaction_type in {"security_buy", "security_sell"}
-            and item.market_instrument_id
-        ]
+        trades = sorted(
+            (
+                item
+                for item in account.transactions
+                if item.transaction_type in {"security_buy", "security_sell"}
+                and item.market_instrument_id
+            ),
+            key=lambda item: (item.booked_at, item.created_at),
+        )
         opening_investment = sum(
-            (position.quantity * position.purchase_price for position in portfolio.positions),
+            (
+                position.quantity
+                * position.purchase_price
+                * self._currency_rate(
+                    position.currency,
+                    portfolio.base_currency,
+                    position.purchase_date,
+                )
+                for position in portfolio.positions
+            ),
             start=ZERO,
         )
         total_equity = cash + holdings_value
@@ -267,7 +292,12 @@ class PortfolioTradingService:
             if instrument:
                 state = states.setdefault(instrument.id, HoldingState())
                 state.quantity += position.quantity
-                state.book_cost += position.quantity * position.purchase_price
+                conversion_rate = self._currency_rate(
+                    position.currency,
+                    portfolio.base_currency,
+                    position.purchase_date,
+                )
+                state.book_cost += position.quantity * position.purchase_price * conversion_rate
         for transaction in sorted(
             account.transactions, key=lambda item: (item.booked_at, item.created_at)
         ):
@@ -278,10 +308,9 @@ class PortfolioTradingService:
                 continue
             state = states.setdefault(transaction.market_instrument_id, HoldingState())
             assert transaction.quantity is not None and transaction.unit_price is not None
-            notional = transaction.quantity * transaction.unit_price
             if transaction.transaction_type == "security_buy":
                 state.quantity += transaction.quantity
-                state.book_cost += notional + transaction.fees
+                state.book_cost += -transaction.amount
             else:
                 if transaction.quantity > state.quantity:
                     raise PortfolioTradingError("Stored transactions would create a short position")
@@ -289,9 +318,7 @@ class PortfolioTradingService:
                 released_cost = average_cost * transaction.quantity
                 state.quantity -= transaction.quantity
                 state.book_cost -= released_cost
-                state.realized_pnl += (
-                    notional - transaction.fees - transaction.taxes - released_cost
-                )
+                state.realized_pnl += transaction.amount - released_cost
                 if state.quantity == ZERO:
                     state.book_cost = ZERO
         return states, cash
@@ -306,6 +333,19 @@ class PortfolioTradingService:
         return next((item for item in matches if item.symbol == symbol), None)
 
     @staticmethod
+    def _currency_rate(from_currency: str, to_currency: str, observed_on: date) -> Decimal:
+        if from_currency == to_currency:
+            return Decimal("1")
+        try:
+            eur_per_source = market_data_provider.fx_on_or_before(from_currency, observed_on)
+            eur_per_target = market_data_provider.fx_on_or_before(to_currency, observed_on)
+        except MarketDataError as exc:
+            raise CurrencyMismatchError(
+                f"No FX conversion is available from {from_currency} to {to_currency}"
+            ) from exc
+        return Decimal(str(eur_per_source / eur_per_target))
+
+    @staticmethod
     def _trade_read(transaction: Transaction) -> PortfolioTradeRead:
         side = TradeSide.BUY if transaction.transaction_type == "security_buy" else TradeSide.SELL
         assert transaction.market_instrument is not None
@@ -318,8 +358,11 @@ class PortfolioTradingService:
             side=side,
             quantity=transaction.quantity,
             unit_price=transaction.unit_price,
+            instrument_currency=transaction.market_instrument.currency,
+            settlement_amount=abs(transaction.amount),
             fees=transaction.fees,
             currency=transaction.currency,
+            booked_at=transaction.booked_at,
             price_observed_on=transaction.price_observed_on,
             price_source=transaction.price_source,
             executed_at=transaction.created_at.replace(tzinfo=UTC),
