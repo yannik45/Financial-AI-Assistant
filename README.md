@@ -1,14 +1,15 @@
 # Financial AI Assistant
 
-Portfolio project for deterministic financial analytics and applied ML. It
-combines a FastAPI backend, React dashboard, SQLite ledger, bilingual
-transaction categorization, guarded feedback lifecycle, and a reproducible
-Docker Compose stack.
+A production-oriented portfolio project for deterministic financial analytics
+and applied ML. It combines a FastAPI backend, React dashboard, SQLite ledger,
+bilingual transaction categorization, guarded feedback lifecycle, and a
+reproducible Docker Compose stack.
 
-The project is local-first and educational. Security prices, demo portfolios,
-transactions, and ML training data are synthetic. The stored ECB FX snapshot is
-the only real market reference data. Nothing in this repository is financial
-advice.
+The project demonstrates production-oriented architecture and engineering
+practices, but is not currently intended for production use or real customer
+data. Security prices, demo portfolios, transactions, and ML training data are
+synthetic. The stored ECB FX snapshot is the only real market reference data.
+Nothing in this repository is financial advice.
 
 ## What is implemented
 
