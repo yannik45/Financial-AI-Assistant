@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -11,6 +12,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/runtime/financial_ai.db"
     cors_origins: list[str] = ["http://localhost:5173"]
     ecb_fx_path: Path = Path("data/market/ecb_fx.csv")
+    market_data_provider: Literal["demo", "twelve_data"] = "demo"
+    market_data_api_key: str | None = None
+    market_data_cache_hours: int = 24
     category_model_artifact_path: Path = Path(
         "data/runtime/ml/models/transaction_category_bilingual_v1.pkl"
     )

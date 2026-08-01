@@ -16,6 +16,7 @@ Nothing in this repository is financial advice.
 | Area | Current capability |
 |---|---|
 | Portfolio analytics | Valuation, allocation, P&L, return, volatility, drawdown, concentration, time series, and CSV portfolio import |
+| Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Twelve Data adapter |
 | Transaction ledger | Checking, savings, and brokerage accounts; filters and manual transaction entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
@@ -89,6 +90,12 @@ If `uv` is not available but the synchronized `.venv` already exists:
 This fallback cannot install or update dependencies. Copy `.env.example` to
 `.env` for backend overrides and `apps/web/.env.example` to `apps/web/.env` for
 frontend overrides. Do not commit secrets.
+
+The default `demo` market-data provider requires no credentials and keeps tests
+reproducible. To explore real instruments through Twelve Data, set
+`FINANCIAL_AI_MARKET_DATA_PROVIDER=twelve_data` and provide
+`FINANCIAL_AI_MARKET_DATA_API_KEY`. External data remains subject to the
+provider's plan, freshness, and usage terms; API keys stay server-side.
 
 ## Verification
 
