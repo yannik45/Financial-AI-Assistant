@@ -2,6 +2,11 @@ import type {
   Account,
   Analytics,
   Portfolio,
+  MarketInstrument,
+  PaperOrderCreate,
+  PaperPortfolio,
+  PaperPortfolioCreate,
+  PaperPortfolioSummary,
   Transaction,
   TransactionCreate,
   TransactionClassification,
@@ -56,5 +61,21 @@ export const api = {
     body.append("file", file);
     return request<Portfolio>("/v1/portfolios/import", { method: "POST", body });
   },
+  marketInstruments: (query: string) =>
+    request<MarketInstrument[]>(`/v1/market/instruments?query=${encodeURIComponent(query)}`),
+  paperPortfolios: () => request<PaperPortfolioSummary[]>("/v1/paper-portfolios"),
+  paperPortfolio: (id: string) => request<PaperPortfolio>(`/v1/paper-portfolios/${id}`),
+  createPaperPortfolio: (payload: PaperPortfolioCreate) =>
+    request<PaperPortfolio>("/v1/paper-portfolios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  executePaperOrder: (portfolioId: string, payload: PaperOrderCreate) =>
+    request(`/v1/paper-portfolios/${portfolioId}/orders`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
 };
 

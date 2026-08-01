@@ -17,6 +17,7 @@ Nothing in this repository is financial advice.
 |---|---|
 | Portfolio analytics | Valuation, allocation, P&L, return, volatility, drawdown, concentration, time series, and CSV portfolio import |
 | Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Twelve Data adapter |
+| Paper trading | Local simulated portfolios with server-priced buy/sell orders, cash controls, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and brokerage accounts; filters and manual transaction entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
@@ -96,6 +97,11 @@ reproducible. To explore real instruments through Twelve Data, set
 `FINANCIAL_AI_MARKET_DATA_PROVIDER=twelve_data` and provide
 `FINANCIAL_AI_MARKET_DATA_API_KEY`. External data remains subject to the
 provider's plan, freshness, and usage terms; API keys stay server-side.
+
+Paper portfolios use a separate immutable simulated-trade ledger. Orders are
+priced by the backend from the latest cached daily close, never by a
+browser-supplied price. Cash, holdings, average cost, and P&L are derived from
+that ledger. No real brokerage order is placed.
 
 ## Verification
 

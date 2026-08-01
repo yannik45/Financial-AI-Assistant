@@ -100,6 +100,55 @@ class MarketPriceObservation(Base):
     instrument: Mapped[MarketInstrument] = relationship(back_populates="prices")
 
 
+class PaperPortfolio(Base):
+    __tablename__ = "paper_portfolios"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    name: Mapped[str] = mapped_column(String(120))
+    base_currency: Mapped[str] = mapped_column(String(3))
+    starting_cash: Mapped[Decimal] = mapped_column(Numeric(20, 2))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    trades: Mapped[list["PaperTrade"]] = relationship(
+        back_populates="portfolio",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="PaperTrade.executed_at",
+    )
+
+
+class PaperTrade(Base):
+    __tablename__ = "paper_trades"
+    __table_args__ = (
+        UniqueConstraint(
+            "portfolio_id", "client_order_id", name="uq_paper_trade_portfolio_client_order"
+        ),
+        Index("ix_paper_trades_portfolio_executed", "portfolio_id", "executed_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    portfolio_id: Mapped[str] = mapped_column(
+        ForeignKey("paper_portfolios.id", ondelete="CASCADE"), index=True
+    )
+    instrument_id: Mapped[str] = mapped_column(
+        ForeignKey("market_instruments.id", ondelete="RESTRICT"), index=True
+    )
+    client_order_id: Mapped[str] = mapped_column(String(64))
+    side: Mapped[str] = mapped_column(String(4))
+    quantity: Mapped[Decimal] = mapped_column(Numeric(20, 8))
+    unit_price: Mapped[Decimal] = mapped_column(Numeric(20, 8))
+    fees: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
+    currency: Mapped[str] = mapped_column(String(3))
+    price_observed_on: Mapped[date] = mapped_column(Date)
+    price_source: Mapped[str] = mapped_column(String(30))
+    executed_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    portfolio: Mapped[PaperPortfolio] = relationship(back_populates="trades")
+    instrument: Mapped[MarketInstrument] = relationship(lazy="joined")
+
+
 class Account(Base):
     __tablename__ = "accounts"
 

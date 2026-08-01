@@ -36,6 +36,15 @@ from financial_ai.ml.transaction_classification import (
     route_transaction_text,
 )
 from financial_ai.models import Account, Portfolio, Transaction, TransactionClassificationRecord
+from financial_ai.paper_trading import (
+    CurrencyMismatchError,
+    IdempotencyConflictError,
+    InsufficientCashError,
+    InsufficientHoldingsError,
+    PaperPortfolioNotFoundError,
+    PaperTradingError,
+    PaperTradingService,
+)
 from financial_ai.schemas import (
     AccountRead,
     AnalyticsResponse,
@@ -43,6 +52,11 @@ from financial_ai.schemas import (
     MarketHistoryRead,
     MarketInstrumentRead,
     MarketQuoteRead,
+    PaperOrderCreate,
+    PaperPortfolioCreate,
+    PaperPortfolioRead,
+    PaperPortfolioSummary,
+    PaperTradeRead,
     PortfolioRead,
     PortfolioSummary,
     TransactionClassificationRequest,
@@ -65,6 +79,15 @@ def get_market_service(session: SessionDependency) -> MarketDataService:
 
 
 MarketServiceDependency = Annotated[MarketDataService, Depends(get_market_service)]
+
+
+def get_paper_trading_service(
+    session: SessionDependency, market_service: MarketServiceDependency
+) -> PaperTradingService:
+    return PaperTradingService(session, market_service)
+
+
+PaperTradingDependency = Annotated[PaperTradingService, Depends(get_paper_trading_service)]
 
 
 @asynccontextmanager
@@ -183,6 +206,67 @@ def get_market_history(
     try:
         return service.history(instrument_id, date_from, date_to, refresh)
     except (InstrumentNotFoundError, MarketDataProviderError, ValueError) as exc:
+        raise market_error(exc) from exc
+
+
+def paper_trading_error(exc: PaperTradingError) -> HTTPException:
+    if isinstance(exc, PaperPortfolioNotFoundError):
+        status_code = 404
+    elif isinstance(
+        exc,
+        (
+            InsufficientCashError,
+            InsufficientHoldingsError,
+            CurrencyMismatchError,
+            IdempotencyConflictError,
+        ),
+    ):
+        status_code = 409
+    else:
+        status_code = 422
+    return HTTPException(
+        status_code=status_code,
+        detail={"code": exc.code, "message": str(exc)},
+    )
+
+
+@app.get("/v1/paper-portfolios", response_model=list[PaperPortfolioSummary])
+def list_paper_portfolios(service: PaperTradingDependency) -> list[PaperPortfolioSummary]:
+    return service.list_portfolios()
+
+
+@app.post("/v1/paper-portfolios", response_model=PaperPortfolioRead, status_code=201)
+def create_paper_portfolio(
+    payload: PaperPortfolioCreate, service: PaperTradingDependency
+) -> PaperPortfolioRead:
+    return service.create_portfolio(payload)
+
+
+@app.get("/v1/paper-portfolios/{portfolio_id}", response_model=PaperPortfolioRead)
+def get_paper_portfolio(portfolio_id: str, service: PaperTradingDependency) -> PaperPortfolioRead:
+    try:
+        return service.detail(portfolio_id)
+    except PaperTradingError as exc:
+        raise paper_trading_error(exc) from exc
+    except (InstrumentNotFoundError, MarketDataProviderError) as exc:
+        raise market_error(exc) from exc
+
+
+@app.post(
+    "/v1/paper-portfolios/{portfolio_id}/orders",
+    response_model=PaperTradeRead,
+    status_code=201,
+)
+def execute_paper_order(
+    portfolio_id: str,
+    payload: PaperOrderCreate,
+    service: PaperTradingDependency,
+) -> PaperTradeRead:
+    try:
+        return service.execute_order(portfolio_id, payload)
+    except PaperTradingError as exc:
+        raise paper_trading_error(exc) from exc
+    except (InstrumentNotFoundError, MarketDataProviderError) as exc:
         raise market_error(exc) from exc
 
 
