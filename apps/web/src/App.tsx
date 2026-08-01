@@ -461,7 +461,7 @@ function TransactionsView() {
         <div>
           <span className="eyebrow">TRANSACTION LEDGER</span>
           <h1>Accounts and transaction history</h1>
-          <p>Synthetic local data prepared for transparent categorization and risk models.</p>
+          <p>One ledger for cash accounts, portfolio orders, and editable ML categories.</p>
         </div>
         <div className="header-actions">
           <button onClick={() => setShowAdd(true)} disabled={!accounts.data?.length}>
@@ -470,9 +470,20 @@ function TransactionsView() {
         </div>
       </header>
       <div className="demo-banner">
-        <b>SYNTHETIC DEMO TRANSACTIONS</b>
-        <span>Educational use only · No real customer data</span>
+        <b>SHARED ACCOUNT LEDGER</b>
+        <span>Portfolio orders and account cash use the same signed transactions</span>
       </div>
+      {accounts.data ? (
+        <section className="metrics-grid account-metrics">
+          {accounts.data.map((account) => (
+            <article className="metric" key={account.id}>
+              <p>{account.account_type === "brokerage" ? "Brokerage cash" : account.account_type}</p>
+              <strong>{formatMoney(account.current_balance, account.currency)}</strong>
+              <span>{account.portfolio_name ? `${account.name} · ${account.portfolio_name}` : account.name}</span>
+            </article>
+          ))}
+        </section>
+      ) : null}
       <section className="panel filter-panel">
         <div className="filter-grid">
           <label>
@@ -485,7 +496,7 @@ function TransactionsView() {
               <option value="">All accounts</option>
               {accounts.data?.map((account) => (
                 <option key={account.id} value={account.id}>
-                  {account.name} ({account.transaction_count})
+                  {account.name}{account.portfolio_name ? ` · ${account.portfolio_name}` : ""} · {formatMoney(account.current_balance, account.currency)} ({account.transaction_count})
                 </option>
               ))}
             </select>
@@ -567,6 +578,7 @@ function TransactionsView() {
                   <th>Description</th>
                   <th>Account</th>
                   <th>Category</th>
+                  <th>Type</th>
                   <th>Cash flow</th>
                   <th>Amount</th>
                 </tr>
@@ -583,6 +595,7 @@ function TransactionsView() {
                     <td>
                       <span className="category-pill">{transaction.category ?? "Uncategorized"}</span>
                     </td>
+                    <td>{transaction.transaction_type.replaceAll("_", " ")}</td>
                     <td>{Number(transaction.amount) >= 0 ? "Incoming" : "Outgoing"}</td>
                     <td className={Number(transaction.amount) >= 0 ? "positive" : "negative"}>
                       {formatMoney(transaction.amount, transaction.currency)}
@@ -591,7 +604,7 @@ function TransactionsView() {
                 ))}
                 {!transactions.data.items.length && (
                   <tr>
-                    <td colSpan={6} className="empty-state">
+                    <td colSpan={7} className="empty-state">
                       No transactions match the selected filters.
                     </td>
                   </tr>

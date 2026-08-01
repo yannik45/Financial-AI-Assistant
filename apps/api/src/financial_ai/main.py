@@ -326,14 +326,20 @@ async def import_portfolio(
 
 
 @app.get("/v1/portfolios/{portfolio_id}/analytics", response_model=AnalyticsResponse)
-def portfolio_analytics(portfolio_id: str, session: SessionDependency) -> AnalyticsResponse:
+def portfolio_analytics(
+    portfolio_id: str,
+    session: SessionDependency,
+    market_service: MarketServiceDependency,
+) -> AnalyticsResponse:
     portfolio = get_portfolio_or_404(portfolio_id, session)
     try:
-        return calculate_analytics(portfolio)
+        return calculate_analytics(portfolio, market_service=market_service)
     except AnalyticsError as exc:
         raise HTTPException(
             status_code=422, detail={"code": "analytics_unavailable", "message": str(exc)}
         ) from exc
+    except (InstrumentNotFoundError, MarketDataProviderError) as exc:
+        raise market_error(exc) from exc
 
 
 def get_account_or_404(account_id: str, session: Session) -> Account:
@@ -359,6 +365,8 @@ def list_accounts(session: SessionDependency) -> list[AccountRead]:
             opening_balance=account.opening_balance,
             current_balance=account.opening_balance
             + sum((item.amount for item in account.transactions), start=0),
+            portfolio_id=account.portfolio.id if account.portfolio else None,
+            portfolio_name=account.portfolio.name if account.portfolio else None,
             created_at=account.created_at,
             transaction_count=len(account.transactions),
         )
@@ -378,6 +386,8 @@ def get_account(account_id: str, session: SessionDependency) -> AccountRead:
         opening_balance=account.opening_balance,
         current_balance=account.opening_balance
         + sum((item.amount for item in account.transactions), start=0),
+        portfolio_id=account.portfolio.id if account.portfolio else None,
+        portfolio_name=account.portfolio.name if account.portfolio else None,
         created_at=account.created_at,
         transaction_count=len(account.transactions),
     )

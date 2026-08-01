@@ -125,3 +125,36 @@ def test_order_contract_forbids_browser_supplied_execution_price(client):
     )
 
     assert response.status_code == 422
+
+
+def test_buy_and_sell_update_portfolio_risk_analytics(client):
+    world = discover(client, "world", "WORLD-ETF")
+    bonds = discover(client, "bond", "EURO-BOND")
+    portfolio = create_portfolio(client)
+
+    assert order(client, portfolio["id"], world["id"], "buy", "10", "buy-world").status_code == 201
+    assert order(client, portfolio["id"], bonds["id"], "buy", "10", "buy-bonds").status_code == 201
+    diversified = client.get(f"/v1/portfolios/{portfolio['id']}/analytics")
+
+    assert diversified.status_code == 200
+    diversified_payload = diversified.json()
+    assert {item["symbol"] for item in diversified_payload["positions"]} == {
+        "WORLD-ETF",
+        "EURO-BOND",
+    }
+    assert diversified_payload["concentration_hhi"] < 1
+
+    assert (
+        order(client, portfolio["id"], bonds["id"], "sell", "10", "sell-bonds").status_code == 201
+    )
+    concentrated = client.get(f"/v1/portfolios/{portfolio['id']}/analytics")
+
+    assert concentrated.status_code == 200
+    concentrated_payload = concentrated.json()
+    assert [item["symbol"] for item in concentrated_payload["positions"]] == ["WORLD-ETF"]
+    assert concentrated_payload["concentration_hhi"] == 1
+    assert concentrated_payload["largest_position_weight"] == 1
+    assert (
+        concentrated_payload["annualized_volatility_percent"]
+        != diversified_payload["annualized_volatility_percent"]
+    )

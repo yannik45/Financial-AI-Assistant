@@ -1,10 +1,18 @@
 from collections import defaultdict
+from dataclasses import dataclass
+from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
-from financial_ai.market_data import DATA_VERSION, DemoMarketDataProvider, market_data_provider
+from financial_ai.market_data import (
+    ASSETS,
+    DATA_VERSION,
+    DemoMarketDataProvider,
+    market_data_provider,
+)
 from financial_ai.models import Portfolio
 from financial_ai.schemas import (
     AllocationItem,
@@ -15,9 +23,25 @@ from financial_ai.schemas import (
 
 MONEY = Decimal("0.01")
 
+if TYPE_CHECKING:
+    from financial_ai.market_data_service import MarketDataService
+
 
 class AnalyticsError(ValueError):
     pass
+
+
+@dataclass
+class CurrentHolding:
+    symbol: str
+    quantity: Decimal
+    book_cost: Decimal
+    purchase_date: date
+    asset_class: str
+    sector: str
+    region: str
+    currency: str
+    instrument_id: str | None = None
 
 
 def money(value: float) -> Decimal:
@@ -25,25 +49,31 @@ def money(value: float) -> Decimal:
 
 
 def calculate_analytics(
-    portfolio: Portfolio, provider: DemoMarketDataProvider = market_data_provider
+    portfolio: Portfolio,
+    provider: DemoMarketDataProvider = market_data_provider,
+    market_service: "MarketDataService | None" = None,
 ) -> AnalyticsResponse:
-    if not portfolio.positions:
+    holdings = current_holdings(portfolio)
+    if not holdings:
         raise AnalyticsError("Portfolio has no positions")
 
-    symbols = sorted({position.symbol for position in portfolio.positions})
-    prices = provider.prices(symbols).tail(252)
+    symbols = sorted({holding.symbol for holding in holdings})
+    prices = _price_history(holdings, provider, market_service).tail(252)
     if len(prices.dropna()) < 60:
         raise AnalyticsError("At least 60 common price observations are required")
 
     eur_prices = prices.copy()
     for symbol in symbols:
-        currency = next(p.currency for p in portfolio.positions if p.symbol == symbol)
-        fx = provider.eur_per_currency(currency).reindex(prices.index).ffill()
+        currency = next(item.currency for item in holdings if item.symbol == symbol)
+        fx = pd.Series(
+            [provider.fx_on_or_before(currency, item.date()) for item in prices.index],
+            index=prices.index,
+        )
         eur_prices[symbol] = prices[symbol] * fx
 
     quantities = pd.Series(
         {
-            symbol: sum(float(p.quantity) for p in portfolio.positions if p.symbol == symbol)
+            symbol: sum(float(item.quantity) for item in holdings if item.symbol == symbol)
             for symbol in symbols
         }
     )
@@ -53,11 +83,9 @@ def calculate_analytics(
     market_value = float(current_by_symbol.sum())
 
     cost_by_symbol: dict[str, float] = defaultdict(float)
-    for position in portfolio.positions:
-        purchase_fx = provider.fx_on_or_before(position.currency, position.purchase_date)
-        cost_by_symbol[position.symbol] += (
-            float(position.quantity) * float(position.purchase_price) * purchase_fx
-        )
+    for holding in holdings:
+        purchase_fx = provider.fx_on_or_before(holding.currency, holding.purchase_date)
+        cost_by_symbol[holding.symbol] += float(holding.book_cost) * purchase_fx
     cost_basis = sum(cost_by_symbol.values())
     pnl = market_value - cost_basis
     weights = current_by_symbol / market_value
@@ -90,10 +118,10 @@ def calculate_analytics(
     allocations: dict[str, list[AllocationItem]] = {}
     for dimension, getter in dimensions.items():
         grouped: dict[str, float] = defaultdict(float)
-        for position in portfolio.positions:
-            symbol_total_quantity = quantities[position.symbol]
-            position_share = float(position.quantity) / symbol_total_quantity
-            grouped[getter(position)] += float(current_by_symbol[position.symbol]) * position_share
+        for holding in holdings:
+            symbol_total_quantity = quantities[holding.symbol]
+            position_share = float(holding.quantity) / symbol_total_quantity
+            grouped[getter(holding)] += float(current_by_symbol[holding.symbol]) * position_share
         allocations[dimension] = [
             AllocationItem(
                 label=label, value_eur=money(value), weight=round(value / market_value, 6)
@@ -126,7 +154,100 @@ def calculate_analytics(
             for index, value in sampled_series.items()
         ],
         warnings=[
-            "Historical risk uses current holdings and is not actual account performance.",
-            "Security prices are deterministic synthetic demo data.",
+            "Historical risk reconstructs current ledger-derived holdings backwards and is not "
+            "actual account performance.",
+            "Demo instruments use deterministic synthetic prices; external observations expose "
+            "their configured provider source.",
         ],
     )
+
+
+def current_holdings(portfolio: Portfolio) -> list[CurrentHolding]:
+    """Replay opening positions and portfolio-linked market orders using average cost."""
+    states: dict[str, CurrentHolding] = {}
+    for position in portfolio.positions:
+        state = states.get(position.symbol)
+        if state is None:
+            states[position.symbol] = CurrentHolding(
+                symbol=position.symbol,
+                quantity=position.quantity,
+                book_cost=position.quantity * position.purchase_price,
+                purchase_date=position.purchase_date,
+                asset_class=position.asset_class,
+                sector=position.sector,
+                region=position.region,
+                currency=position.currency,
+            )
+        else:
+            state.quantity += position.quantity
+            state.book_cost += position.quantity * position.purchase_price
+            state.purchase_date = min(state.purchase_date, position.purchase_date)
+
+    if portfolio.account is None:
+        return list(states.values())
+    trades = sorted(
+        (
+            item
+            for item in portfolio.account.transactions
+            if item.market_instrument_id
+            and item.transaction_type in {"security_buy", "security_sell"}
+        ),
+        key=lambda item: (item.booked_at, item.created_at),
+    )
+    for trade in trades:
+        instrument = trade.market_instrument
+        if instrument is None or trade.quantity is None or trade.unit_price is None:
+            continue
+        state = states.get(instrument.symbol)
+        if trade.transaction_type == "security_buy":
+            if state is None:
+                demo_asset = ASSETS.get(instrument.symbol)
+                state = CurrentHolding(
+                    symbol=instrument.symbol,
+                    quantity=Decimal("0"),
+                    book_cost=Decimal("0"),
+                    purchase_date=trade.booked_at,
+                    asset_class=instrument.asset_class,
+                    sector=demo_asset.sector if demo_asset else instrument.asset_class,
+                    region=instrument.region or "Unknown",
+                    currency=instrument.currency,
+                    instrument_id=instrument.id,
+                )
+                states[instrument.symbol] = state
+            state.quantity += trade.quantity
+            state.book_cost += trade.quantity * trade.unit_price + trade.fees
+            state.instrument_id = instrument.id
+            state.purchase_date = min(state.purchase_date, trade.booked_at)
+            continue
+        if state is None or trade.quantity > state.quantity:
+            raise AnalyticsError("Stored transactions would create a short position")
+        average_cost = state.book_cost / state.quantity
+        state.quantity -= trade.quantity
+        state.book_cost -= average_cost * trade.quantity
+        state.instrument_id = instrument.id
+        if state.quantity == 0:
+            del states[instrument.symbol]
+    return list(states.values())
+
+
+def _price_history(
+    holdings: list[CurrentHolding],
+    provider: DemoMarketDataProvider,
+    market_service: "MarketDataService | None",
+) -> pd.DataFrame:
+    series: dict[str, pd.Series] = {}
+    demo_symbols = [item.symbol for item in holdings if item.symbol in ASSETS]
+    if demo_symbols:
+        demo_prices = provider.prices(demo_symbols)
+        series.update({symbol: demo_prices[symbol] for symbol in demo_symbols})
+    for holding in holdings:
+        if holding.symbol in series:
+            continue
+        if market_service is None or holding.instrument_id is None:
+            raise AnalyticsError(f"No historical price service is available for {holding.symbol}")
+        history = market_service.history(holding.instrument_id)
+        series[holding.symbol] = pd.Series(
+            [float(item.adjusted_close or item.close) for item in history.points],
+            index=pd.to_datetime([item.observed_on for item in history.points]),
+        )
+    return pd.concat(series, axis=1, join="inner").sort_index()

@@ -48,10 +48,12 @@ React dashboard ---- /api ----> FastAPI
 
 ### Portfolio analytics
 
-The API loads holdings from SQLite and price/FX observations from backend data
-providers. Analytics calculates valuation, cost basis, P&L, allocations, return,
-volatility, drawdown, and concentration. The React application receives final
-values and time series for presentation.
+The API derives current holdings by replaying opening positions and security
+transactions from the portfolio-linked brokerage account. It then loads
+price/FX observations from backend providers and calculates valuation, cost
+basis, P&L, allocations, return, volatility, drawdown, and concentration. A buy
+or sale therefore updates both the account ledger and the risk analytics. The
+React application receives final values and time series for presentation.
 
 Security prices are deterministic synthetic data. ECB USD, GBP, and JPY
 reference rates are stored with provenance and inverted at runtime to the EUR
@@ -90,6 +92,12 @@ opening positions and security transactions. Orders reject insufficient cash,
 short positions, and currency mismatches. Client order IDs make identical
 retries idempotent. Execution remains simulated: there is no broker connection,
 and fees, taxes, spreads, and slippage are currently zero.
+
+The general Transactions view reads the same rows. Brokerage accounts expose
+their linked portfolio identity and every account balance is derived from its
+opening balance plus signed ledger entries. Market orders use the deterministic
+`Investments` category because their transaction semantics are already known;
+free-form cash transactions continue through the editable classification flow.
 
 ### Offline feedback lifecycle
 

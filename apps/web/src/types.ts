@@ -38,6 +38,8 @@ export type Account = {
   kind: "demo" | "manual" | "imported";
   opening_balance: string;
   current_balance: string;
+  portfolio_id: string | null;
+  portfolio_name: string | null;
   created_at: string;
   transaction_count: number;
 };

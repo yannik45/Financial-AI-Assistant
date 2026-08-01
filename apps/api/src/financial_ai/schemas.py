@@ -256,6 +256,8 @@ class AccountRead(BaseModel):
     kind: str
     opening_balance: Decimal
     current_balance: Decimal
+    portfolio_id: str | None
+    portfolio_name: str | None
     created_at: datetime
     transaction_count: int | None = None
 

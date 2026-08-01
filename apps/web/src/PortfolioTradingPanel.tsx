@@ -41,7 +41,9 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
         queryClient.invalidateQueries({ queryKey: ["portfolio-overview", portfolioId] }),
+        queryClient.invalidateQueries({ queryKey: ["analytics", portfolioId] }),
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
       ]);
       setInstrument(null);
       setQuantity("1");
