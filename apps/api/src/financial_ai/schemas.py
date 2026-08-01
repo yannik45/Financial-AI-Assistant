@@ -135,8 +135,11 @@ class PortfolioTradeRead(BaseModel):
     side: TradeSide
     quantity: Decimal
     unit_price: Decimal
+    instrument_currency: str
+    settlement_amount: Decimal
     fees: Decimal
     currency: str
+    booked_at: date
     price_observed_on: date
     price_source: str
     executed_at: datetime
