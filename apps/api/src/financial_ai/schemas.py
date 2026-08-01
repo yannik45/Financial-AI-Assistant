@@ -90,6 +90,92 @@ class MarketHistoryRead(BaseModel):
     points: list[MarketPriceRead]
 
 
+class PaperTradeSide(StrEnum):
+    BUY = "buy"
+    SELL = "sell"
+
+
+class PaperPortfolioCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str = Field(min_length=1, max_length=120)
+    base_currency: str = Field(default="EUR", min_length=3, max_length=3)
+    starting_cash: Decimal = Field(gt=0, max_digits=20, decimal_places=2)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Paper portfolio name must not be empty")
+        return normalized
+
+    @field_validator("base_currency")
+    @classmethod
+    def normalize_currency(cls, value: str) -> str:
+        return value.upper()
+
+
+class PaperOrderCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    client_order_id: str = Field(min_length=1, max_length=64)
+    instrument_id: str = Field(min_length=1, max_length=36)
+    side: PaperTradeSide
+    quantity: Decimal = Field(gt=0, max_digits=20, decimal_places=8)
+
+
+class PaperTradeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    client_order_id: str
+    side: PaperTradeSide
+    quantity: Decimal
+    unit_price: Decimal
+    fees: Decimal
+    currency: str
+    price_observed_on: date
+    price_source: str
+    executed_at: datetime
+    instrument: MarketInstrumentRead
+
+
+class PaperHoldingRead(BaseModel):
+    instrument: MarketInstrumentRead
+    quantity: Decimal
+    average_cost: Decimal
+    latest_price: Decimal
+    market_value: Decimal
+    unrealized_pnl: Decimal
+    weight: float
+    price_observed_on: date
+    price_source: str
+    quote_is_stale: bool
+
+
+class PaperPortfolioSummary(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    base_currency: str
+    starting_cash: Decimal
+    created_at: datetime
+    trade_count: int
+
+
+class PaperPortfolioRead(PaperPortfolioSummary):
+    cash_balance: Decimal
+    holdings_value: Decimal
+    total_equity: Decimal
+    total_pnl: Decimal
+    realized_pnl: Decimal
+    holdings: list[PaperHoldingRead]
+    trades: list[PaperTradeRead]
+    warnings: list[str]
+
+
 class AllocationItem(BaseModel):
     label: str
     value_eur: Decimal

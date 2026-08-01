@@ -84,6 +84,84 @@ test("renders the portfolio view and import action", () => {
   expect(screen.getByText("SYNTHETIC DEMO MARKET DATA")).toBeInTheDocument();
 });
 
+test("opens the paper trading workspace without implying real execution", async () => {
+  renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /Paper trading/ }));
+
+  expect(
+    await screen.findByText("Explore markets without placing real orders"),
+  ).toBeInTheDocument();
+  expect(screen.getByText("PAPER TRADING ONLY")).toBeInTheDocument();
+  expect(
+    await screen.findByRole("button", { name: "Create portfolio" }),
+  ).toBeInTheDocument();
+});
+
+test("submits a paper order without a browser supplied execution price", async () => {
+  const instrument = {
+    id: "instrument-id",
+    provider: "demo",
+    symbol: "WORLD-ETF",
+    name: "Global Equity Demo ETF",
+    exchange: "DEMO",
+    currency: "EUR",
+    asset_class: "Equity ETF",
+    region: "Global",
+    is_active: true,
+    updated_at: "2026-08-01T10:00:00",
+  };
+  const summary = {
+    id: "paper-id",
+    name: "My Paper Portfolio",
+    base_currency: "EUR",
+    starting_cash: "10000.00",
+    created_at: "2026-08-01T10:00:00",
+    trade_count: 0,
+  };
+  const detail = {
+    ...summary,
+    cash_balance: "10000.00",
+    holdings_value: "0.00",
+    total_equity: "10000.00",
+    total_pnl: "0.00",
+    realized_pnl: "0.00",
+    holdings: [],
+    trades: [],
+    warnings: ["Paper trading only: no real order is placed."],
+  };
+  vi.mocked(fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes("/v1/market/instruments?")) return jsonResponse([instrument]);
+    if (url.endsWith("/v1/paper-portfolios") && init?.method === "POST") {
+      return jsonResponse(detail);
+    }
+    if (url.endsWith("/v1/paper-portfolios")) return jsonResponse([summary]);
+    if (url.includes("/v1/paper-portfolios/paper-id/orders")) {
+      return jsonResponse({ id: "trade-id" });
+    }
+    if (url.endsWith("/v1/paper-portfolios/paper-id")) return jsonResponse(detail);
+    return jsonResponse([]);
+  });
+
+  renderApp();
+  fireEvent.click(screen.getByRole("button", { name: /Paper trading/ }));
+  const search = await screen.findByLabelText("Search by symbol or name");
+  fireEvent.change(search, { target: { value: "WORLD" } });
+  fireEvent.click(await screen.findByRole("button", { name: /WORLD-ETF/ }));
+  fireEvent.click(screen.getByRole("button", { name: "Simulate buy" }));
+
+  await waitFor(() => {
+    const call = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+      String(input).includes("/v1/paper-portfolios/paper-id/orders") && init?.method === "POST",
+    );
+    expect(call).toBeDefined();
+    const payload = JSON.parse(String(call?.[1]?.body));
+    expect(payload).toMatchObject({ instrument_id: "instrument-id", side: "buy", quantity: "1" });
+    expect(payload).not.toHaveProperty("unit_price");
+    expect(payload.client_order_id).toBeTruthy();
+  });
+});
+
 test("opens the transaction history and add transaction form", async () => {
   renderApp();
   fireEvent.click(screen.getByRole("button", { name: /Transactions/ }));

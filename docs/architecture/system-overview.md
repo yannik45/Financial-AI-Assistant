@@ -21,6 +21,7 @@ Browser
   v
 React dashboard ---- /api ----> FastAPI
                                 |-- portfolio analytics
+                                |-- paper portfolio trading
                                 |-- accounts and transaction ledger
                                 |-- classification orchestrator
                                 |     |-- bilingual text rules
@@ -74,6 +75,20 @@ abstain. The user may accept, replace, or omit the suggestion.
 The backend repeats classification when saving. Browser-supplied confidence or
 model metadata is therefore never trusted. Prediction, final label, method,
 versions, and review state are stored for auditability.
+
+### Paper portfolio trading
+
+Paper portfolios are separate from the fixed demo analytics portfolios. A user
+selects an instrument discovered through the configured market-data provider;
+the backend obtains the latest cached daily close and records an immutable
+simulated buy or sell. The browser cannot supply an execution price.
+
+Cash, open quantities, average cost, realized P&L, and unrealized P&L are
+replayed from the starting cash balance and trade ledger. Orders reject
+insufficient simulated cash, short positions, and instruments whose currency
+does not match the paper portfolio. Client order IDs make identical retries
+idempotent. This is paper trading only: there is no broker connection or real
+order execution, and fees, taxes, spreads, and slippage are currently zero.
 
 ### Offline feedback lifecycle
 

@@ -13,6 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { api } from "./api";
+import PaperTradingView from "./PaperTradingView";
 import type {
   Account,
   Allocation,
@@ -751,7 +752,7 @@ function PortfolioView() {
 }
 
 export default function App() {
-  const [view, setView] = useState<"portfolio" | "transactions">("portfolio");
+  const [view, setView] = useState<"portfolio" | "transactions" | "paper">("portfolio");
   return (
     <div className="app-shell">
       <aside>
@@ -775,16 +776,28 @@ export default function App() {
           >
             ◇ Transactions
           </button>
+          <button
+            className={view === "paper" ? "active" : ""}
+            onClick={() => setView("paper")}
+          >
+            ◇ Paper trading
+          </button>
           <button className="disabled" disabled>
             ◈ AI assistant <small>Later phase</small>
           </button>
         </nav>
         <div className="sidebar-note">
           <span>LOCAL MODE</span>
-          <p>No live market data or cloud services are active.</p>
+          <p>Portfolio state stays local. Quote sources are shown with market observations.</p>
         </div>
       </aside>
-      {view === "portfolio" ? <PortfolioView /> : <TransactionsView />}
+      {view === "portfolio" ? (
+        <PortfolioView />
+      ) : view === "transactions" ? (
+        <TransactionsView />
+      ) : (
+        <PaperTradingView />
+      )}
     </div>
   );
 }

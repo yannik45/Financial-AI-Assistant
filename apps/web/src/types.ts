@@ -151,3 +151,76 @@ export type TransactionCreate = {
   taxes?: string;
 };
 
+export type MarketInstrument = {
+  id: string;
+  provider: string;
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+  asset_class: string;
+  region: string | null;
+  is_active: boolean;
+  updated_at: string;
+};
+
+export type PaperPortfolioSummary = {
+  id: string;
+  name: string;
+  base_currency: string;
+  starting_cash: string;
+  created_at: string;
+  trade_count: number;
+};
+
+export type PaperTrade = {
+  id: string;
+  client_order_id: string;
+  side: "buy" | "sell";
+  quantity: string;
+  unit_price: string;
+  fees: string;
+  currency: string;
+  price_observed_on: string;
+  price_source: string;
+  executed_at: string;
+  instrument: MarketInstrument;
+};
+
+export type PaperHolding = {
+  instrument: MarketInstrument;
+  quantity: string;
+  average_cost: string;
+  latest_price: string;
+  market_value: string;
+  unrealized_pnl: string;
+  weight: number;
+  price_observed_on: string;
+  price_source: string;
+  quote_is_stale: boolean;
+};
+
+export type PaperPortfolio = PaperPortfolioSummary & {
+  cash_balance: string;
+  holdings_value: string;
+  total_equity: string;
+  total_pnl: string;
+  realized_pnl: string;
+  holdings: PaperHolding[];
+  trades: PaperTrade[];
+  warnings: string[];
+};
+
+export type PaperPortfolioCreate = {
+  name: string;
+  base_currency: string;
+  starting_cash: string;
+};
+
+export type PaperOrderCreate = {
+  client_order_id: string;
+  instrument_id: string;
+  side: "buy" | "sell";
+  quantity: string;
+};
+
