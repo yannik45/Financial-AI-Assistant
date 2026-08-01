@@ -25,6 +25,7 @@ class Portfolio(Base):
     name: Mapped[str] = mapped_column(String(120))
     base_currency: Mapped[str] = mapped_column(String(3), default="EUR")
     kind: Mapped[str] = mapped_column(String(20), default="imported")
+    market_data_mode: Mapped[str] = mapped_column(String(20), default="demo")
     account_id: Mapped[str | None] = mapped_column(
         ForeignKey("accounts.id", ondelete="RESTRICT"), unique=True, nullable=True
     )

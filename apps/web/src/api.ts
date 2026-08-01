@@ -3,6 +3,8 @@ import type {
   Analytics,
   Portfolio,
   MarketInstrument,
+  MarketDataStatus,
+  MarketQuote,
   PortfolioOrderCreate,
   TradingPortfolio,
   PortfolioCreate,
@@ -60,8 +62,11 @@ export const api = {
     body.append("file", file);
     return request<Portfolio>("/v1/portfolios/import", { method: "POST", body });
   },
-  marketInstruments: (query: string) =>
-    request<MarketInstrument[]>(`/v1/market/instruments?query=${encodeURIComponent(query)}`),
+  marketDataStatus: () => request<MarketDataStatus>("/v1/market/status"),
+  marketInstruments: (query: string, mode: "demo" | "external") =>
+    request<MarketInstrument[]>(`/v1/market/instruments?query=${encodeURIComponent(query)}&mode=${mode}`),
+  marketQuote: (instrumentId: string) =>
+    request<MarketQuote>(`/v1/market/instruments/${instrumentId}/quote`),
   portfolioOverview: (id: string) =>
     request<TradingPortfolio>(`/v1/portfolios/${id}/overview`),
   createPortfolio: (payload: PortfolioCreate) =>

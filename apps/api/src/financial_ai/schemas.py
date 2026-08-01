@@ -31,6 +31,7 @@ class PortfolioSummary(BaseModel):
     name: str
     base_currency: str
     kind: str
+    market_data_mode: str
     created_at: datetime
     position_count: int
     account_id: str | None
@@ -42,6 +43,7 @@ class PortfolioRead(BaseModel):
     name: str
     base_currency: str
     kind: str
+    market_data_mode: str
     created_at: datetime
     account_id: str | None
     positions: list[PositionRead]
@@ -103,6 +105,7 @@ class PortfolioCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     base_currency: str = Field(default="EUR", min_length=3, max_length=3)
     starting_cash: Decimal = Field(gt=0, max_digits=20, decimal_places=2)
+    market_data_mode: str = Field(default="demo", pattern="^(demo|external)$")
 
     @field_validator("name")
     @classmethod
@@ -124,7 +127,7 @@ class PortfolioOrderCreate(BaseModel):
     client_order_id: str = Field(min_length=1, max_length=64)
     instrument_id: str = Field(min_length=1, max_length=36)
     side: TradeSide
-    quantity: Decimal = Field(gt=0, max_digits=20, decimal_places=8)
+    quantity: Decimal = Field(ge=1, multiple_of=1, max_digits=20, decimal_places=0)
 
 
 class PortfolioTradeRead(BaseModel):
@@ -165,9 +168,16 @@ class TradingPortfolioSummary(BaseModel):
     id: str
     name: str
     base_currency: str
+    market_data_mode: str
     opening_cash: Decimal
     created_at: datetime
     trade_count: int
+
+
+class MarketDataStatus(BaseModel):
+    demo_available: bool = True
+    external_available: bool
+    external_provider: str = "alpaca"
 
 
 class TradingPortfolioRead(TradingPortfolioSummary):

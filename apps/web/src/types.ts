@@ -1,7 +1,8 @@
 export type Portfolio = {
   id: string;
   name: string;
-  kind: "demo" | "imported";
+  kind: "demo" | "imported" | "manual";
+  market_data_mode: "demo" | "external";
   base_currency: string;
   created_at: string;
   position_count: number;
@@ -210,6 +211,7 @@ export type TradingPortfolioSummary = {
   id: string;
   name: string;
   base_currency: string;
+  market_data_mode: "demo" | "external";
   opening_cash: string;
   created_at: string;
   trade_count: number;
@@ -260,6 +262,24 @@ export type PortfolioCreate = {
   name: string;
   base_currency: string;
   starting_cash: string;
+  market_data_mode: "demo" | "external";
+};
+
+export type MarketDataStatus = {
+  demo_available: boolean;
+  external_available: boolean;
+  external_provider: string;
+};
+
+export type MarketQuote = {
+  instrument: MarketInstrument;
+  observed_on: string;
+  close: string;
+  adjusted_close: string | null;
+  volume: string | null;
+  source: string;
+  retrieved_at: string;
+  is_stale: boolean;
 };
 
 export type PortfolioOrderCreate = {

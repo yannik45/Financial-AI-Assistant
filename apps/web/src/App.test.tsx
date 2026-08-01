@@ -53,6 +53,7 @@ beforeEach(() => {
     "fetch",
     vi.fn((input: string | URL | Request) => {
       const url = String(input);
+      if (url.includes("/v1/market/status")) return jsonResponse({ demo_available: true, external_available: false, external_provider: "alpaca" });
       if (url.includes("/v1/accounts")) return jsonResponse(accounts);
       if (url.includes("/v1/transactions/classify"))
         return jsonResponse({
@@ -88,6 +89,15 @@ test("renders the portfolio view and import action", () => {
   expect(screen.getByText("SYNTHETIC DEMO MARKET DATA")).toBeInTheDocument();
 });
 
+test("keeps external portfolios unavailable without a server-side API key", async () => {
+  renderApp();
+  fireEvent.click(screen.getByRole("button", { name: "New portfolio" }));
+
+  const selector = await screen.findByLabelText("Market data");
+  expect(within(selector).getByRole("option", { name: /Alpaca/ })).toBeDisabled();
+  expect(screen.getByText("No API key is required and all prices remain reproducible.")).toBeInTheDocument();
+});
+
 test("submits a portfolio order that updates the shared brokerage ledger", async () => {
   let overviewRequests = 0;
   const instrument = {
@@ -107,6 +117,7 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     name: "My Portfolio",
     base_currency: "EUR",
     kind: "manual",
+    market_data_mode: "demo",
     created_at: "2026-08-01T10:00:00",
     position_count: 0,
     account_id: "brokerage-id",
@@ -115,6 +126,7 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     id: "portfolio-id",
     name: "My Portfolio",
     base_currency: "EUR",
+    market_data_mode: "demo",
     opening_cash: "10000.00",
     created_at: "2026-08-01T10:00:00",
     trade_count: 0,
@@ -209,6 +221,18 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
   };
   vi.mocked(fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
+    if (url.endsWith("/v1/market/instruments/instrument-id/quote")) {
+      return jsonResponse({
+        instrument,
+        observed_on: "2026-06-30",
+        close: "110.00",
+        adjusted_close: "110.00",
+        volume: "1000",
+        source: "demo",
+        retrieved_at: "2026-08-01T10:00:00",
+        is_stale: false,
+      });
+    }
     if (url.includes("/v1/market/instruments?")) return jsonResponse([instrument]);
     if (url.endsWith("/v1/portfolios/portfolio-id/orders") && init?.method === "POST") {
       return jsonResponse({ id: "trade-id" });
@@ -229,10 +253,18 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
   expect(screen.getByText("Market volatility")).toBeInTheDocument();
   expect(await screen.findByText("2026-08-01")).toBeInTheDocument();
   expect(screen.getByText("Price observed 2026-06-30")).toBeInTheDocument();
+  expect(screen.getByLabelText("Demo instrument")).toBeInTheDocument();
+  expect(
+    screen.getByText("All selectable instruments use deterministic synthetic prices."),
+  ).toBeInTheDocument();
   fireEvent.click(await screen.findByRole("button", { name: "Buy more" }));
   expect(screen.getByLabelText("Side")).toHaveValue("buy");
   expect(screen.getByLabelText("Quantity")).toHaveValue(1);
+  await waitFor(() =>
+    expect(screen.getByLabelText("Selected instrument price")).toHaveTextContent("€110.00"),
+  );
   expect(screen.getByLabelText("Quantity")).toHaveAttribute("step", "1");
+  expect(screen.getByLabelText("Quantity")).toHaveAttribute("min", "1");
   fireEvent.click(screen.getByRole("button", { name: "Buy position" }));
 
   await waitFor(() => {

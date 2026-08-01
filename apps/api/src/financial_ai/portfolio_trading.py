@@ -6,8 +6,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from financial_ai.clock import business_today
+from financial_ai.config import get_settings
 from financial_ai.market_data import MarketDataError, market_data_provider
-from financial_ai.market_data_service import MarketDataService
+from financial_ai.market_data_service import MarketDataService, build_market_data_service
 from financial_ai.models import Account, MarketInstrument, Portfolio, Transaction
 from financial_ai.schemas import (
     MarketQuoteRead,
@@ -71,11 +72,22 @@ def price(value: Decimal) -> Decimal:
 class PortfolioTradingService:
     """Treat a portfolio and its brokerage account as one aggregate."""
 
-    def __init__(self, session: Session, market_data: MarketDataService) -> None:
+    def __init__(self, session: Session, market_data: MarketDataService | None = None) -> None:
         self._session = session
         self._market_data = market_data
 
+    def _market_service(self, portfolio: Portfolio) -> MarketDataService:
+        return self._market_data or build_market_data_service(
+            self._session, portfolio.market_data_mode
+        )
+
     def create_portfolio(self, payload: PortfolioCreate) -> TradingPortfolioRead:
+        if payload.market_data_mode == "external":
+            settings = get_settings()
+            if not settings.alpaca_api_key or not settings.alpaca_secret_key:
+                raise PortfolioTradingError(
+                    "Alpaca API key and secret are required for an external portfolio"
+                )
         account = Account(
             name=f"{payload.name} Brokerage",
             account_type="brokerage",
@@ -87,6 +99,7 @@ class PortfolioTradingService:
             name=payload.name,
             base_currency=payload.base_currency,
             kind="manual",
+            market_data_mode=payload.market_data_mode,
             account=account,
         )
         self._session.add(portfolio)
@@ -120,9 +133,14 @@ class PortfolioTradingService:
                 )
             return self._trade_read(existing)
 
-        quote = self._market_data.quote(payload.instrument_id)
         states, cash = self._replay(portfolio)
         state = states.get(payload.instrument_id, HoldingState())
+        if payload.side == TradeSide.SELL and payload.quantity > state.quantity:
+            raise InsufficientHoldingsError(
+                f"Cannot sell {payload.quantity}; current holding is {state.quantity}"
+            )
+
+        quote = self._market_service(portfolio).quote(payload.instrument_id, allow_stale=False)
         conversion_rate = self._currency_rate(
             quote.instrument.currency,
             portfolio.base_currency,
@@ -134,11 +152,6 @@ class PortfolioTradingService:
                 f"Order requires {notional} {portfolio.base_currency}, "
                 f"but only {money(cash)} is available"
             )
-        if payload.side == TradeSide.SELL and payload.quantity > state.quantity:
-            raise InsufficientHoldingsError(
-                f"Cannot sell {payload.quantity}; current holding is {state.quantity}"
-            )
-
         instrument = self._session.get(MarketInstrument, payload.instrument_id)
         if instrument is None:
             raise PortfolioTradingError("The selected market instrument no longer exists")
@@ -175,7 +188,7 @@ class PortfolioTradingService:
         warnings: list[str] = []
         for instrument_id, state in states.items():
             if state.quantity > ZERO:
-                quote = self._market_data.quote(instrument_id)
+                quote = self._market_service(portfolio).quote(instrument_id)
                 conversion_rate = self._currency_rate(
                     quote.instrument.currency,
                     portfolio.base_currency,
@@ -264,6 +277,7 @@ class PortfolioTradingService:
             id=portfolio.id,
             name=portfolio.name,
             base_currency=portfolio.base_currency,
+            market_data_mode=portfolio.market_data_mode,
             opening_cash=account.opening_balance,
             created_at=portfolio.created_at,
             trade_count=trade_count,

@@ -28,11 +28,25 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
     queryFn: () => api.portfolioOverview(portfolioId),
   });
   const instruments = useQuery({
-    queryKey: ["market-instruments", debouncedSearch],
-    queryFn: () => api.marketInstruments(debouncedSearch),
-    enabled: debouncedSearch.length >= 2,
+    queryKey: ["market-instruments", overview.data?.market_data_mode, debouncedSearch],
+    queryFn: () => api.marketInstruments(debouncedSearch, overview.data!.market_data_mode),
+    enabled:
+      overview.data?.market_data_mode === "external" && debouncedSearch.length >= 2,
     retry: false,
     staleTime: 60_000,
+  });
+  const demoCatalog = useQuery({
+    queryKey: ["market-instruments", "demo", "catalog"],
+    queryFn: () => api.marketInstruments("*", "demo"),
+    enabled: overview.data?.market_data_mode === "demo",
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const selectedQuote = useQuery({
+    queryKey: ["market-quote", instrument?.id],
+    queryFn: () => api.marketQuote(instrument!.id),
+    enabled: Boolean(instrument),
+    retry: false,
   });
   const executeOrder = useMutation({
     mutationFn: (payload: PortfolioOrderCreate) =>
@@ -67,6 +81,15 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
     setQuantity(orderSide === "buy" ? "1" : holding.quantity);
     setSearchText(holding.instrument.symbol);
   };
+  const selectInstrument = (selected: MarketInstrument | null) => {
+    setInstrument(selected);
+    if (
+      selected &&
+      !overview.data?.holdings.some((holding) => holding.instrument.id === selected.id)
+    ) {
+      setSide("buy");
+    }
+  };
 
   if (overview.isLoading) return <div className="loading">Loading portfolio ledger…</div>;
   if (overview.isError) return <div className="error">{overview.error.message}</div>;
@@ -76,8 +99,8 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
   return (
     <>
       <div className="demo-banner paper-banner">
-        <b>SIMULATED EXECUTION</b>
-        <span>Orders update this portfolio's brokerage cash and transaction ledger</span>
+        <b>{portfolio.market_data_mode === "external" ? "EXTERNAL MARKET DATA · PAPER TRADING" : "SYNTHETIC DATA · PAPER TRADING"}</b>
+        <span>Orders are simulated and update this portfolio's brokerage ledger</span>
       </div>
       <section className="metrics-grid paper-metrics">
         <Metric label="Total equity" value={portfolio.total_equity} currency={portfolio.base_currency} note="Cash plus holdings" />
@@ -89,23 +112,90 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
       <section className="panel order-panel">
         <div className="panel-title"><div><span className="eyebrow">BUY OR SELL</span><h3>Trade from this portfolio</h3></div><span className="page-meta">Cash: {formatMoney(portfolio.cash_balance, portfolio.base_currency)}</span></div>
         <div className="instrument-search">
-          <label>Search by symbol or name<input value={searchText} onChange={(event) => { setSearchText(event.target.value); setInstrument(null); }} placeholder="Example: WORLD or Apple" /></label>
-          <div className="instrument-results">
-            {instruments.isFetching ? <span>Searching…</span> : null}
-            {instruments.isError ? <span className="negative">Search unavailable</span> : null}
-            {instruments.data?.map((item) => (
-              <button type="button" className={instrument?.id === item.id ? "instrument active" : "instrument"} key={item.id} onClick={() => setInstrument(item)}>
+          {portfolio.market_data_mode === "demo" ? (
+            <label>
+              Demo instrument
+              <select
+                value={instrument?.id ?? ""}
+                disabled={demoCatalog.isLoading || demoCatalog.isError}
+                onChange={(event) => {
+                  selectInstrument(
+                    demoCatalog.data?.find((item) => item.id === event.target.value) ?? null,
+                  );
+                }}
+              >
+                <option value="">
+                  {demoCatalog.isLoading
+                    ? "Loading demo catalog…"
+                    : demoCatalog.isError
+                      ? "Demo catalog unavailable"
+                      : "Select a synthetic instrument"}
+                </option>
+                {demoCatalog.data?.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.symbol} · {item.name} · {item.currency}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <label>
+              Search by symbol or name
+              <input
+                value={searchText}
+                onChange={(event) => {
+                  setSearchText(event.target.value);
+                  selectInstrument(null);
+                }}
+                placeholder="Example: Apple or AAPL"
+              />
+            </label>
+          )}
+          <small className="order-note">
+            {portfolio.market_data_mode === "external"
+              ? "Searches the Alpaca US instrument catalog."
+              : "All selectable instruments use deterministic synthetic prices."}
+          </small>
+          {portfolio.market_data_mode === "external" ? (
+            <div className="instrument-results">
+              {instruments.isFetching ? <span>Searching…</span> : null}
+              {instruments.isError ? <span className="negative">Search unavailable</span> : null}
+              {!instruments.isFetching &&
+              !instruments.isError &&
+              debouncedSearch.length >= 2 &&
+              instruments.data?.length === 0 ? (
+                <span>No matching US instrument found.</span>
+              ) : null}
+              {instruments.data?.map((item) => (
+              <button type="button" className={instrument?.id === item.id ? "instrument active" : "instrument"} key={item.id} onClick={() => selectInstrument(item)}>
                 <b>{item.symbol}</b><span>{item.name}</span><small>{item.exchange || item.provider} · {item.currency}</small>
               </button>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : null}
         </div>
         {instrument ? (
           <form className="paper-order-form" noValidate onSubmit={submitOrder}>
             <div><b>{instrument.symbol}</b><span>{instrument.name}</span></div>
-            <label>Side<select value={side} onChange={(event) => setSide(event.target.value as "buy" | "sell")}><option value="buy">Buy</option><option value="sell">Sell</option></select></label>
-            <label>Quantity<input required min="0.00000001" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>
-            <button disabled={executeOrder.isPending}>{executeOrder.isPending ? "Executing…" : side === "buy" ? "Buy position" : "Sell position"}</button>
+            <div>
+              <b aria-label="Selected instrument price">
+                {selectedQuote.isLoading
+                  ? "Loading latest close…"
+                  : selectedQuote.data
+                    ? formatMoney(selectedQuote.data.close, instrument.currency)
+                    : "Price unavailable"}
+              </b>
+              {selectedQuote.data ? (
+                <span>
+                  Latest daily close · {selectedQuote.data.observed_on} · {selectedQuote.data.source}
+                  {selectedQuote.data.is_stale ? " · stale cache" : ""}
+                </span>
+              ) : null}
+            </div>
+            {selectedQuote.isError ? <span className="negative">{selectedQuote.error.message}</span> : null}
+            <label>Side<select value={side} onChange={(event) => setSide(event.target.value as "buy" | "sell")}><option value="buy">Buy</option><option value="sell" disabled={!portfolio.holdings.some((holding) => holding.instrument.id === instrument.id)}>Sell</option></select></label>
+            <label>Quantity<input required min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>
+            <button disabled={executeOrder.isPending || selectedQuote.isLoading || selectedQuote.isError}>{executeOrder.isPending ? "Executing…" : side === "buy" ? "Buy position" : "Sell position"}</button>
             {instrument.currency !== portfolio.base_currency ? <span className="order-note">The backend converts {instrument.currency} settlement into {portfolio.base_currency} using the stored FX reference rate.</span> : null}
           </form>
         ) : null}
