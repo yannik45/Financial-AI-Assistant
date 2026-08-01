@@ -9,8 +9,8 @@ def discover(client, query: str, symbol: str) -> dict[str, object]:
 
 def create_portfolio(client, cash: str = "10000.00", currency: str = "EUR") -> dict[str, object]:
     response = client.post(
-        "/v1/paper-portfolios",
-        json={"name": "Paper Portfolio", "starting_cash": cash, "base_currency": currency},
+        "/v1/portfolios",
+        json={"name": "Trading Portfolio", "starting_cash": cash, "base_currency": currency},
     )
     assert response.status_code == 201
     return response.json()
@@ -25,7 +25,7 @@ def order(
     client_order_id: str,
 ):
     return client.post(
-        f"/v1/paper-portfolios/{portfolio_id}/orders",
+        f"/v1/portfolios/{portfolio_id}/orders",
         json={
             "client_order_id": client_order_id,
             "instrument_id": instrument_id,
@@ -35,11 +35,11 @@ def order(
     )
 
 
-def test_paper_buy_uses_server_quote_and_derives_cash_holdings_and_pnl(client):
+def test_buy_uses_server_quote_and_updates_cash_holdings_and_transaction_ledger(client):
     instrument = discover(client, "world", "WORLD-ETF")
     portfolio = create_portfolio(client)
     executed = order(client, portfolio["id"], instrument["id"], "buy", "10", "buy-1")
-    detail = client.get(f"/v1/paper-portfolios/{portfolio['id']}")
+    detail = client.get(f"/v1/portfolios/{portfolio['id']}/overview")
 
     assert executed.status_code == 201
     assert executed.json()["price_source"] == "demo"
@@ -52,7 +52,16 @@ def test_paper_buy_uses_server_quote_and_derives_cash_holdings_and_pnl(client):
     assert payload["holdings"][0]["instrument"]["symbol"] == "WORLD-ETF"
     assert Decimal(payload["holdings"][0]["quantity"]) == Decimal("10")
     assert Decimal(payload["holdings"][0]["unrealized_pnl"]) == Decimal("0.00")
-    assert payload["warnings"][0] == "Paper trading only: no real order is placed."
+    transactions = client.get("/v1/transactions", params={"account_id": portfolio["id"]})
+    assert transactions.status_code == 404  # Portfolio IDs are not account IDs.
+    accounts = client.get("/v1/accounts").json()
+    brokerage = next(item for item in accounts if item["name"] == "Trading Portfolio Brokerage")
+    ledger = client.get("/v1/transactions", params={"account_id": brokerage["id"]}).json()
+    assert ledger["items"][0]["transaction_type"] == "security_buy"
+    assert Decimal(ledger["items"][0]["amount"]) == (-execution_price * 10).quantize(
+        Decimal("0.01")
+    )
+    assert Decimal(brokerage["current_balance"]) == expected_cash
 
 
 def test_partial_sale_updates_average_cost_and_realized_pnl(client):
@@ -60,7 +69,7 @@ def test_partial_sale_updates_average_cost_and_realized_pnl(client):
     portfolio = create_portfolio(client)
     order(client, portfolio["id"], instrument["id"], "buy", "10", "buy-1")
     sale = order(client, portfolio["id"], instrument["id"], "sell", "4", "sell-1")
-    detail = client.get(f"/v1/paper-portfolios/{portfolio['id']}").json()
+    detail = client.get(f"/v1/portfolios/{portfolio['id']}/overview").json()
 
     assert sale.status_code == 201
     assert Decimal(detail["holdings"][0]["quantity"]) == Decimal("6")
@@ -68,7 +77,7 @@ def test_partial_sale_updates_average_cost_and_realized_pnl(client):
     assert Decimal(detail["total_pnl"]) == Decimal("0.00")
 
 
-def test_paper_orders_reject_insufficient_cash_holdings_and_currency_mismatch(client):
+def test_orders_reject_insufficient_cash_holdings_and_currency_mismatch(client):
     eur = discover(client, "world", "WORLD-ETF")
     usd = discover(client, "US Technology Demo A", "US-TECH-A")
     portfolio = create_portfolio(client, cash="100.00")
@@ -78,11 +87,11 @@ def test_paper_orders_reject_insufficient_cash_holdings_and_currency_mismatch(cl
     wrong_currency = order(client, portfolio["id"], usd["id"], "buy", "1", "buy-2")
 
     assert too_expensive.status_code == 409
-    assert too_expensive.json()["detail"]["code"] == "insufficient_paper_cash"
+    assert too_expensive.json()["detail"]["code"] == "insufficient_cash"
     assert short_sale.status_code == 409
-    assert short_sale.json()["detail"]["code"] == "insufficient_paper_holdings"
+    assert short_sale.json()["detail"]["code"] == "insufficient_holdings"
     assert wrong_currency.status_code == 409
-    assert wrong_currency.json()["detail"]["code"] == "paper_currency_mismatch"
+    assert wrong_currency.json()["detail"]["code"] == "portfolio_currency_mismatch"
 
 
 def test_client_order_id_is_idempotent_but_cannot_be_reused_for_different_order(client):
@@ -92,12 +101,12 @@ def test_client_order_id_is_idempotent_but_cannot_be_reused_for_different_order(
     first = order(client, portfolio["id"], instrument["id"], "buy", "1", "stable-order")
     replay = order(client, portfolio["id"], instrument["id"], "buy", "1", "stable-order")
     conflict = order(client, portfolio["id"], instrument["id"], "buy", "2", "stable-order")
-    detail = client.get(f"/v1/paper-portfolios/{portfolio['id']}").json()
+    detail = client.get(f"/v1/portfolios/{portfolio['id']}/overview").json()
 
     assert replay.status_code == 201
     assert replay.json()["id"] == first.json()["id"]
     assert conflict.status_code == 409
-    assert conflict.json()["detail"]["code"] == "paper_order_idempotency_conflict"
+    assert conflict.json()["detail"]["code"] == "order_idempotency_conflict"
     assert detail["trade_count"] == 1
 
 
@@ -105,7 +114,7 @@ def test_order_contract_forbids_browser_supplied_execution_price(client):
     instrument = discover(client, "world", "WORLD-ETF")
     portfolio = create_portfolio(client)
     response = client.post(
-        f"/v1/paper-portfolios/{portfolio['id']}/orders",
+        f"/v1/portfolios/{portfolio['id']}/orders",
         json={
             "client_order_id": "unsafe-price",
             "instrument_id": instrument["id"],

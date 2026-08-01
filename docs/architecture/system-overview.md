@@ -21,8 +21,8 @@ Browser
   v
 React dashboard ---- /api ----> FastAPI
                                 |-- portfolio analytics
-                                |-- paper portfolio trading
-                                |-- accounts and transaction ledger
+                                |-- portfolio trading and analytics
+                                |-- linked accounts and transaction ledger
                                 |-- classification orchestrator
                                 |     |-- bilingual text rules
                                 |     `-- TF-IDF + Logistic Regression
@@ -76,19 +76,20 @@ The backend repeats classification when saving. Browser-supplied confidence or
 model metadata is therefore never trusted. Prediction, final label, method,
 versions, and review state are stored for auditability.
 
-### Paper portfolio trading
+### Portfolio trading and cash ledger
 
-Paper portfolios are separate from the fixed demo analytics portfolios. A user
-selects an instrument discovered through the configured market-data provider;
-the backend obtains the latest cached daily close and records an immutable
-simulated buy or sell. The browser cannot supply an execution price.
+Trading is part of the selected portfolio rather than a separate portfolio
+domain. Every portfolio links to one brokerage account. A user selects an
+instrument discovered through the configured market-data provider; the backend
+obtains the latest cached daily close and records the simulated order as a
+regular security transaction. The browser cannot supply an execution price.
 
-Cash, open quantities, average cost, realized P&L, and unrealized P&L are
-replayed from the starting cash balance and trade ledger. Orders reject
-insufficient simulated cash, short positions, and instruments whose currency
-does not match the paper portfolio. Client order IDs make identical retries
-idempotent. This is paper trading only: there is no broker connection or real
-order execution, and fees, taxes, spreads, and slippage are currently zero.
+The signed transaction amount is negative for a buy and positive for a sale.
+Cash is the account opening balance plus all ledger cash flows; holdings replay
+opening positions and security transactions. Orders reject insufficient cash,
+short positions, and currency mismatches. Client order IDs make identical
+retries idempotent. Execution remains simulated: there is no broker connection,
+and fees, taxes, spreads, and slippage are currently zero.
 
 ### Offline feedback lifecycle
 

@@ -33,6 +33,7 @@ class PortfolioSummary(BaseModel):
     kind: str
     created_at: datetime
     position_count: int
+    account_id: str | None
 
 
 class PortfolioRead(BaseModel):
@@ -42,6 +43,7 @@ class PortfolioRead(BaseModel):
     base_currency: str
     kind: str
     created_at: datetime
+    account_id: str | None
     positions: list[PositionRead]
 
 
@@ -90,12 +92,12 @@ class MarketHistoryRead(BaseModel):
     points: list[MarketPriceRead]
 
 
-class PaperTradeSide(StrEnum):
+class TradeSide(StrEnum):
     BUY = "buy"
     SELL = "sell"
 
 
-class PaperPortfolioCreate(BaseModel):
+class PortfolioCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     name: str = Field(min_length=1, max_length=120)
@@ -107,7 +109,7 @@ class PaperPortfolioCreate(BaseModel):
     def normalize_name(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
-            raise ValueError("Paper portfolio name must not be empty")
+            raise ValueError("Portfolio name must not be empty")
         return normalized
 
     @field_validator("base_currency")
@@ -116,21 +118,21 @@ class PaperPortfolioCreate(BaseModel):
         return value.upper()
 
 
-class PaperOrderCreate(BaseModel):
+class PortfolioOrderCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     client_order_id: str = Field(min_length=1, max_length=64)
     instrument_id: str = Field(min_length=1, max_length=36)
-    side: PaperTradeSide
+    side: TradeSide
     quantity: Decimal = Field(gt=0, max_digits=20, decimal_places=8)
 
 
-class PaperTradeRead(BaseModel):
+class PortfolioTradeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     client_order_id: str
-    side: PaperTradeSide
+    side: TradeSide
     quantity: Decimal
     unit_price: Decimal
     fees: Decimal
@@ -141,7 +143,7 @@ class PaperTradeRead(BaseModel):
     instrument: MarketInstrumentRead
 
 
-class PaperHoldingRead(BaseModel):
+class PortfolioHoldingRead(BaseModel):
     instrument: MarketInstrumentRead
     quantity: Decimal
     average_cost: Decimal
@@ -154,25 +156,25 @@ class PaperHoldingRead(BaseModel):
     quote_is_stale: bool
 
 
-class PaperPortfolioSummary(BaseModel):
+class TradingPortfolioSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
     name: str
     base_currency: str
-    starting_cash: Decimal
+    opening_cash: Decimal
     created_at: datetime
     trade_count: int
 
 
-class PaperPortfolioRead(PaperPortfolioSummary):
+class TradingPortfolioRead(TradingPortfolioSummary):
     cash_balance: Decimal
     holdings_value: Decimal
     total_equity: Decimal
     total_pnl: Decimal
     realized_pnl: Decimal
-    holdings: list[PaperHoldingRead]
-    trades: list[PaperTradeRead]
+    holdings: list[PortfolioHoldingRead]
+    trades: list[PortfolioTradeRead]
     warnings: list[str]
 
 
@@ -252,6 +254,8 @@ class AccountRead(BaseModel):
     account_type: AccountType
     currency: str
     kind: str
+    opening_balance: Decimal
+    current_balance: Decimal
     created_at: datetime
     transaction_count: int | None = None
 
@@ -287,11 +291,15 @@ class TransactionRead(BaseModel):
     category: str | None
     notes: str | None
     source: str
+    market_instrument_id: str | None
+    client_order_id: str | None
     security_symbol: str | None
     quantity: Decimal | None
     unit_price: Decimal | None
     fees: Decimal
     taxes: Decimal
+    price_observed_on: date | None
+    price_source: str | None
     created_at: datetime
     classifications: list[TransactionClassificationRecordRead] = Field(default_factory=list)
 

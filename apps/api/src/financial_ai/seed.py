@@ -43,7 +43,7 @@ DEMO_NAMESPACE = UUID("87b63f0b-4f2f-4c50-98f8-f64057eeea2d")
 DEMO_ACCOUNTS = {
     "checking": ("Main Checking", "checking"),
     "savings": ("Emergency Savings", "savings"),
-    "brokerage": ("Demo Brokerage", "brokerage"),
+    "brokerage": ("Diversified Global Portfolio Brokerage", "brokerage"),
 }
 
 DEMO_TRANSACTIONS = [
@@ -167,7 +167,19 @@ def seed_demo_portfolios(session: Session) -> None:
     if session.scalar(select(Portfolio.id).where(Portfolio.kind == "demo").limit(1)):
         return
     for portfolio_index, (name, holdings) in enumerate(DEMO_PORTFOLIOS.items()):
-        portfolio = Portfolio(name=name, kind="demo")
+        account = Account(
+            id=(
+                str(uuid5(DEMO_NAMESPACE, "account:brokerage"))
+                if portfolio_index == 0
+                else str(uuid5(DEMO_NAMESPACE, f"portfolio-account:{name}"))
+            ),
+            name=f"{name} Brokerage",
+            account_type="brokerage",
+            currency="EUR",
+            kind="demo",
+            opening_balance=Decimal("10000.00"),
+        )
+        portfolio = Portfolio(name=name, kind="demo", account=account)
         for position_index, (symbol, quantity) in enumerate(holdings):
             asset = ASSETS[symbol]
             portfolio.positions.append(
@@ -189,11 +201,18 @@ def seed_demo_portfolios(session: Session) -> None:
 
 
 def seed_demo_accounts(session: Session) -> None:
-    if session.scalar(select(Account.id).where(Account.kind == "demo").limit(1)):
+    checking_id = str(uuid5(DEMO_NAMESPACE, "account:checking"))
+    if session.get(Account, checking_id):
         return
 
     accounts: dict[str, Account] = {}
     for key, (name, account_type) in DEMO_ACCOUNTS.items():
+        if key == "brokerage":
+            brokerage = session.get(Account, str(uuid5(DEMO_NAMESPACE, "account:brokerage")))
+            if brokerage is None:
+                raise RuntimeError("Demo portfolio brokerage account was not seeded")
+            accounts[key] = brokerage
+            continue
         account = Account(
             id=str(uuid5(DEMO_NAMESPACE, f"account:{key}")),
             name=name,

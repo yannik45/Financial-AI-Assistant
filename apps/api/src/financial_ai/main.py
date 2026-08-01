@@ -36,14 +36,14 @@ from financial_ai.ml.transaction_classification import (
     route_transaction_text,
 )
 from financial_ai.models import Account, Portfolio, Transaction, TransactionClassificationRecord
-from financial_ai.paper_trading import (
+from financial_ai.portfolio_trading import (
     CurrencyMismatchError,
     IdempotencyConflictError,
     InsufficientCashError,
     InsufficientHoldingsError,
-    PaperPortfolioNotFoundError,
-    PaperTradingError,
-    PaperTradingService,
+    PortfolioNotFoundError,
+    PortfolioTradingError,
+    PortfolioTradingService,
 )
 from financial_ai.schemas import (
     AccountRead,
@@ -52,13 +52,12 @@ from financial_ai.schemas import (
     MarketHistoryRead,
     MarketInstrumentRead,
     MarketQuoteRead,
-    PaperOrderCreate,
-    PaperPortfolioCreate,
-    PaperPortfolioRead,
-    PaperPortfolioSummary,
-    PaperTradeRead,
+    PortfolioCreate,
+    PortfolioOrderCreate,
     PortfolioRead,
     PortfolioSummary,
+    PortfolioTradeRead,
+    TradingPortfolioRead,
     TransactionClassificationRequest,
     TransactionClassificationResponse,
     TransactionCreate,
@@ -81,13 +80,15 @@ def get_market_service(session: SessionDependency) -> MarketDataService:
 MarketServiceDependency = Annotated[MarketDataService, Depends(get_market_service)]
 
 
-def get_paper_trading_service(
+def get_portfolio_trading_service(
     session: SessionDependency, market_service: MarketServiceDependency
-) -> PaperTradingService:
-    return PaperTradingService(session, market_service)
+) -> PortfolioTradingService:
+    return PortfolioTradingService(session, market_service)
 
 
-PaperTradingDependency = Annotated[PaperTradingService, Depends(get_paper_trading_service)]
+PortfolioTradingDependency = Annotated[
+    PortfolioTradingService, Depends(get_portfolio_trading_service)
+]
 
 
 @asynccontextmanager
@@ -209,8 +210,8 @@ def get_market_history(
         raise market_error(exc) from exc
 
 
-def paper_trading_error(exc: PaperTradingError) -> HTTPException:
-    if isinstance(exc, PaperPortfolioNotFoundError):
+def portfolio_trading_error(exc: PortfolioTradingError) -> HTTPException:
+    if isinstance(exc, PortfolioNotFoundError):
         status_code = 404
     elif isinstance(
         exc,
@@ -230,42 +231,39 @@ def paper_trading_error(exc: PaperTradingError) -> HTTPException:
     )
 
 
-@app.get("/v1/paper-portfolios", response_model=list[PaperPortfolioSummary])
-def list_paper_portfolios(service: PaperTradingDependency) -> list[PaperPortfolioSummary]:
-    return service.list_portfolios()
-
-
-@app.post("/v1/paper-portfolios", response_model=PaperPortfolioRead, status_code=201)
-def create_paper_portfolio(
-    payload: PaperPortfolioCreate, service: PaperTradingDependency
-) -> PaperPortfolioRead:
+@app.post("/v1/portfolios", response_model=TradingPortfolioRead, status_code=201)
+def create_portfolio(
+    payload: PortfolioCreate, service: PortfolioTradingDependency
+) -> TradingPortfolioRead:
     return service.create_portfolio(payload)
 
 
-@app.get("/v1/paper-portfolios/{portfolio_id}", response_model=PaperPortfolioRead)
-def get_paper_portfolio(portfolio_id: str, service: PaperTradingDependency) -> PaperPortfolioRead:
+@app.get("/v1/portfolios/{portfolio_id}/overview", response_model=TradingPortfolioRead)
+def get_portfolio_overview(
+    portfolio_id: str, service: PortfolioTradingDependency
+) -> TradingPortfolioRead:
     try:
         return service.detail(portfolio_id)
-    except PaperTradingError as exc:
-        raise paper_trading_error(exc) from exc
+    except PortfolioTradingError as exc:
+        raise portfolio_trading_error(exc) from exc
     except (InstrumentNotFoundError, MarketDataProviderError) as exc:
         raise market_error(exc) from exc
 
 
 @app.post(
-    "/v1/paper-portfolios/{portfolio_id}/orders",
-    response_model=PaperTradeRead,
+    "/v1/portfolios/{portfolio_id}/orders",
+    response_model=PortfolioTradeRead,
     status_code=201,
 )
-def execute_paper_order(
+def execute_portfolio_order(
     portfolio_id: str,
-    payload: PaperOrderCreate,
-    service: PaperTradingDependency,
-) -> PaperTradeRead:
+    payload: PortfolioOrderCreate,
+    service: PortfolioTradingDependency,
+) -> PortfolioTradeRead:
     try:
         return service.execute_order(portfolio_id, payload)
-    except PaperTradingError as exc:
-        raise paper_trading_error(exc) from exc
+    except PortfolioTradingError as exc:
+        raise portfolio_trading_error(exc) from exc
     except (InstrumentNotFoundError, MarketDataProviderError) as exc:
         raise market_error(exc) from exc
 
@@ -281,6 +279,7 @@ def list_portfolios(session: SessionDependency) -> list[PortfolioSummary]:
             kind=portfolio.kind,
             created_at=portfolio.created_at,
             position_count=len(portfolio.positions),
+            account_id=portfolio.account_id,
         )
         for portfolio in portfolios
     ]
@@ -313,6 +312,13 @@ async def import_portfolio(
     if len(content) > 1_000_000:
         raise PortfolioImportError([{"field": "file", "message": "CSV must not exceed 1 MB"}])
     portfolio = parse_portfolio_csv(content, name)
+    portfolio.account = Account(
+        name=f"{name.strip()} Brokerage",
+        account_type="brokerage",
+        currency=portfolio.base_currency,
+        kind="imported",
+        opening_balance=0,
+    )
     session.add(portfolio)
     session.commit()
     session.refresh(portfolio)
@@ -350,6 +356,9 @@ def list_accounts(session: SessionDependency) -> list[AccountRead]:
             account_type=account.account_type,
             currency=account.currency,
             kind=account.kind,
+            opening_balance=account.opening_balance,
+            current_balance=account.opening_balance
+            + sum((item.amount for item in account.transactions), start=0),
             created_at=account.created_at,
             transaction_count=len(account.transactions),
         )
@@ -366,6 +375,9 @@ def get_account(account_id: str, session: SessionDependency) -> AccountRead:
         account_type=account.account_type,
         currency=account.currency,
         kind=account.kind,
+        opening_balance=account.opening_balance,
+        current_balance=account.opening_balance
+        + sum((item.amount for item in account.transactions), start=0),
         created_at=account.created_at,
         transaction_count=len(account.transactions),
     )

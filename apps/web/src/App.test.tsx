@@ -84,20 +84,7 @@ test("renders the portfolio view and import action", () => {
   expect(screen.getByText("SYNTHETIC DEMO MARKET DATA")).toBeInTheDocument();
 });
 
-test("opens the paper trading workspace without implying real execution", async () => {
-  renderApp();
-  fireEvent.click(screen.getByRole("button", { name: /Paper trading/ }));
-
-  expect(
-    await screen.findByText("Explore markets without placing real orders"),
-  ).toBeInTheDocument();
-  expect(screen.getByText("PAPER TRADING ONLY")).toBeInTheDocument();
-  expect(
-    await screen.findByRole("button", { name: "Create portfolio" }),
-  ).toBeInTheDocument();
-});
-
-test("submits a paper order without a browser supplied execution price", async () => {
+test("submits a portfolio order that updates the shared brokerage ledger", async () => {
   const instrument = {
     id: "instrument-id",
     provider: "demo",
@@ -111,15 +98,21 @@ test("submits a paper order without a browser supplied execution price", async (
     updated_at: "2026-08-01T10:00:00",
   };
   const summary = {
-    id: "paper-id",
-    name: "My Paper Portfolio",
+    id: "portfolio-id",
+    name: "My Portfolio",
     base_currency: "EUR",
-    starting_cash: "10000.00",
+    kind: "manual",
+    created_at: "2026-08-01T10:00:00",
+    position_count: 0,
+    account_id: "brokerage-id",
+  };
+  const overview = {
+    id: "portfolio-id",
+    name: "My Portfolio",
+    base_currency: "EUR",
+    opening_cash: "10000.00",
     created_at: "2026-08-01T10:00:00",
     trade_count: 0,
-  };
-  const detail = {
-    ...summary,
     cash_balance: "10000.00",
     holdings_value: "0.00",
     total_equity: "10000.00",
@@ -127,32 +120,29 @@ test("submits a paper order without a browser supplied execution price", async (
     realized_pnl: "0.00",
     holdings: [],
     trades: [],
-    warnings: ["Paper trading only: no real order is placed."],
+    warnings: ["Simulation only: no real order is placed."],
   };
   vi.mocked(fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/v1/market/instruments?")) return jsonResponse([instrument]);
-    if (url.endsWith("/v1/paper-portfolios") && init?.method === "POST") {
-      return jsonResponse(detail);
-    }
-    if (url.endsWith("/v1/paper-portfolios")) return jsonResponse([summary]);
-    if (url.includes("/v1/paper-portfolios/paper-id/orders")) {
+    if (url.endsWith("/v1/portfolios/portfolio-id/orders") && init?.method === "POST") {
       return jsonResponse({ id: "trade-id" });
     }
-    if (url.endsWith("/v1/paper-portfolios/paper-id")) return jsonResponse(detail);
+    if (url.endsWith("/v1/portfolios/portfolio-id/overview")) return jsonResponse(overview);
+    if (url.endsWith("/v1/portfolios")) return jsonResponse([summary]);
+    if (url.endsWith("/v1/portfolios/portfolio-id/analytics")) return jsonResponse(null);
     return jsonResponse([]);
   });
 
   renderApp();
-  fireEvent.click(screen.getByRole("button", { name: /Paper trading/ }));
   const search = await screen.findByLabelText("Search by symbol or name");
   fireEvent.change(search, { target: { value: "WORLD" } });
   fireEvent.click(await screen.findByRole("button", { name: /WORLD-ETF/ }));
-  fireEvent.click(screen.getByRole("button", { name: "Simulate buy" }));
+  fireEvent.click(screen.getByRole("button", { name: "Buy position" }));
 
   await waitFor(() => {
     const call = vi.mocked(fetch).mock.calls.find(([input, init]) =>
-      String(input).includes("/v1/paper-portfolios/paper-id/orders") && init?.method === "POST",
+      String(input).includes("/v1/portfolios/portfolio-id/orders") && init?.method === "POST",
     );
     expect(call).toBeDefined();
     const payload = JSON.parse(String(call?.[1]?.body));

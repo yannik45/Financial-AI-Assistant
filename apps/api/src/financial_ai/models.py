@@ -25,12 +25,16 @@ class Portfolio(Base):
     name: Mapped[str] = mapped_column(String(120))
     base_currency: Mapped[str] = mapped_column(String(3), default="EUR")
     kind: Mapped[str] = mapped_column(String(20), default="imported")
+    account_id: Mapped[str | None] = mapped_column(
+        ForeignKey("accounts.id", ondelete="RESTRICT"), unique=True, nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
     positions: Mapped[list["Position"]] = relationship(
         back_populates="portfolio", cascade="all, delete-orphan", lazy="selectin"
     )
+    account: Mapped["Account | None"] = relationship(back_populates="portfolio", lazy="joined")
 
 
 class Position(Base):
@@ -100,55 +104,6 @@ class MarketPriceObservation(Base):
     instrument: Mapped[MarketInstrument] = relationship(back_populates="prices")
 
 
-class PaperPortfolio(Base):
-    __tablename__ = "paper_portfolios"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    name: Mapped[str] = mapped_column(String(120))
-    base_currency: Mapped[str] = mapped_column(String(3))
-    starting_cash: Mapped[Decimal] = mapped_column(Numeric(20, 2))
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
-    )
-    trades: Mapped[list["PaperTrade"]] = relationship(
-        back_populates="portfolio",
-        cascade="all, delete-orphan",
-        lazy="selectin",
-        order_by="PaperTrade.executed_at",
-    )
-
-
-class PaperTrade(Base):
-    __tablename__ = "paper_trades"
-    __table_args__ = (
-        UniqueConstraint(
-            "portfolio_id", "client_order_id", name="uq_paper_trade_portfolio_client_order"
-        ),
-        Index("ix_paper_trades_portfolio_executed", "portfolio_id", "executed_at"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
-    portfolio_id: Mapped[str] = mapped_column(
-        ForeignKey("paper_portfolios.id", ondelete="CASCADE"), index=True
-    )
-    instrument_id: Mapped[str] = mapped_column(
-        ForeignKey("market_instruments.id", ondelete="RESTRICT"), index=True
-    )
-    client_order_id: Mapped[str] = mapped_column(String(64))
-    side: Mapped[str] = mapped_column(String(4))
-    quantity: Mapped[Decimal] = mapped_column(Numeric(20, 8))
-    unit_price: Mapped[Decimal] = mapped_column(Numeric(20, 8))
-    fees: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
-    currency: Mapped[str] = mapped_column(String(3))
-    price_observed_on: Mapped[date] = mapped_column(Date)
-    price_source: Mapped[str] = mapped_column(String(30))
-    executed_at: Mapped[datetime] = mapped_column(
-        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
-    )
-    portfolio: Mapped[PaperPortfolio] = relationship(back_populates="trades")
-    instrument: Mapped[MarketInstrument] = relationship(lazy="joined")
-
-
 class Account(Base):
     __tablename__ = "accounts"
 
@@ -157,17 +112,20 @@ class Account(Base):
     account_type: Mapped[str] = mapped_column(String(20), index=True)
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     kind: Mapped[str] = mapped_column(String(20), default="manual")
+    opening_balance: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="account", cascade="all, delete-orphan", lazy="selectin"
     )
+    portfolio: Mapped["Portfolio | None"] = relationship(back_populates="account")
 
 
 class Transaction(Base):
     __tablename__ = "transactions"
     __table_args__ = (
+        UniqueConstraint("account_id", "client_order_id", name="uq_transaction_account_order"),
         Index("ix_transactions_account_booked_at", "account_id", "booked_at"),
         Index("ix_transactions_type_booked_at", "transaction_type", "booked_at"),
     )
@@ -185,15 +143,22 @@ class Transaction(Base):
     category: Mapped[str | None] = mapped_column(String(60), index=True, nullable=True)
     notes: Mapped[str | None] = mapped_column(String(500), nullable=True)
     source: Mapped[str] = mapped_column(String(20), default="manual")
+    market_instrument_id: Mapped[str | None] = mapped_column(
+        ForeignKey("market_instruments.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
+    client_order_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     security_symbol: Mapped[str | None] = mapped_column(String(24), nullable=True)
     quantity: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
     unit_price: Mapped[Decimal | None] = mapped_column(Numeric(20, 6), nullable=True)
     fees: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
     taxes: Mapped[Decimal] = mapped_column(Numeric(20, 2), default=Decimal("0.00"))
+    price_observed_on: Mapped[date | None] = mapped_column(Date, nullable=True)
+    price_source: Mapped[str | None] = mapped_column(String(30), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
     )
     account: Mapped[Account] = relationship(back_populates="transactions")
+    market_instrument: Mapped[MarketInstrument | None] = relationship(lazy="joined")
     classifications: Mapped[list["TransactionClassificationRecord"]] = relationship(
         back_populates="transaction",
         cascade="all, delete-orphan",

@@ -17,8 +17,8 @@ Nothing in this repository is financial advice.
 |---|---|
 | Portfolio analytics | Valuation, allocation, P&L, return, volatility, drawdown, concentration, time series, and CSV portfolio import |
 | Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Twelve Data adapter |
-| Paper trading | Local simulated portfolios with server-priced buy/sell orders, cash controls, derived holdings, and realized/unrealized P&L |
-| Transaction ledger | Checking, savings, and brokerage accounts; filters and manual transaction entry |
+| Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
+| Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
@@ -98,10 +98,12 @@ reproducible. To explore real instruments through Twelve Data, set
 `FINANCIAL_AI_MARKET_DATA_API_KEY`. External data remains subject to the
 provider's plan, freshness, and usage terms; API keys stay server-side.
 
-Paper portfolios use a separate immutable simulated-trade ledger. Orders are
-priced by the backend from the latest cached daily close, never by a
-browser-supplied price. Cash, holdings, average cost, and P&L are derived from
-that ledger. No real brokerage order is placed.
+Each portfolio owns one brokerage account. Orders are priced by the backend
+from the latest cached daily close and stored as regular signed ledger
+transactions: a buy reduces cash and increases the holding; a sale increases
+cash and reduces the holding. Portfolio cash, holdings, average cost, and P&L
+are derived from the linked account and its transactions. No real brokerage
+order is placed.
 
 ## Verification
 

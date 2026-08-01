@@ -14,7 +14,7 @@ def test_demo_accounts_and_transactions_are_seeded(client):
     accounts_response = client.get("/v1/accounts")
     assert accounts_response.status_code == 200
     accounts = accounts_response.json()
-    assert len(accounts) == 3
+    assert len(accounts) == 7
     assert {account["account_type"] for account in accounts} == {
         "checking",
         "savings",

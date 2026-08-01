@@ -5,6 +5,7 @@ export type Portfolio = {
   base_currency: string;
   created_at: string;
   position_count: number;
+  account_id: string | null;
 };
 
 export type Allocation = { label: string; value_eur: string; weight: number };
@@ -35,6 +36,8 @@ export type Account = {
   account_type: AccountType;
   currency: string;
   kind: "demo" | "manual" | "imported";
+  opening_balance: string;
+  current_balance: string;
   created_at: string;
   transaction_count: number;
 };
@@ -66,12 +69,16 @@ export type Transaction = {
   counterparty: string | null;
   category: string | null;
   notes: string | null;
-  source: "demo" | "manual" | "imported";
+  source: "demo" | "manual" | "imported" | "market_order";
+  market_instrument_id: string | null;
+  client_order_id: string | null;
   security_symbol: string | null;
   quantity: string | null;
   unit_price: string | null;
   fees: string;
   taxes: string;
+  price_observed_on: string | null;
+  price_source: string | null;
   created_at: string;
   classifications: TransactionClassificationRecord[];
 };
@@ -164,16 +171,16 @@ export type MarketInstrument = {
   updated_at: string;
 };
 
-export type PaperPortfolioSummary = {
+export type TradingPortfolioSummary = {
   id: string;
   name: string;
   base_currency: string;
-  starting_cash: string;
+  opening_cash: string;
   created_at: string;
   trade_count: number;
 };
 
-export type PaperTrade = {
+export type PortfolioTrade = {
   id: string;
   client_order_id: string;
   side: "buy" | "sell";
@@ -187,7 +194,7 @@ export type PaperTrade = {
   instrument: MarketInstrument;
 };
 
-export type PaperHolding = {
+export type PortfolioHolding = {
   instrument: MarketInstrument;
   quantity: string;
   average_cost: string;
@@ -200,24 +207,24 @@ export type PaperHolding = {
   quote_is_stale: boolean;
 };
 
-export type PaperPortfolio = PaperPortfolioSummary & {
+export type TradingPortfolio = TradingPortfolioSummary & {
   cash_balance: string;
   holdings_value: string;
   total_equity: string;
   total_pnl: string;
   realized_pnl: string;
-  holdings: PaperHolding[];
-  trades: PaperTrade[];
+  holdings: PortfolioHolding[];
+  trades: PortfolioTrade[];
   warnings: string[];
 };
 
-export type PaperPortfolioCreate = {
+export type PortfolioCreate = {
   name: string;
   base_currency: string;
   starting_cash: string;
 };
 
-export type PaperOrderCreate = {
+export type PortfolioOrderCreate = {
   client_order_id: string;
   instrument_id: string;
   side: "buy" | "sell";

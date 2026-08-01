@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 import { api } from "./api";
-import PaperTradingView from "./PaperTradingView";
+import PortfolioTradingPanel from "./PortfolioTradingPanel";
 import type {
   Account,
   Allocation,
@@ -697,6 +697,7 @@ function PortfolioView() {
       {analytics.isLoading && <div className="loading">Calculating portfolio analytics…</div>}
       {analytics.isError && <div className="error">{analytics.error.message}</div>}
       {analytics.data && <Dashboard analytics={analytics.data} />}
+      {selected && <PortfolioTradingPanel portfolioId={selected} />}
       {showImport && (
         <div className="modal-backdrop" onMouseDown={() => setShowImport(false)}>
           <form
@@ -752,7 +753,7 @@ function PortfolioView() {
 }
 
 export default function App() {
-  const [view, setView] = useState<"portfolio" | "transactions" | "paper">("portfolio");
+  const [view, setView] = useState<"portfolio" | "transactions">("portfolio");
   return (
     <div className="app-shell">
       <aside>
@@ -776,12 +777,6 @@ export default function App() {
           >
             ◇ Transactions
           </button>
-          <button
-            className={view === "paper" ? "active" : ""}
-            onClick={() => setView("paper")}
-          >
-            ◇ Paper trading
-          </button>
           <button className="disabled" disabled>
             ◈ AI assistant <small>Later phase</small>
           </button>
@@ -791,13 +786,7 @@ export default function App() {
           <p>Portfolio state stays local. Quote sources are shown with market observations.</p>
         </div>
       </aside>
-      {view === "portfolio" ? (
-        <PortfolioView />
-      ) : view === "transactions" ? (
-        <TransactionsView />
-      ) : (
-        <PaperTradingView />
-      )}
+      {view === "portfolio" ? <PortfolioView /> : <TransactionsView />}
     </div>
   );
 }
