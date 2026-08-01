@@ -17,6 +17,12 @@ from financial_ai.config import get_settings
 from financial_ai.database import SessionLocal, get_session
 from financial_ai.importer import PortfolioImportError, parse_portfolio_csv
 from financial_ai.market_data import market_data_provider
+from financial_ai.market_data_service import (
+    InstrumentNotFoundError,
+    MarketDataProviderError,
+    MarketDataService,
+    build_market_data_service,
+)
 from financial_ai.ml.category_artifact import ModelArtifactError
 from financial_ai.ml.category_service import (
     TransactionClassification,
@@ -34,6 +40,9 @@ from financial_ai.schemas import (
     AccountRead,
     AnalyticsResponse,
     CatalogAsset,
+    MarketHistoryRead,
+    MarketInstrumentRead,
+    MarketQuoteRead,
     PortfolioRead,
     PortfolioSummary,
     TransactionClassificationRequest,
@@ -49,6 +58,13 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger("financial_ai")
 SessionDependency = Annotated[Session, Depends(get_session)]
 ClassifierDependency = Annotated[TransactionClassifier, Depends(get_transaction_classifier)]
+
+
+def get_market_service(session: SessionDependency) -> MarketDataService:
+    return build_market_data_service(session)
+
+
+MarketServiceDependency = Annotated[MarketDataService, Depends(get_market_service)]
 
 
 @asynccontextmanager
@@ -113,6 +129,61 @@ def health(session: SessionDependency) -> dict[str, str]:
 @app.get("/v1/market/catalog", response_model=list[CatalogAsset])
 def market_catalog() -> list[CatalogAsset]:
     return [CatalogAsset(**asset.__dict__) for asset in market_data_provider.catalog()]
+
+
+def market_error(exc: Exception) -> HTTPException:
+    if isinstance(exc, InstrumentNotFoundError):
+        return HTTPException(
+            status_code=404,
+            detail={"code": "instrument_not_found", "message": str(exc)},
+        )
+    if isinstance(exc, ValueError):
+        return HTTPException(
+            status_code=422,
+            detail={"code": "invalid_market_data_request", "message": str(exc)},
+        )
+    return HTTPException(
+        status_code=502,
+        detail={"code": "market_data_unavailable", "message": str(exc)},
+    )
+
+
+@app.get("/v1/market/instruments", response_model=list[MarketInstrumentRead])
+def search_market_instruments(
+    service: MarketServiceDependency,
+    query: Annotated[str, Query(min_length=1, max_length=80)],
+    limit: Annotated[int, Query(ge=1, le=25)] = 10,
+) -> list[MarketInstrumentRead]:
+    try:
+        return [MarketInstrumentRead.model_validate(item) for item in service.search(query, limit)]
+    except MarketDataProviderError as exc:
+        raise market_error(exc) from exc
+
+
+@app.get("/v1/market/instruments/{instrument_id}/quote", response_model=MarketQuoteRead)
+def get_market_quote(
+    instrument_id: str,
+    service: MarketServiceDependency,
+    refresh: bool = False,
+) -> MarketQuoteRead:
+    try:
+        return service.quote(instrument_id, refresh=refresh)
+    except (InstrumentNotFoundError, MarketDataProviderError) as exc:
+        raise market_error(exc) from exc
+
+
+@app.get("/v1/market/instruments/{instrument_id}/history", response_model=MarketHistoryRead)
+def get_market_history(
+    instrument_id: str,
+    service: MarketServiceDependency,
+    date_from: date | None = None,
+    date_to: date | None = None,
+    refresh: bool = False,
+) -> MarketHistoryRead:
+    try:
+        return service.history(instrument_id, date_from, date_to, refresh)
+    except (InstrumentNotFoundError, MarketDataProviderError, ValueError) as exc:
+        raise market_error(exc) from exc
 
 
 @app.get("/v1/portfolios", response_model=list[PortfolioSummary])

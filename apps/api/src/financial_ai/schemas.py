@@ -54,6 +54,42 @@ class CatalogAsset(BaseModel):
     region: str
 
 
+class MarketInstrumentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    provider: str
+    symbol: str
+    name: str
+    exchange: str
+    currency: str
+    asset_class: str
+    region: str | None
+    is_active: bool
+    updated_at: datetime
+
+
+class MarketPriceRead(BaseModel):
+    observed_on: date
+    close: Decimal
+    adjusted_close: Decimal | None
+    volume: Decimal | None
+
+
+class MarketQuoteRead(MarketPriceRead):
+    instrument: MarketInstrumentRead
+    source: str
+    retrieved_at: datetime
+    is_stale: bool
+
+
+class MarketHistoryRead(BaseModel):
+    instrument: MarketInstrumentRead
+    source: str
+    retrieved_at: datetime
+    points: list[MarketPriceRead]
+
+
 class AllocationItem(BaseModel):
     label: str
     value_eur: Decimal

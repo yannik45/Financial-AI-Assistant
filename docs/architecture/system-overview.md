@@ -40,6 +40,7 @@ React dashboard ---- /api ----> FastAPI
 | ML modules | `apps/api/src/financial_ai/ml` | Data preparation, baselines, artifact building, evaluation, and feedback lifecycle |
 | Versioned inputs | `data/market`, `data/evaluation` | ECB snapshot and frozen evaluation assets |
 | Local runtime state | `data/runtime` | SQLite, generated datasets, models, exports, and reports; ignored by Git |
+| Market-data service | `market_data_service.py` | Provider-neutral discovery, daily-price retrieval, persistent caching, provenance, and freshness |
 | Containers | `docker`, `compose.yaml` | Reproducible API and production web runtime |
 
 ## Main data flows
@@ -55,6 +56,13 @@ Security prices are deterministic synthetic data. ECB USD, GBP, and JPY
 reference rates are stored with provenance and inverted at runtime to the EUR
 conversion required by analytics. Historical risk reconstructs today's
 quantities backwards and is not actual account performance.
+
+The market-data foundation also exposes instrument search, latest daily quotes,
+and history through a provider-neutral service. Demo mode is the credential-free
+default. An optional Twelve Data adapter can retrieve external observations;
+instruments and daily prices are cached in SQLite with provider, observation,
+and retrieval timestamps. External data is not silently presented as live:
+responses expose its source and cache freshness.
 
 ### Transaction categorization
 

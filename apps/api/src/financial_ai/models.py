@@ -2,7 +2,17 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Numeric, String
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from financial_ai.database import Base
@@ -37,6 +47,57 @@ class Position(Base):
     region: Mapped[str] = mapped_column(String(40))
     currency: Mapped[str] = mapped_column(String(3))
     portfolio: Mapped[Portfolio] = relationship(back_populates="positions")
+
+
+class MarketInstrument(Base):
+    __tablename__ = "market_instruments"
+    __table_args__ = (
+        UniqueConstraint(
+            "provider",
+            "exchange",
+            "symbol",
+            name="uq_market_instrument_provider_exchange_symbol",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid4()))
+    provider: Mapped[str] = mapped_column(String(30), index=True)
+    symbol: Mapped[str] = mapped_column(String(32), index=True)
+    name: Mapped[str] = mapped_column(String(200))
+    exchange: Mapped[str] = mapped_column(String(80), default="")
+    currency: Mapped[str] = mapped_column(String(3))
+    asset_class: Mapped[str] = mapped_column(String(40))
+    region: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    discovered_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(UTC).replace(tzinfo=None)
+    )
+    prices: Mapped[list["MarketPriceObservation"]] = relationship(
+        back_populates="instrument", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class MarketPriceObservation(Base):
+    __tablename__ = "market_price_observations"
+    __table_args__ = (
+        UniqueConstraint("instrument_id", "observed_on", name="uq_market_price_instrument_date"),
+        Index("ix_market_prices_instrument_observed", "instrument_id", "observed_on"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    instrument_id: Mapped[str] = mapped_column(
+        ForeignKey("market_instruments.id", ondelete="CASCADE"), index=True
+    )
+    observed_on: Mapped[date] = mapped_column(Date)
+    close: Mapped[Decimal] = mapped_column(Numeric(20, 8))
+    adjusted_close: Mapped[Decimal | None] = mapped_column(Numeric(20, 8), nullable=True)
+    volume: Mapped[Decimal | None] = mapped_column(Numeric(24, 4), nullable=True)
+    source: Mapped[str] = mapped_column(String(30))
+    retrieved_at: Mapped[datetime] = mapped_column(DateTime)
+    instrument: Mapped[MarketInstrument] = relationship(back_populates="prices")
 
 
 class Account(Base):
