@@ -55,6 +55,11 @@ basis, P&L, allocations, return, volatility, drawdown, and concentration. A buy
 or sale therefore updates both the account ledger and the risk analytics. The
 React application receives final values and time series for presentation.
 
+A versioned deterministic risk-indicator service separates measured market
+risk from diversification quality and liquidity resilience. The response
+contains component inputs, weights, main drivers, and interpretation limits. See the
+[risk-score method](portfolio-risk-score.md).
+
 Security prices are deterministic synthetic data. ECB USD, GBP, and JPY
 reference rates are stored with provenance and inverted at runtime to the EUR
 conversion required by analytics. Historical risk reconstructs today's

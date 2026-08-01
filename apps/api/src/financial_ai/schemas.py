@@ -200,6 +200,47 @@ class SeriesPoint(BaseModel):
     value_eur: Decimal
 
 
+class RiskComponent(BaseModel):
+    key: str
+    label: str
+    score: float = Field(ge=0, le=100)
+    weight: float = Field(gt=0, le=1)
+    contribution: float = Field(ge=0, le=100)
+    raw_value: float
+    raw_unit: str
+    summary: str
+    details: dict[str, float] = Field(default_factory=dict)
+
+
+class RiskDriver(BaseModel):
+    component: str
+    contribution: float
+    explanation: str
+
+
+class RiskDimension(BaseModel):
+    key: str
+    label: str
+    score: float = Field(ge=0, le=100)
+    level: str
+    summary: str
+    details: dict[str, float] = Field(default_factory=dict)
+
+
+class PortfolioRiskScore(BaseModel):
+    score: float = Field(ge=0, le=100)
+    level: str
+    methodology_version: str
+    as_of: date
+    components: list[RiskComponent]
+    main_drivers: list[RiskDriver]
+    diversification: RiskDimension
+    liquidity_resilience: RiskDimension
+    interpretation: str
+    disclaimer: str
+    limitations: list[str]
+
+
 class AnalyticsResponse(BaseModel):
     portfolio_id: str
     as_of: date
@@ -217,6 +258,7 @@ class AnalyticsResponse(BaseModel):
     positions: list[PositionAnalytics]
     allocations: dict[str, list[AllocationItem]]
     value_series: list[SeriesPoint]
+    risk_score: PortfolioRiskScore | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
