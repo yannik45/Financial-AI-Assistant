@@ -15,7 +15,7 @@ Nothing in this repository is financial advice.
 
 | Area | Current capability |
 |---|---|
-| Portfolio analytics | Ledger-derived current holdings, valuation, allocation, P&L, return, volatility, drawdown, concentration, time series, and CSV import |
+| Portfolio analytics | Ledger-derived holdings, valuation, allocation, P&L, return, volatility, drawdown, separate market-risk, diversification, and liquidity indicators, time series, and CSV import |
 | Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Twelve Data adapter |
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
@@ -37,7 +37,9 @@ Browser -> React / Nginx -> FastAPI -> SQLite + versioned local ML artifacts
 
 See the [system overview](docs/architecture/system-overview.md) for component
 boundaries and data flows. Container details are in the
-[container architecture](docs/architecture/containerization.md).
+[container architecture](docs/architecture/containerization.md). The
+[portfolio risk-score method](docs/architecture/portfolio-risk-score.md)
+documents inputs, weights, thresholds, and interpretation limits.
 
 ## Quick start with Docker
 

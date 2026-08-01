@@ -45,6 +45,7 @@ from financial_ai.portfolio_trading import (
     PortfolioTradingError,
     PortfolioTradingService,
 )
+from financial_ai.risk_score import calculate_risk_score
 from financial_ai.schemas import (
     AccountRead,
     AnalyticsResponse,
@@ -333,7 +334,21 @@ def portfolio_analytics(
 ) -> AnalyticsResponse:
     portfolio = get_portfolio_or_404(portfolio_id, session)
     try:
-        return calculate_analytics(portfolio, market_service=market_service)
+        analytics = calculate_analytics(portfolio, market_service=market_service)
+        cash_balance = 0
+        if portfolio.account:
+            cash_balance = portfolio.account.opening_balance + sum(
+                (item.amount for item in portfolio.account.transactions), start=0
+            )
+        cash_value_eur = float(cash_balance) * market_data_provider.fx_on_or_before(
+            portfolio.base_currency, analytics.as_of
+        )
+        analytics.risk_score = calculate_risk_score(
+            analytics,
+            base_currency=portfolio.base_currency,
+            cash_value_eur=cash_value_eur,
+        )
+        return analytics
     except AnalyticsError as exc:
         raise HTTPException(
             status_code=422, detail={"code": "analytics_unavailable", "message": str(exc)}

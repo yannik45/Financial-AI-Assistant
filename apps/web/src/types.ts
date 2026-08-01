@@ -9,6 +9,38 @@ export type Portfolio = {
 };
 
 export type Allocation = { label: string; value_eur: string; weight: number };
+export type RiskComponent = {
+  key: string;
+  label: string;
+  score: number;
+  weight: number;
+  contribution: number;
+  raw_value: number;
+  raw_unit: string;
+  summary: string;
+  details: Record<string, number>;
+};
+export type RiskDimension = {
+  key: string;
+  label: string;
+  score: number;
+  level: "strong" | "adequate" | "weak";
+  summary: string;
+  details: Record<string, number>;
+};
+export type PortfolioRiskScore = {
+  score: number;
+  level: "low" | "moderate" | "elevated" | "high";
+  methodology_version: string;
+  as_of: string;
+  components: RiskComponent[];
+  main_drivers: Array<{ component: string; contribution: number; explanation: string }>;
+  diversification: RiskDimension;
+  liquidity_resilience: RiskDimension;
+  interpretation: string;
+  disclaimer: string;
+  limitations: string[];
+};
 export type Analytics = {
   portfolio_id: string;
   as_of: string;
@@ -26,6 +58,7 @@ export type Analytics = {
   positions: Array<{ symbol: string; market_value_eur: string; cost_basis_eur: string; pnl_eur: string; weight: number }>;
   allocations: Record<"asset_class" | "sector" | "region" | "currency", Allocation[]>;
   value_series: Array<{ date: string; value_eur: string }>;
+  risk_score: PortfolioRiskScore | null;
   warnings: string[];
 };
 

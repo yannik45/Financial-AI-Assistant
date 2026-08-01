@@ -18,6 +18,7 @@ import type {
   Account,
   Allocation,
   Analytics,
+  PortfolioRiskScore,
   TransactionCreate,
   TransactionFilters,
 } from "./types";
@@ -132,6 +133,7 @@ function Dashboard({ analytics }: { analytics: Analytics }) {
   const positive = Number(analytics.unrealized_pnl_eur) >= 0;
   return (
     <>
+      {analytics.risk_score ? <RiskScorePanel risk={analytics.risk_score} /> : null}
       <div className="metrics-grid">
         <MetricCard
           label="Portfolio value"
@@ -248,6 +250,61 @@ function Dashboard({ analytics }: { analytics: Analytics }) {
   );
 }
 
+function RiskScorePanel({ risk }: { risk: PortfolioRiskScore }) {
+  const levelLabel = risk.level.replace("_", " ");
+  return (
+    <section className={`panel risk-score-panel risk-${risk.level}`}>
+      <div className="risk-score-summary">
+        <div className="risk-score-value">
+          <span className="eyebrow">MARKET RISK INDICATOR</span>
+          <strong>{risk.score.toFixed(1)}</strong>
+          <small>/ 100 · {levelLabel}</small>
+        </div>
+        <div className="risk-drivers">
+          <span className="eyebrow">MAIN DRIVERS</span>
+          {risk.main_drivers.map((driver) => (
+            <p key={driver.component}>
+              <b>+{driver.contribution.toFixed(1)}</b>
+              <span>{driver.explanation}</span>
+            </p>
+          ))}
+        </div>
+      </div>
+      <p className="risk-interpretation">{risk.interpretation}</p>
+      <div className="risk-dimensions">
+        {[risk.diversification, risk.liquidity_resilience].map((dimension) => (
+          <article key={dimension.key} className={`quality-${dimension.level}`}>
+            <span className="eyebrow">{dimension.label}</span>
+            <div><strong>{dimension.score.toFixed(0)}</strong><b>{dimension.level}</b></div>
+            <div className="quality-track" aria-label={`${dimension.label} ${dimension.score.toFixed(0)} out of 100`}><i style={{ width: `${dimension.score}%` }} /></div>
+            <small>{dimension.summary}</small>
+          </article>
+        ))}
+      </div>
+      <div className="risk-components">
+        {risk.components.map((component) => (
+          <article key={component.key}>
+            <div>
+              <b>{component.label}</b>
+              <span>{component.score.toFixed(1)} / 100 · {(component.weight * 100).toFixed(0)}% weight</span>
+            </div>
+            <div className="risk-track" aria-label={`${component.label} score ${component.score.toFixed(1)} out of 100`}>
+              <i style={{ width: `${component.score}%` }} />
+            </div>
+            <small>{component.summary}</small>
+          </article>
+        ))}
+      </div>
+      <details className="risk-methodology">
+        <summary>Methodology and limitations</summary>
+        <p>{risk.disclaimer}</p>
+        <ul>{risk.limitations.map((item) => <li key={item}>{item}</li>)}</ul>
+        <small>{risk.methodology_version} · As of {risk.as_of}</small>
+      </details>
+    </section>
+  );
+}
+
 function AddTransactionModal({
   accounts,
   initialAccountId,
@@ -302,12 +359,14 @@ function AddTransactionModal({
   const mutation = useMutation({
     mutationFn: () =>
       api.createTransaction({ ...form, category_confirmed: categoryEdited }),
-    onSuccess: async () => {
-      await Promise.all([
+    onSuccess: () => {
+      onClose();
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["transactions"] }),
         queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["portfolio-overview"] }),
+        queryClient.invalidateQueries({ queryKey: ["analytics"] }),
       ]);
-      onClose();
     },
   });
   const update = (key: keyof TransactionCreate, value: string) =>

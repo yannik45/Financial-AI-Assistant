@@ -157,6 +157,56 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     ],
     warnings: ["Simulation only: no real order is placed."],
   };
+  const analytics = {
+    portfolio_id: "portfolio-id",
+    as_of: "2026-06-30",
+    data_version: "test-v1",
+    market_value_eur: "440.00",
+    cost_basis_eur: "400.00",
+    unrealized_pnl_eur: "40.00",
+    unrealized_pnl_percent: 10,
+    trailing_return_percent: 5,
+    annualized_volatility_percent: 12,
+    max_drawdown_percent: -9,
+    concentration_hhi: 1,
+    largest_position_symbol: "WORLD-ETF",
+    largest_position_weight: 1,
+    positions: [],
+    allocations: { asset_class: [], sector: [], region: [], currency: [] },
+    value_series: [],
+    warnings: [],
+    risk_score: {
+      score: 58.4,
+      level: "moderate",
+      methodology_version: "portfolio-risk-score-v2",
+      as_of: "2026-06-30",
+      components: [
+        {
+          key: "volatility",
+          label: "Market volatility",
+          score: 48,
+          weight: 0.55,
+          contribution: 26.4,
+          raw_value: 12,
+          raw_unit: "% annualized",
+          summary: "Annualized volatility is 12.0%.",
+          details: {},
+        },
+      ],
+      main_drivers: [
+        {
+          component: "volatility",
+          contribution: 26.4,
+          explanation: "Annualized volatility is 12.0%.",
+        },
+      ],
+      diversification: { key: "diversification", label: "Diversification quality", score: 75, level: "strong", summary: "Broad-market exposure receives a limited look-through credit.", details: {} },
+      liquidity_resilience: { key: "liquidity_resilience", label: "Liquidity resilience", score: 20, level: "weak", summary: "Brokerage cash is 0.0% of total equity.", details: {} },
+      interpretation: "The portfolio has moderate measured market risk and strong diversification.",
+      disclaimer: "Heuristic market-risk indicator; not investment advice.",
+      limitations: ["Historical observations cannot predict future losses."],
+    },
+  };
   vi.mocked(fetch).mockImplementation((input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     if (url.includes("/v1/market/instruments?")) return jsonResponse([instrument]);
@@ -169,11 +219,14 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
       return jsonResponse(overview);
     }
     if (url.endsWith("/v1/portfolios")) return jsonResponse([summary]);
-    if (url.endsWith("/v1/portfolios/portfolio-id/analytics")) return jsonResponse(null);
+    if (url.endsWith("/v1/portfolios/portfolio-id/analytics")) return jsonResponse(analytics);
     return jsonResponse([]);
   });
 
   renderApp();
+  expect(await screen.findByText("58.4")).toBeInTheDocument();
+  expect(screen.getByText("Diversification quality")).toBeInTheDocument();
+  expect(screen.getByText("Market volatility")).toBeInTheDocument();
   expect(await screen.findByText("2026-08-01")).toBeInTheDocument();
   expect(screen.getByText("Price observed 2026-06-30")).toBeInTheDocument();
   fireEvent.click(await screen.findByRole("button", { name: "Buy more" }));

@@ -154,6 +154,7 @@ def test_buy_and_sell_update_portfolio_risk_analytics(client):
         "EURO-BOND",
     }
     assert diversified_payload["concentration_hhi"] < 1
+    assert diversified_payload["risk_score"]["methodology_version"] == "portfolio-risk-score-v2"
 
     assert (
         order(client, portfolio["id"], bonds["id"], "sell", "10", "sell-bonds").status_code == 201
@@ -165,6 +166,10 @@ def test_buy_and_sell_update_portfolio_risk_analytics(client):
     assert [item["symbol"] for item in concentrated_payload["positions"]] == ["WORLD-ETF"]
     assert concentrated_payload["concentration_hhi"] == 1
     assert concentrated_payload["largest_position_weight"] == 1
+    assert (
+        concentrated_payload["risk_score"]["diversification"]["score"]
+        < diversified_payload["risk_score"]["diversification"]["score"]
+    )
     assert (
         concentrated_payload["annualized_volatility_percent"]
         != diversified_payload["annualized_volatility_percent"]
