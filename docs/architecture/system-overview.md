@@ -65,12 +65,13 @@ reference rates are stored with provenance and inverted at runtime to the EUR
 conversion required by analytics. Historical risk reconstructs today's
 quantities backwards and is not actual account performance.
 
-The market-data foundation also exposes instrument search, latest daily quotes,
-and history through a provider-neutral service. Demo mode is the credential-free
-default. An optional Twelve Data adapter can retrieve external observations;
-instruments and daily prices are cached in SQLite with provider, observation,
-and retrieval timestamps. External data is not silently presented as live:
-responses expose its source and cache freshness.
+The market-data foundation exposes instrument search, latest daily quotes, and
+history through a provider-neutral service. Each portfolio permanently selects
+credential-free `demo` data or `external` Alpaca observations. US company names
+remain discoverable through the keyless SEC catalog. Instruments and a bounded
+daily history are cached in SQLite with provider, observation, and retrieval
+timestamps. External data is not silently presented as live: the UI and API
+expose its source and cache freshness, while all orders remain simulated.
 
 ### Transaction categorization
 
@@ -87,7 +88,7 @@ versions, and review state are stored for auditability.
 
 Trading is part of the selected portfolio rather than a separate portfolio
 domain. Every portfolio links to one brokerage account. A user selects an
-instrument discovered through the configured market-data provider; the backend
+instrument discovered through that portfolio's market-data provider; the backend
 obtains the latest cached daily close and records the simulated order as a
 regular security transaction. The browser cannot supply an execution price.
 

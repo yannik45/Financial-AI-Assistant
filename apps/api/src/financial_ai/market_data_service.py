@@ -68,11 +68,13 @@ class DemoProviderAdapter:
 
     def search(self, query: str, limit: int) -> list[ProviderInstrument]:
         normalized = query.casefold().strip()
-        matches = [
-            asset
-            for asset in self._provider.catalog()
-            if normalized in asset.symbol.casefold() or normalized in asset.name.casefold()
-        ]
+        matches = self._provider.catalog()
+        if normalized != "*":
+            matches = [
+                asset
+                for asset in matches
+                if normalized in asset.symbol.casefold() or normalized in asset.name.casefold()
+            ]
         return [
             ProviderInstrument(
                 symbol=asset.symbol,
@@ -106,50 +108,136 @@ class DemoProviderAdapter:
         ]
 
 
-class TwelveDataProvider:
-    name = "twelve_data"
-    base_url = "https://api.twelvedata.com"
+class AlpacaProvider:
+    """US asset discovery and adjusted daily bars with a keyless SEC search fallback."""
 
-    def __init__(self, api_key: str, client: httpx.Client | None = None) -> None:
-        if not api_key.strip():
-            raise ValueError("Twelve Data requires a non-empty API key")
-        self._api_key = api_key
-        self._client = client or httpx.Client(base_url=self.base_url, timeout=15.0)
+    name = "alpaca"
+    data_url = "https://data.alpaca.markets"
+    trading_url = "https://paper-api.alpaca.markets"
+    sec_url = "https://www.sec.gov"
 
-    def _get(self, path: str, params: dict[str, str | int]) -> dict[str, object]:
+    def __init__(
+        self,
+        api_key: str | None,
+        secret_key: str | None,
+        *,
+        data_client: httpx.Client | None = None,
+        trading_client: httpx.Client | None = None,
+        sec_client: httpx.Client | None = None,
+        sec_user_agent: str,
+    ) -> None:
+        self._api_key = api_key.strip() if api_key else None
+        self._secret_key = secret_key.strip() if secret_key else None
+        if bool(self._api_key) != bool(self._secret_key):
+            raise ValueError("Alpaca requires both API key and secret key")
+        self._data_client = data_client or httpx.Client(base_url=self.data_url, timeout=20.0)
+        self._trading_client = trading_client or httpx.Client(
+            base_url=self.trading_url, timeout=20.0
+        )
+        self._sec_client = sec_client or httpx.Client(base_url=self.sec_url, timeout=20.0)
+        self._sec_headers = {"User-Agent": sec_user_agent}
+        self._catalog: list[ProviderInstrument] | None = None
+
+    @property
+    def configured(self) -> bool:
+        return bool(self._api_key and self._secret_key)
+
+    def _alpaca_headers(self) -> dict[str, str]:
+        if not self.configured:
+            raise MarketDataProviderError(
+                "Alpaca credentials are required for external price history"
+            )
+        return {
+            "APCA-API-KEY-ID": self._api_key or "",
+            "APCA-API-SECRET-KEY": self._secret_key or "",
+        }
+
+    @staticmethod
+    def _payload(response: httpx.Response, provider: str) -> object:
         try:
-            response = self._client.get(path, params={**params, "apikey": self._api_key})
             response.raise_for_status()
-            payload = response.json()
+            return response.json()
         except (httpx.HTTPError, ValueError) as exc:
-            raise MarketDataProviderError("Twelve Data request failed") from exc
-        if not isinstance(payload, dict):
-            raise MarketDataProviderError("Twelve Data returned an invalid response")
-        if payload.get("status") == "error" or "code" in payload:
-            message = str(payload.get("message", "Twelve Data rejected the request"))
-            raise MarketDataProviderError(message)
-        return payload
+            if response.status_code == 429:
+                raise MarketDataProviderError(f"{provider} rate limit reached") from exc
+            try:
+                error_payload = response.json()
+            except ValueError:
+                error_payload = None
+            message = error_payload.get("message") if isinstance(error_payload, dict) else None
+            detail = f": {message}" if isinstance(message, str) and message else ""
+            raise MarketDataProviderError(f"{provider} request failed{detail}") from exc
 
     def search(self, query: str, limit: int) -> list[ProviderInstrument]:
-        payload = self._get("/symbol_search", {"symbol": query, "outputsize": limit})
-        data = payload.get("data", [])
-        if not isinstance(data, list):
-            raise MarketDataProviderError("Twelve Data search response is invalid")
+        normalized = query.casefold().strip()
+        if self._catalog is None:
+            self._catalog = (
+                self._load_alpaca_catalog() if self.configured else self._load_sec_catalog()
+            )
+        matches = [
+            item
+            for item in self._catalog
+            if normalized in item.symbol.casefold() or normalized in item.name.casefold()
+        ]
+        matches.sort(
+            key=lambda item: (
+                not item.symbol.casefold().startswith(normalized),
+                not item.name.casefold().startswith(normalized),
+                item.symbol,
+            )
+        )
+        return matches[:limit]
+
+    def _load_alpaca_catalog(self) -> list[ProviderInstrument]:
+        try:
+            response = self._trading_client.get(
+                "/v2/assets",
+                params={"status": "active", "asset_class": "us_equity"},
+                headers=self._alpaca_headers(),
+            )
+        except httpx.HTTPError as exc:
+            raise MarketDataProviderError("Alpaca asset catalog request failed") from exc
+        payload = self._payload(response, "Alpaca")
+        if not isinstance(payload, list):
+            raise MarketDataProviderError("Alpaca returned an invalid asset catalog")
         results: list[ProviderInstrument] = []
-        for item in data[:limit]:
-            if not isinstance(item, dict) or not item.get("symbol") or not item.get("currency"):
+        for item in payload:
+            if not isinstance(item, dict) or not item.get("symbol") or not item.get("name"):
                 continue
             results.append(
                 ProviderInstrument(
                     symbol=str(item["symbol"]).upper(),
-                    name=str(item.get("instrument_name") or item["symbol"]),
+                    name=str(item["name"]),
                     exchange=str(item["exchange"]) if item.get("exchange") else None,
-                    currency=str(item["currency"]).upper(),
-                    asset_class=str(item.get("instrument_type") or "Equity"),
-                    region=str(item["country"]) if item.get("country") else None,
+                    currency="USD",
+                    asset_class="US Equity",
+                    region="United States",
                 )
             )
         return results
+
+    def _load_sec_catalog(self) -> list[ProviderInstrument]:
+        try:
+            response = self._sec_client.get(
+                "/files/company_tickers.json", headers=self._sec_headers
+            )
+        except httpx.HTTPError as exc:
+            raise MarketDataProviderError("SEC company catalog request failed") from exc
+        payload = self._payload(response, "SEC")
+        if not isinstance(payload, dict):
+            raise MarketDataProviderError("SEC returned an invalid company catalog")
+        return [
+            ProviderInstrument(
+                symbol=str(item["ticker"]).upper(),
+                name=str(item["title"]),
+                exchange=None,
+                currency="USD",
+                asset_class="US Equity",
+                region="United States",
+            )
+            for item in payload.values()
+            if isinstance(item, dict) and item.get("ticker") and item.get("title")
+        ]
 
     def history(
         self,
@@ -158,50 +246,69 @@ class TwelveDataProvider:
         date_from: date | None = None,
         date_to: date | None = None,
     ) -> list[ProviderPrice]:
+        del exchange
+        normalized = symbol.upper()
+        today = datetime.now(UTC).date()
+        start = date_from or (today - timedelta(days=600))
+        end = date_to or today
         params: dict[str, str | int] = {
-            "symbol": symbol.upper(),
-            "interval": "1day",
-            "order": "ASC",
-            "outputsize": 5000,
-            "timezone": "UTC",
+            "symbols": normalized,
+            "timeframe": "1Day",
+            "start": start.isoformat(),
+            "end": end.isoformat(),
             "adjustment": "all",
+            "feed": "iex",
+            "sort": "asc",
+            "limit": 10000,
         }
-        if exchange:
-            params["exchange"] = exchange
-        if date_from:
-            params["start_date"] = date_from.isoformat()
-        if date_to:
-            params["end_date"] = date_to.isoformat()
-        payload = self._get("/time_series", params)
-        values = payload.get("values", [])
-        if not isinstance(values, list):
-            raise MarketDataProviderError("Twelve Data history response is invalid")
         points: list[ProviderPrice] = []
-        for item in values:
-            if not isinstance(item, dict) or not item.get("datetime") or not item.get("close"):
-                continue
-            points.append(
-                ProviderPrice(
-                    observed_on=date.fromisoformat(str(item["datetime"])[:10]),
-                    close=Decimal(str(item["close"])),
-                    volume=Decimal(str(item["volume"])) if item.get("volume") else None,
+        page_token: str | None = None
+        while True:
+            if page_token:
+                params["page_token"] = page_token
+            try:
+                response = self._data_client.get(
+                    "/v2/stocks/bars", params=params, headers=self._alpaca_headers()
                 )
-            )
+            except httpx.HTTPError as exc:
+                raise MarketDataProviderError("Alpaca price history request failed") from exc
+            payload = self._payload(response, "Alpaca")
+            if not isinstance(payload, dict):
+                raise MarketDataProviderError("Alpaca returned invalid price history")
+            bars_by_symbol = payload.get("bars", {})
+            bars = bars_by_symbol.get(normalized, []) if isinstance(bars_by_symbol, dict) else []
+            for item in bars:
+                if not isinstance(item, dict) or not item.get("t") or item.get("c") is None:
+                    continue
+                close = Decimal(str(item["c"]))
+                points.append(
+                    ProviderPrice(
+                        observed_on=date.fromisoformat(str(item["t"])[:10]),
+                        close=close,
+                        adjusted_close=close,
+                        volume=Decimal(str(item["v"])) if item.get("v") is not None else None,
+                    )
+                )
+            page_token = str(payload["next_page_token"]) if payload.get("next_page_token") else None
+            if not page_token:
+                break
         if not points:
-            raise InstrumentNotFoundError(f"No daily prices found for {symbol.upper()}")
+            raise InstrumentNotFoundError(f"No daily prices found for {normalized}")
         return points
 
 
 @lru_cache
-def get_market_data_provider() -> MarketDataProvider:
+def get_market_data_provider(mode: str = "demo") -> MarketDataProvider:
     settings = get_settings()
-    if settings.market_data_provider == "demo":
+    if mode == "demo":
         return DemoProviderAdapter()
-    if not settings.market_data_api_key:
-        raise RuntimeError(
-            "FINANCIAL_AI_MARKET_DATA_API_KEY is required when Twelve Data is configured"
-        )
-    return TwelveDataProvider(settings.market_data_api_key)
+    if mode != "external":
+        raise ValueError(f"Unsupported market-data mode: {mode}")
+    return AlpacaProvider(
+        settings.alpaca_api_key,
+        settings.alpaca_secret_key,
+        sec_user_agent=settings.sec_user_agent,
+    )
 
 
 ProviderFactory = Callable[[], MarketDataProvider]
@@ -221,12 +328,18 @@ class MarketDataService:
         self._session.commit()
         return instruments
 
-    def quote(self, instrument_id: str, refresh: bool = False) -> MarketQuoteRead:
+    def quote(
+        self, instrument_id: str, refresh: bool = False, allow_stale: bool = True
+    ) -> MarketQuoteRead:
         instrument = self._get_instrument(instrument_id)
         latest = self._latest(instrument.id)
         if refresh or latest is None or self._is_stale(latest.retrieved_at):
-            self._refresh(instrument)
-            latest = self._latest(instrument.id)
+            try:
+                self._refresh(instrument)
+                latest = self._latest(instrument.id)
+            except MarketDataProviderError:
+                if latest is None or refresh or not allow_stale:
+                    raise
         if latest is None:
             raise InstrumentNotFoundError(f"No price is available for {instrument.symbol}")
         return MarketQuoteRead(
@@ -352,10 +465,10 @@ class MarketDataService:
         return datetime.now(UTC).replace(tzinfo=None) - retrieved_at > self._cache_ttl
 
 
-def build_market_data_service(session: Session) -> MarketDataService:
+def build_market_data_service(session: Session, mode: str = "demo") -> MarketDataService:
     settings = get_settings()
     return MarketDataService(
         session=session,
-        provider=get_market_data_provider(),
+        provider=get_market_data_provider(mode),
         cache_hours=settings.market_data_cache_hours,
     )

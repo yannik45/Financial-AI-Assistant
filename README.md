@@ -16,7 +16,7 @@ Nothing in this repository is financial advice.
 | Area | Current capability |
 |---|---|
 | Portfolio analytics | Ledger-derived holdings, valuation, allocation, P&L, return, volatility, drawdown, separate market-risk, diversification, and liquidity indicators, time series, and CSV import |
-| Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Twelve Data adapter |
+| Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Alpaca adapter |
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
@@ -94,11 +94,16 @@ This fallback cannot install or update dependencies. Copy `.env.example` to
 `.env` for backend overrides and `apps/web/.env.example` to `apps/web/.env` for
 frontend overrides. Do not commit secrets.
 
-The default `demo` market-data provider requires no credentials and keeps tests
-reproducible. To explore real instruments through Twelve Data, set
-`FINANCIAL_AI_MARKET_DATA_PROVIDER=twelve_data` and provide
-`FINANCIAL_AI_MARKET_DATA_API_KEY`. External data remains subject to the
-provider's plan, freshness, and usage terms; API keys stay server-side.
+Demo portfolios require no credentials and keep tests reproducible. To enable
+the `External market data` option for a new paper portfolio, copy `.env.example`
+to `.env` and set `FINANCIAL_AI_ALPACA_API_KEY` plus
+`FINANCIAL_AI_ALPACA_SECRET_KEY`. Docker Compose reads that local file and passes
+the values only to the API container; neither the browser nor the repository
+contains the credentials. Search and adjusted daily bars then come from Alpaca
+while orders remain simulated. A keyless SEC company catalog supports US stock
+discovery without price access. Reviewers without credentials can use every demo
+workflow. External data remains subject to the provider's plan, freshness,
+licensing, and usage terms.
 
 Each portfolio owns one brokerage account. Orders are priced by the backend
 from the latest cached daily close and stored as regular signed ledger

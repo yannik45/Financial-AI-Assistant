@@ -86,17 +86,19 @@ def test_partial_sale_updates_average_cost_and_realized_pnl(client):
 def test_orders_reject_insufficient_cash_and_holdings_but_convert_foreign_currency(client):
     eur = discover(client, "world", "WORLD-ETF")
     usd = discover(client, "US Technology Demo A", "US-TECH-A")
-    portfolio = create_portfolio(client, cash="100.00")
+    portfolio = create_portfolio(client, cash="1000.00")
 
     too_expensive = order(client, portfolio["id"], eur["id"], "buy", "100", "buy-1")
     short_sale = order(client, portfolio["id"], eur["id"], "sell", "1", "sell-1")
-    foreign_buy = order(client, portfolio["id"], usd["id"], "buy", "0.1", "buy-2")
-    foreign_sell = order(client, portfolio["id"], usd["id"], "sell", "0.1", "sell-2")
+    fractional_buy = order(client, portfolio["id"], usd["id"], "buy", "0.1", "fractional")
+    foreign_buy = order(client, portfolio["id"], usd["id"], "buy", "1", "buy-2")
+    foreign_sell = order(client, portfolio["id"], usd["id"], "sell", "1", "sell-2")
 
     assert too_expensive.status_code == 409
     assert too_expensive.json()["detail"]["code"] == "insufficient_cash"
     assert short_sale.status_code == 409
     assert short_sale.json()["detail"]["code"] == "insufficient_holdings"
+    assert fractional_buy.status_code == 422
     assert foreign_buy.status_code == 201
     assert foreign_buy.json()["instrument_currency"] == "USD"
     assert foreign_buy.json()["currency"] == "EUR"

@@ -719,9 +719,21 @@ function PortfolioView() {
   const queryClient = useQueryClient();
   const [selected, setSelected] = useState("");
   const [showImport, setShowImport] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
+  const [startingCash, setStartingCash] = useState("10000");
+  const [marketDataMode, setMarketDataMode] = useState<"demo" | "external">(
+    "demo",
+  );
   const [file, setFile] = useState<File | null>(null);
   const portfolios = useQuery({ queryKey: ["portfolios"], queryFn: api.portfolios });
+  const marketStatus = useQuery({
+    queryKey: ["market-data-status"],
+    queryFn: api.marketDataStatus,
+  });
+  const selectedPortfolio = portfolios.data?.find(
+    (portfolio) => portfolio.id === selected,
+  );
   useEffect(() => {
     if (!selected && portfolios.data?.length) setSelected(portfolios.data[0].id);
   }, [portfolios.data, selected]);
@@ -738,6 +750,23 @@ function PortfolioView() {
       setShowImport(false);
       setName("");
       setFile(null);
+    },
+  });
+  const creator = useMutation({
+    mutationFn: () =>
+      api.createPortfolio({
+        name,
+        base_currency: "EUR",
+        starting_cash: startingCash,
+        market_data_mode: marketDataMode,
+      }),
+    onSuccess: async (portfolio) => {
+      await queryClient.invalidateQueries({ queryKey: ["portfolios"] });
+      setSelected(portfolio.id);
+      setShowCreate(false);
+      setName("");
+      setStartingCash("10000");
+      setMarketDataMode("demo");
     },
   });
 
@@ -761,12 +790,23 @@ function PortfolioView() {
               </option>
             ))}
           </select>
+          <button className="secondary" onClick={() => setShowCreate(true)}>
+            New portfolio
+          </button>
           <button onClick={() => setShowImport(true)}>Import CSV</button>
         </div>
       </header>
       <div className="demo-banner">
-        <b>SYNTHETIC DEMO MARKET DATA</b>
-        <span>Educational use only · Not financial advice</span>
+        <b>
+          {selectedPortfolio?.market_data_mode === "external"
+            ? "ALPACA DATA · SIMULATED PORTFOLIO"
+            : "SYNTHETIC DEMO MARKET DATA"}
+        </b>
+        <span>
+          {selectedPortfolio?.market_data_mode === "external"
+            ? "External observations · No real orders"
+            : "Deterministic observations · No real orders"}
+        </span>
       </div>
       {portfolios.isError && (
         <div className="error">Could not reach the API. Start the FastAPI service on port 8000.</div>
@@ -775,6 +815,80 @@ function PortfolioView() {
       {analytics.isError && <div className="error">{analytics.error.message}</div>}
       {analytics.data && <Dashboard analytics={analytics.data} />}
       {selected && <PortfolioTradingPanel portfolioId={selected} />}
+      {showCreate && (
+        <div className="modal-backdrop" onMouseDown={() => setShowCreate(false)}>
+          <form
+            className="modal"
+            onSubmit={(event) => {
+              event.preventDefault();
+              creator.mutate();
+            }}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <span className="eyebrow">NEW PAPER PORTFOLIO</span>
+            <h2>Choose the market-data source</h2>
+            <label>
+              Portfolio name
+              <input
+                required
+                maxLength={120}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="My market portfolio"
+              />
+            </label>
+            <label>
+              Starting cash (EUR)
+              <input
+                required
+                min="1"
+                step="0.01"
+                type="number"
+                value={startingCash}
+                onChange={(event) => setStartingCash(event.target.value)}
+              />
+            </label>
+            <label>
+              Market data
+              <select
+                value={marketDataMode}
+                onChange={(event) =>
+                  setMarketDataMode(event.target.value as "demo" | "external")
+                }
+              >
+                <option value="demo">Deterministic demo data</option>
+                <option
+                  value="external"
+                  disabled={!marketStatus.data?.external_available}
+                >
+                  Alpaca
+                  {marketStatus.data?.external_available
+                    ? ""
+                    : " · backend credentials required"}
+                </option>
+              </select>
+            </label>
+            <p>
+              {marketDataMode === "external"
+                ? "Search and adjusted daily bars come from Alpaca. Orders remain simulated."
+                : "No API key is required and all prices remain reproducible."}
+            </p>
+            {creator.isError && <div className="error">{creator.error.message}</div>}
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setShowCreate(false)}
+              >
+                Cancel
+              </button>
+              <button disabled={!name || creator.isPending}>
+                {creator.isPending ? "Creating…" : "Create portfolio"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       {showImport && (
         <div className="modal-backdrop" onMouseDown={() => setShowImport(false)}>
           <form

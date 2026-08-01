@@ -35,7 +35,13 @@ from financial_ai.ml.transaction_classification import (
     determine_feedback_status,
     route_transaction_text,
 )
-from financial_ai.models import Account, Portfolio, Transaction, TransactionClassificationRecord
+from financial_ai.models import (
+    Account,
+    MarketInstrument,
+    Portfolio,
+    Transaction,
+    TransactionClassificationRecord,
+)
 from financial_ai.portfolio_trading import (
     CurrencyMismatchError,
     IdempotencyConflictError,
@@ -50,6 +56,7 @@ from financial_ai.schemas import (
     AccountRead,
     AnalyticsResponse,
     CatalogAsset,
+    MarketDataStatus,
     MarketHistoryRead,
     MarketInstrumentRead,
     MarketQuoteRead,
@@ -74,17 +81,10 @@ SessionDependency = Annotated[Session, Depends(get_session)]
 ClassifierDependency = Annotated[TransactionClassifier, Depends(get_transaction_classifier)]
 
 
-def get_market_service(session: SessionDependency) -> MarketDataService:
-    return build_market_data_service(session)
-
-
-MarketServiceDependency = Annotated[MarketDataService, Depends(get_market_service)]
-
-
 def get_portfolio_trading_service(
-    session: SessionDependency, market_service: MarketServiceDependency
+    session: SessionDependency,
 ) -> PortfolioTradingService:
-    return PortfolioTradingService(session, market_service)
+    return PortfolioTradingService(session)
 
 
 PortfolioTradingDependency = Annotated[
@@ -175,23 +175,42 @@ def market_error(exc: Exception) -> HTTPException:
 
 @app.get("/v1/market/instruments", response_model=list[MarketInstrumentRead])
 def search_market_instruments(
-    service: MarketServiceDependency,
+    session: SessionDependency,
     query: Annotated[str, Query(min_length=1, max_length=80)],
     limit: Annotated[int, Query(ge=1, le=25)] = 10,
+    mode: Literal["demo", "external"] = "demo",
 ) -> list[MarketInstrumentRead]:
     try:
+        service = build_market_data_service(session, mode)
         return [MarketInstrumentRead.model_validate(item) for item in service.search(query, limit)]
-    except MarketDataProviderError as exc:
+    except (MarketDataProviderError, RuntimeError) as exc:
         raise market_error(exc) from exc
+
+
+@app.get("/v1/market/status", response_model=MarketDataStatus)
+def market_data_status() -> MarketDataStatus:
+    settings = get_settings()
+    return MarketDataStatus(
+        external_available=bool(settings.alpaca_api_key and settings.alpaca_secret_key)
+    )
+
+
+def market_service_for_instrument(session: Session, instrument_id: str) -> MarketDataService:
+    instrument = session.get(MarketInstrument, instrument_id)
+    if instrument is None:
+        raise InstrumentNotFoundError(f"Unknown instrument: {instrument_id}")
+    mode = "demo" if instrument.provider == "demo" else "external"
+    return build_market_data_service(session, mode)
 
 
 @app.get("/v1/market/instruments/{instrument_id}/quote", response_model=MarketQuoteRead)
 def get_market_quote(
     instrument_id: str,
-    service: MarketServiceDependency,
+    session: SessionDependency,
     refresh: bool = False,
 ) -> MarketQuoteRead:
     try:
+        service = market_service_for_instrument(session, instrument_id)
         return service.quote(instrument_id, refresh=refresh)
     except (InstrumentNotFoundError, MarketDataProviderError) as exc:
         raise market_error(exc) from exc
@@ -200,12 +219,13 @@ def get_market_quote(
 @app.get("/v1/market/instruments/{instrument_id}/history", response_model=MarketHistoryRead)
 def get_market_history(
     instrument_id: str,
-    service: MarketServiceDependency,
+    session: SessionDependency,
     date_from: date | None = None,
     date_to: date | None = None,
     refresh: bool = False,
 ) -> MarketHistoryRead:
     try:
+        service = market_service_for_instrument(session, instrument_id)
         return service.history(instrument_id, date_from, date_to, refresh)
     except (InstrumentNotFoundError, MarketDataProviderError, ValueError) as exc:
         raise market_error(exc) from exc
@@ -236,7 +256,12 @@ def portfolio_trading_error(exc: PortfolioTradingError) -> HTTPException:
 def create_portfolio(
     payload: PortfolioCreate, service: PortfolioTradingDependency
 ) -> TradingPortfolioRead:
-    return service.create_portfolio(payload)
+    try:
+        return service.create_portfolio(payload)
+    except PortfolioTradingError as exc:
+        raise portfolio_trading_error(exc) from exc
+    except (MarketDataProviderError, RuntimeError) as exc:
+        raise market_error(exc) from exc
 
 
 @app.get("/v1/portfolios/{portfolio_id}/overview", response_model=TradingPortfolioRead)
@@ -278,6 +303,7 @@ def list_portfolios(session: SessionDependency) -> list[PortfolioSummary]:
             name=portfolio.name,
             base_currency=portfolio.base_currency,
             kind=portfolio.kind,
+            market_data_mode=portfolio.market_data_mode,
             created_at=portfolio.created_at,
             position_count=len(portfolio.positions),
             account_id=portfolio.account_id,
@@ -330,11 +356,13 @@ async def import_portfolio(
 def portfolio_analytics(
     portfolio_id: str,
     session: SessionDependency,
-    market_service: MarketServiceDependency,
 ) -> AnalyticsResponse:
     portfolio = get_portfolio_or_404(portfolio_id, session)
     try:
-        analytics = calculate_analytics(portfolio, market_service=market_service)
+        analytics = calculate_analytics(
+            portfolio,
+            market_service=build_market_data_service(session, portfolio.market_data_mode),
+        )
         cash_balance = 0
         if portfolio.account:
             cash_balance = portfolio.account.opening_balance + sum(
