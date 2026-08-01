@@ -182,7 +182,7 @@ frozen results relevant to review are recorded in this document.
 - Selective accuracy is measured on the same development benchmark and will
   need confirmation on independently collected data.
 
-This version freezes classification feature work. Reviewed feedback may later
-be exported into a versioned offline dataset, but it must not trigger automatic
-online retraining. The next planned major feature is transaction fraud/risk
-scoring, followed by containerization work.
+This version freezes classification feature work. Reviewed feedback can enter
+the guarded offline candidate lifecycle, but must not trigger automatic online
+retraining. Containerization is complete; the next planned ML feature is
+transaction fraud/risk scoring.
