@@ -1,18 +1,67 @@
 # Financial AI Assistant
 
-Local-first financial intelligence portfolio project with deterministic
-portfolio analytics, a transaction ledger, an experimental bilingual category
-classifier, a FastAPI API, and a React dashboard. Market prices, portfolios,
-transactions, and ML training data are synthetic; bundled ECB FX observations
-are the only stored real market reference data.
+A production-oriented portfolio project for deterministic financial analytics
+and applied ML. It combines a FastAPI backend, React dashboard, SQLite ledger,
+bilingual transaction categorization, guarded feedback lifecycle, and a
+reproducible Docker Compose stack.
 
-## Prerequisites
+The project demonstrates production-oriented architecture and engineering
+practices, but is not currently intended for production use or real customer
+data. Security prices, demo portfolios, transactions, and ML training data are
+synthetic. The stored ECB FX snapshot is the only real market reference data.
+Nothing in this repository is financial advice.
 
-- Python 3.12 and [uv](https://docs.astral.sh/uv/) for initial dependency setup
-- Node.js 22 or newer and npm
-- Docker with Compose for the containerized workflow
+## What is implemented
 
-## Run locally
+| Area | Current capability |
+|---|---|
+| Portfolio analytics | Valuation, allocation, P&L, return, volatility, drawdown, concentration, time series, and CSV portfolio import |
+| Transaction ledger | Checking, savings, and brokerage accounts; filters and manual transaction entry |
+| Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
+| ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
+| Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
+
+Financial metrics are calculated only by deterministic backend code. A future
+LLM may select tested tools and explain their output, but must never calculate
+financial metrics itself. RAG and LLM integration are not implemented yet.
+
+## Architecture
+
+```text
+Browser -> React / Nginx -> FastAPI -> SQLite + versioned local ML artifacts
+                              |----> deterministic portfolio analytics
+                              `----> rules + bilingual expense classifier
+```
+
+See the [system overview](docs/architecture/system-overview.md) for component
+boundaries and data flows. Container details are in the
+[container architecture](docs/architecture/containerization.md).
+
+## Quick start with Docker
+
+Requires Docker with Compose:
+
+```powershell
+docker compose up --build --wait
+```
+
+- Dashboard: `http://localhost:5173`
+- API health: `http://localhost:8000/health`
+- OpenAPI documentation: `http://localhost:8000/docs`
+
+Stop the stack without deleting its database or model artifacts:
+
+```powershell
+docker compose down
+```
+
+`docker compose down --volumes` also permanently removes the
+container-managed runtime data.
+
+## Local development
+
+Requires Python 3.12, [uv](https://docs.astral.sh/uv/), Node.js 22+, and npm.
+From the repository root:
 
 ```powershell
 uv sync --all-groups
@@ -29,14 +78,7 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173`. API documentation is available at
-`http://localhost:8000/docs`.
-
-### Windows fallback without a global `uv` command
-
-If the repository already contains the synchronized `.venv`, no administrator
-rights or global `uv` command are required. Run these commands from the
-repository root:
+If `uv` is not available but the synchronized `.venv` already exists:
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic upgrade head
@@ -44,172 +86,11 @@ repository root:
 .\.venv\Scripts\python.exe -m uvicorn financial_ai.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-Keep that terminal open. Start the frontend in a second terminal:
+This fallback cannot install or update dependencies. Copy `.env.example` to
+`.env` for backend overrides and `apps/web/.env.example` to `apps/web/.env` for
+frontend overrides. Do not commit secrets.
 
-```powershell
-cd apps\web
-npm.cmd run dev
-```
-
-Copy `.env.example` to `.env` for backend overrides. Frontend overrides belong
-in `apps/web/.env`; use `apps/web/.env.example` as the template.
-
-This fallback depends on the existing `.venv`. It cannot create or update the
-environment when dependencies change; that still requires `uv` or another
-explicit dependency-installation workflow.
-
-## Run with Docker
-
-Build and start the API and web containers:
-
-```powershell
-docker compose up --build --wait
-```
-
-The first start may take longer because the API initializes the SQLite database
-and builds the local bilingual category-model artifact.
-
-Open:
-
-- Dashboard: `http://localhost:5173`
-- API health: `http://localhost:8000/health`
-- API documentation: `http://localhost:8000/docs`
-- API through the web proxy: `http://localhost:5173/api/health`
-
-Follow container logs:
-
-```powershell
-docker compose logs --follow
-```
-
-Stop the application while retaining the database, model artifacts, and
-feedback snapshots:
-
-```powershell
-docker compose down
-```
-
-The named `financial_ai_runtime` volume persists `data/runtime` independently
-of the API container. To deliberately delete all container-managed runtime
-data:
-
-```powershell
-docker compose down --volumes
-```
-
-The `--volumes` operation permanently removes the container-managed SQLite
-database, model artifacts, feedback snapshots, and candidate models.
-
-## Transaction API
-
-The local API seeds deterministic demo data for checking, savings, and
-brokerage accounts. Transaction amounts are signed cash flows: money received
-is positive, while spending, withdrawals, fees, and security purchases are
-negative.
-
-Available endpoints:
-
-- `GET /v1/accounts`
-- `GET /v1/accounts/{account_id}`
-- `GET /v1/transactions`
-- `GET /v1/transactions/{transaction_id}`
-- `POST /v1/transactions`
-- `POST /v1/transactions/classify`
-
-The transaction API supports account, stored source type, cash-flow direction,
-category, date-range, limit, and offset filters. Security buy and sell requests
-require a brokerage account, symbol, quantity, and unit price. Detailed source
-types are retained as ledger metadata but are not classifier inputs. All bundled
-transactions and counterparties are synthetic demo data.
-
-Generate the controlled training snapshots and build the local bilingual model
-before requesting ML-based expense classification:
-
-```powershell
-uv run financial-ai-bootstrap-category-model
-```
-
-Without a global `uv` command, use the existing environment:
-
-```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
-```
-
-Classification is text-first: the add-transaction form uses name/description,
-counterparty, and signed amount without requiring a detailed transaction type.
-A small bilingual text-rule baseline handles high-signal phrases; unmatched
-outflows use the experimental expense model. Suggestions remain editable, and
-the trusted backend prediction is stored alongside the user's final selection
-for later offline model improvement. This is a synthetic-data learning baseline,
-not a production-ready financial classifier.
-
-Category selections and corrections captured when a transaction is created can
-be exported into a versioned local snapshot without triggering retraining:
-
-```powershell
-uv run financial-ai-export-category-feedback --version reviewed-v1
-```
-
-The export omits identifiers, amounts, dates, currency, and notes, while free
-text still requires sensitive-data review. See the feedback-loop documentation
-for eligibility and conflict-handling rules.
-
-Reviewed snapshots can train an isolated candidate and, only after all
-comparison gates pass, be promoted explicitly:
-
-```powershell
-uv run financial-ai-train-feedback-candidate --feedback-version reviewed-v1 --candidate-version bilingual-feedback-v1
-uv run financial-ai-promote-category-model --candidate-version bilingual-feedback-v1 --yes
-```
-
-Candidate training never overwrites the active model. Promotion archives the
-previous artifact and refuses stale, checksum-invalid, or gate-failing results.
-
-## Documentation
-
-Detailed technical and ML documentation is maintained under `docs/`:
-
-- [Container architecture](docs/architecture/containerization.md) documents
-  image stages, runtime boundaries, networking, persistence, healthchecks, and
-  CI smoke tests.
-
-- [ML documentation status](docs/ml/README.md) distinguishes active product
-  contracts, frozen evaluations, and historical experiments.
-
-- [Transaction category taxonomy](docs/ml/transaction_categories.md) defines
-  the versioned expense labels, scope, examples, and boundary rules.
-- [Transaction classification methodology](docs/ml/transaction_classification.md)
-  records dataset provenance, preprocessing decisions, assumptions, evaluation
-  protocol, baseline results, limitations, and planned model development.
-- [German transaction challenge set](docs/ml/german_transaction_challenge.md)
-  defines the versioned synthetic German evaluation dataset, schema, review
-  rules, and multilingual evaluation protocol.
-- [German synthetic transaction training data](docs/ml/german_transaction_training.md)
-  documents the version 1 diagnostic generator, provenance fields, leakage
-  controls, reproducibility contract, and limitations.
-- [German synthetic transaction training data v2](docs/ml/german_transaction_training_v2.md)
-  records the harder merchant-, detail-, and format-holdout design and its
-  validation results.
-- [Multilingual transaction classification](docs/ml/multilingual_transaction_classification.md)
-  compares English-only, German-only, and bilingual validation baselines while
-  keeping all test datasets frozen.
-- [Controlled English synthetic training data](docs/ml/controlled_english_training.md)
-  mirrors the German v2 provenance holdouts and records which aggregate legacy
-  train patterns informed its bank-description formats.
-- [Transaction classifier service](docs/ml/transaction_classifier_service.md)
-  documents deterministic routing, model artifact provenance, confidence and
-  review behavior, API usage, configuration, and operational limitations.
-- [Transaction classification feedback loop](docs/ml/transaction_classification_feedback.md)
-  documents editable suggestions, persisted provenance, versioned offline
-  feedback export, privacy controls, and the guarded retraining protocol.
-- [Text classification evaluation](docs/ml/text_classification_evaluation.md)
-  defines the frozen bilingual product challenge, baseline comparison,
-  selective-prediction metrics, results, and limitations.
-
-New documentation should be added to this index when it is introduced so the
-repository documentation remains discoverable from the project entry point.
-
-## Tests
+## Verification
 
 ```powershell
 uv run pytest
@@ -218,16 +99,20 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Backend tests can also use the existing environment directly:
+CI runs backend lint/tests, frontend tests/build, image builds, health checks,
+and an end-to-end proxy smoke test. Generated content in `.venv`,
+`node_modules`, `dist`, and `data/runtime` is ignored.
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest
-```
+## Documentation
 
-If `uv` is not found after installation, open a new terminal so its updated
-`PATH` is loaded. Use `npm.cmd` in PowerShell environments where the execution
-policy blocks `npm.ps1`. Generated local content in `.venv`, `node_modules`,
-`dist`, and `data/runtime` is excluded from version control.
+- [System overview](docs/architecture/system-overview.md): architecture,
+  responsibilities, data flows, and current boundaries.
+- [Container architecture](docs/architecture/containerization.md): images,
+  networking, persistence, and CI checks.
+- [ML documentation index](docs/ml/README.md): active contracts and frozen
+  experiment records.
+- [Data notes](data/README.md): synthetic data boundaries and ECB provenance.
 
-The application is educational software, not financial advice. All included
-security prices are synthetic demo data.
+The next major product increment is transaction fraud/risk scoring. RAG with
+deterministic tool calling follows after the local product and ML foundations
+are stable; cloud deployment remains a later phase.

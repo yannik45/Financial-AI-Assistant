@@ -1,23 +1,34 @@
-# ML documentation status
+# ML documentation
 
-This index separates the active product contract from frozen evaluation records
-and historical experiments. Historical code and documents are retained because
-they show the decisions, failed assumptions, and validation steps that led to
-the current baseline; they are not alternative production paths.
+The current product baseline is a text-first bilingual hybrid: transparent
+rules handle high-signal cases and a character TF-IDF Logistic Regression model
+classifies unmatched expenses. Suggestions are editable, uncertain cases can
+abstain, and model changes follow an offline gated lifecycle. It is an
+experimental synthetic-data baseline, not a production classifier.
 
-| Document | Status | Purpose |
-|---|---|---|
-| `transaction_categories.md` | Active contract | Versioned product taxonomy and boundaries |
-| `transaction_classifier_service.md` | Active contract | Current text-first hybrid service |
-| `transaction_classification_feedback.md` | Active contract | Feedback capture, candidate evaluation, explicit promotion, and rollback policy |
-| `text_classification_evaluation.md` | Active frozen benchmark | Current product-level evaluation and limitations |
-| `multilingual_transaction_classification.md` | Frozen experiment | Selection of the bilingual model artifact |
-| `controlled_english_training.md` | Frozen experiment | Controlled English generator and test |
-| `german_transaction_training_v2.md` | Frozen experiment | Current German generator used by the artifact |
-| `german_transaction_challenge.md` | Frozen experiment | Earlier German-only challenge |
-| `transaction_classification.md` | Historical experiment | Original external English baseline and evolution |
-| `german_transaction_training.md` | Historical experiment | Superseded German generator v1 |
+## Start here
 
-The corresponding Python modules and tests remain intentionally versioned for
-reproducibility. New product code should depend on the active artifact builder
-and service modules, not on historical evaluation runners.
+| Document | What it answers |
+|---|---|
+| [Category taxonomy](transaction_categories.md) | Which labels exist and where are their boundaries? |
+| [Classifier service](transaction_classifier_service.md) | What does the current API classifier do? |
+| [Frozen product evaluation](text_classification_evaluation.md) | How do rules, ML, and the hybrid compare? |
+| [Feedback lifecycle](transaction_classification_feedback.md) | How are corrections exported, evaluated, and promoted safely? |
+
+## Reproducibility records
+
+These documents preserve experiment decisions and results. They are evidence,
+not alternative product instructions.
+
+| Record | Status |
+|---|---|
+| [Multilingual classification](multilingual_transaction_classification.md) | Frozen model-selection experiment |
+| [Controlled English training](controlled_english_training.md) | Frozen English generator and evaluation |
+| [German training v2](german_transaction_training_v2.md) | Frozen German generator used by the model |
+| [German challenge](german_transaction_challenge.md) | Frozen German-only evaluation |
+| [Original English methodology](transaction_classification.md) | Historical external-dataset baseline |
+| [German training v1](german_transaction_training.md) | Historical, superseded generator |
+
+Corresponding modules and tests remain versioned so the results can be
+reproduced. New product code should use the active artifact builder and service,
+not historical evaluation runners.
