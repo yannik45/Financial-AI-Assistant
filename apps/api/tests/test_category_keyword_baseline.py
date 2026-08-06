@@ -1,5 +1,7 @@
 import pandas as pd
-from financial_ai.ml.category_keyword_baseline import KeywordCategoryClassifier
+from financial_ai.ml.transaction_classification.category_keyword_baseline import (
+    KeywordCategoryClassifier,
+)
 
 
 def test_keyword_classifier_matches_keywords_case_insensitively():

@@ -74,7 +74,7 @@ also checked for exact disjointness from generated training data.
 Generate the version 2 runtime artifact:
 
 ```powershell
-uv run python -m financial_ai.ml.german_training_generator_v2
+uv run python -m financial_ai.ml.transaction_classification.german_training_generator_v2
 ```
 
 Outputs:

@@ -86,7 +86,7 @@ If `uv` is not available but the synchronized `.venv` already exists:
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic upgrade head
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.category_bootstrap
 .\.venv\Scripts\python.exe -m uvicorn financial_ai.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 

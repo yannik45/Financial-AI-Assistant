@@ -3,9 +3,14 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from financial_ai.ml.category_artifact import LoadedCategoryModel, ModelMetadata
-from financial_ai.ml.category_model import train_tfidf_category_classifier
-from financial_ai.ml.text_classification_evaluation import (
+from financial_ai.ml.transaction_classification.category_artifact import (
+    LoadedCategoryModel,
+    ModelMetadata,
+)
+from financial_ai.ml.transaction_classification.category_model import (
+    train_tfidf_category_classifier,
+)
+from financial_ai.ml.transaction_classification.text_classification_evaluation import (
     ABSTENTION_LABEL,
     evaluate_text_classification_strategies,
     write_evaluation_report,

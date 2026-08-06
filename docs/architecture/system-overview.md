@@ -38,7 +38,8 @@ React dashboard ---- /api ----> FastAPI
 | React application | `apps/web/src` | UI, API consumption, charts, editable classification suggestions |
 | FastAPI application | `apps/api/src/financial_ai` | HTTP contracts, validation, persistence, analytics, and trusted classification |
 | Database migrations | `apps/api/alembic` | Versioned SQLite schema changes |
-| ML modules | `apps/api/src/financial_ai/ml` | Data preparation, baselines, artifact building, evaluation, and feedback lifecycle |
+| Transaction classification ML | `apps/api/src/financial_ai/ml/transaction_classification` | Taxonomy, data preparation, baselines, artifact building, evaluation, and feedback lifecycle |
+| Market forecast ML | `apps/api/src/financial_ai/ml/market_forecast` | Daily market-data validation and future forecasting experiments |
 | Versioned inputs | `data/market`, `data/evaluation` | ECB snapshot and frozen evaluation assets |
 | Local runtime state | `data/runtime` | SQLite, generated datasets, models, exports, and reports; ignored by Git |
 | Market-data service | `market_data_service.py` | Provider-neutral discovery, daily-price retrieval, persistent caching, provenance, and freshness |

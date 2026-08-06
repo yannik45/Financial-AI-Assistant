@@ -1,6 +1,6 @@
 import pytest
-from financial_ai.ml.categories import ExpenseCategory
-from financial_ai.ml.category_mapping import map_source_category
+from financial_ai.ml.transaction_classification.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.category_mapping import map_source_category
 
 
 @pytest.mark.parametrize(

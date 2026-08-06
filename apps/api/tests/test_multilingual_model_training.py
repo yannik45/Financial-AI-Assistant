@@ -1,6 +1,6 @@
 import pandas as pd
-from financial_ai.ml.category_split import CategoryDataSplits
-from financial_ai.ml.multilingual_model_training import (
+from financial_ai.ml.transaction_classification.category_split import CategoryDataSplits
+from financial_ai.ml.transaction_classification.multilingual_model_training import (
     build_language_balanced_training_data,
     train_and_evaluate_balanced_multilingual_validation,
     train_and_evaluate_multilingual_validation,

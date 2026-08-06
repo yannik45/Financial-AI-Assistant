@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
-from financial_ai.ml.categories import ExpenseCategory
-from financial_ai.ml.german_evaluation import evaluate_german_challenge
+from financial_ai.ml.transaction_classification.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.german_evaluation import evaluate_german_challenge
 
 
 class CategoryEchoClassifier:

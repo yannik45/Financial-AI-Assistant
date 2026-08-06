@@ -1,4 +1,4 @@
-from financial_ai.ml import category_bootstrap
+from financial_ai.ml.transaction_classification import category_bootstrap
 
 
 def test_bootstrap_generates_training_sources_before_model(monkeypatch, tmp_path):
