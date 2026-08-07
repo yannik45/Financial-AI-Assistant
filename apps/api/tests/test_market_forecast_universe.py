@@ -42,9 +42,7 @@ def test_default_market_universe_is_versioned_unique_and_sector_diverse():
         (
             {
                 "version": "v1",
-                "instruments": [
-                    {"symbol": "INVALID SYMBOL", "name": "Invalid", "sector": "Other"}
-                ],
+                "instruments": [{"symbol": "INVALID SYMBOL", "name": "Invalid", "sector": "Other"}],
             },
             "symbol",
         ),

@@ -58,8 +58,6 @@ def build_market_features(daily_bars: pd.DataFrame) -> pd.DataFrame:
     average_volume_20d = volume_by_symbol.transform(
         lambda volume: volume.rolling(window=20, min_periods=20).mean()
     )
-    validated["volume_ratio_5d_20d"] = average_volume_5d / average_volume_20d.replace(
-        0, np.nan
-    )
+    validated["volume_ratio_5d_20d"] = average_volume_5d / average_volume_20d.replace(0, np.nan)
 
     return validated.dropna(subset=list(FEATURE_COLUMNS)).reset_index(drop=True)

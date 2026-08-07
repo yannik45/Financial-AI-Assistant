@@ -53,8 +53,7 @@ def test_symbol_universe_is_explicit_normalized_and_unique():
 def test_download_symbols_can_be_loaded_from_versioned_manifest(tmp_path):
     manifest_path = tmp_path / "universe.json"
     manifest_path.write_text(
-        '{"version":"v1","instruments":['
-        '{"symbol":"AAPL","name":"Apple","sector":"Technology"}]}'
+        '{"version":"v1","instruments":[{"symbol":"AAPL","name":"Apple","sector":"Technology"}]}'
     )
 
     assert resolve_download_symbols(None, manifest_path) == ("AAPL",)

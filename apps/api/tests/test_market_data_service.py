@@ -251,9 +251,7 @@ def test_alpaca_adapter_uses_explicit_historical_feed():
         historical_feed="sip",
     )
 
-    assert provider.history("AAPL", date_from=date(2016, 1, 1))[0].observed_on == date(
-        2016, 1, 4
-    )
+    assert provider.history("AAPL", date_from=date(2016, 1, 1))[0].observed_on == date(2016, 1, 4)
 
 
 def test_alpaca_search_falls_back_to_keyless_sec_company_catalog():

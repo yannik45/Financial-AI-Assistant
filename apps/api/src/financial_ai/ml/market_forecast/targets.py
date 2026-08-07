@@ -32,8 +32,8 @@ def build_forward_volatility_target(
             .iloc[::-1]
         )
 
-    forward_volatility = daily_log_returns.groupby(
-        validated["symbol"], sort=False
-    ).transform(forward_standard_deviation)
+    forward_volatility = daily_log_returns.groupby(validated["symbol"], sort=False).transform(
+        forward_standard_deviation
+    )
     validated[TARGET_COLUMN] = forward_volatility * np.sqrt(TRADING_DAYS_PER_YEAR)
     return validated.dropna(subset=[TARGET_COLUMN]).reset_index(drop=True)
