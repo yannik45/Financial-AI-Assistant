@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from financial_ai.ml.categories import ExpenseCategory
-from financial_ai.ml.german_training_generator import (
+from financial_ai.ml.transaction_classification.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.german_training_generator import (
     OUTPUT_COLUMNS,
     generate_german_training_data,
     write_german_training_dataset,

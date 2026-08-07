@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from financial_ai.ml.categories import ExpenseCategory
-from financial_ai.ml.german_challenge import validate_german_challenge_data
+from financial_ai.ml.transaction_classification.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.german_challenge import (
+    validate_german_challenge_data,
+)
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 GERMAN_CHALLENGE_PATH = (

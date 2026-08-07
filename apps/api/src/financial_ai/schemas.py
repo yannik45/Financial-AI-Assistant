@@ -4,7 +4,7 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from financial_ai.ml.transaction_classification import (
+from financial_ai.ml.transaction_classification.contracts import (
     ClassificationMethod,
     ClassificationRoute,
     FeedbackStatus,
@@ -76,6 +76,9 @@ class MarketInstrumentRead(BaseModel):
 class MarketPriceRead(BaseModel):
     observed_on: date
     close: Decimal
+    open: Decimal | None
+    high: Decimal | None
+    low: Decimal | None
     adjusted_close: Decimal | None
     volume: Decimal | None
 

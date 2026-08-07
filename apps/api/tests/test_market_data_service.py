@@ -158,14 +158,36 @@ def test_alpaca_adapter_maps_assets_and_paginated_adjusted_daily_bars():
             return httpx.Response(
                 200,
                 json={
-                    "bars": {"AAPL": [{"t": "2026-07-30T04:00:00Z", "c": 204.1, "v": 1}]},
+                    "bars": {
+                        "AAPL": [
+                            {
+                                "t": "2026-07-30T04:00:00Z",
+                                "o": 200.0,
+                                "h": 206.0,
+                                "l": 199.0,
+                                "c": 204.1,
+                                "v": 1,
+                            }
+                        ]
+                    },
                     "next_page_token": "next",
                 },
             )
         return httpx.Response(
             200,
             json={
-                "bars": {"AAPL": [{"t": "2026-07-31T04:00:00Z", "c": 205.12, "v": 42000000}]},
+                "bars": {
+                    "AAPL": [
+                        {
+                            "t": "2026-07-31T04:00:00Z",
+                            "o": 204.0,
+                            "h": 207.0,
+                            "l": 203.0,
+                            "c": 205.12,
+                            "v": 42000000,
+                        }
+                    ]
+                },
                 "next_page_token": None,
             },
         )
@@ -189,8 +211,47 @@ def test_alpaca_adapter_maps_assets_and_paginated_adjusted_daily_bars():
     assert result[0].symbol == "AAPL"
     assert result[0].exchange == "NASDAQ"
     assert [item.close for item in history] == [Decimal("204.1"), Decimal("205.12")]
+    assert history[-1].open == Decimal("204.0")
+    assert history[-1].high == Decimal("207.0")
+    assert history[-1].low == Decimal("203.0")
     assert history[-1].adjusted_close == Decimal("205.12")
     assert history[-1].volume == Decimal("42000000")
+
+
+def test_alpaca_adapter_uses_explicit_historical_feed():
+    def data_handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["feed"] == "sip"
+        return httpx.Response(
+            200,
+            json={
+                "bars": {
+                    "AAPL": [
+                        {
+                            "t": "2016-01-04T05:00:00Z",
+                            "o": 25.65,
+                            "h": 26.34,
+                            "l": 25.5,
+                            "c": 26.34,
+                            "v": 270597600,
+                        }
+                    ]
+                },
+                "next_page_token": None,
+            },
+        )
+
+    provider = AlpacaProvider(
+        "key",
+        "secret",
+        data_client=httpx.Client(
+            base_url="https://data.alpaca.markets",
+            transport=httpx.MockTransport(data_handler),
+        ),
+        sec_user_agent="test@example.com",
+        historical_feed="sip",
+    )
+
+    assert provider.history("AAPL", date_from=date(2016, 1, 1))[0].observed_on == date(2016, 1, 4)
 
 
 def test_alpaca_search_falls_back_to_keyless_sec_company_catalog():

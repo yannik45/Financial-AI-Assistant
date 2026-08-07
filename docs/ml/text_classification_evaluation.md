@@ -66,7 +66,7 @@ uv run financial-ai-build-text-challenge
 or with an existing local environment:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.text_classification_challenge
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.text_classification_challenge
 ```
 
 ## Evaluation design
@@ -160,8 +160,8 @@ uv run financial-ai-evaluate-text-classification
 Windows fallback:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.category_bootstrap
-.\.venv\Scripts\python.exe -m financial_ai.ml.text_classification_evaluation
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.category_bootstrap
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.text_classification_evaluation
 ```
 
 The generated JSON report under `data/runtime/ml/transaction_categories/`

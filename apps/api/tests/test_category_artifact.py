@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 import pytest
-from financial_ai.ml.category_artifact import (
+from financial_ai.ml.transaction_classification.category_artifact import (
     ModelArtifactError,
     build_category_model_artifact,
     load_category_model_artifact,

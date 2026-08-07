@@ -3,11 +3,16 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.categories import ExpenseCategory
-from financial_ai.ml.category_artifact import LoadedCategoryModel, ModelMetadata
-from financial_ai.ml.category_model import train_tfidf_category_classifier
-from financial_ai.ml.category_service import TransactionClassifier
-from financial_ai.ml.transaction_classification import (
+from financial_ai.ml.transaction_classification.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.category_artifact import (
+    LoadedCategoryModel,
+    ModelMetadata,
+)
+from financial_ai.ml.transaction_classification.category_model import (
+    train_tfidf_category_classifier,
+)
+from financial_ai.ml.transaction_classification.category_service import TransactionClassifier
+from financial_ai.ml.transaction_classification.contracts import (
     ClassificationMethod,
     ClassificationRoute,
     FeedbackStatus,

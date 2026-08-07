@@ -1,5 +1,7 @@
 import pandas as pd
-from financial_ai.ml.category_quality import build_category_quality_report
+from financial_ai.ml.transaction_classification.category_quality import (
+    build_category_quality_report,
+)
 
 
 def test_build_category_quality_report_counts_categories_and_quality_issues():

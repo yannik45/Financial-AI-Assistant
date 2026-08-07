@@ -23,13 +23,13 @@ from financial_ai.market_data_service import (
     MarketDataService,
     build_market_data_service,
 )
-from financial_ai.ml.category_artifact import ModelArtifactError
-from financial_ai.ml.category_service import (
+from financial_ai.ml.transaction_classification.category_artifact import ModelArtifactError
+from financial_ai.ml.transaction_classification.category_service import (
     TransactionClassification,
     TransactionClassifier,
     get_transaction_classifier,
 )
-from financial_ai.ml.transaction_classification import (
+from financial_ai.ml.transaction_classification.contracts import (
     TAXONOMY_VERSION,
     ClassificationMethod,
     determine_feedback_status,

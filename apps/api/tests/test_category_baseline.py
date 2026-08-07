@@ -1,5 +1,7 @@
 import pandas as pd
-from financial_ai.ml.category_baseline import train_majority_category_baseline
+from financial_ai.ml.transaction_classification.category_baseline import (
+    train_majority_category_baseline,
+)
 
 
 def test_train_majority_category_baseline_predicts_most_frequent_category():

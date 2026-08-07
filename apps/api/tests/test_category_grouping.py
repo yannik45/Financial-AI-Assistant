@@ -1,5 +1,5 @@
 import pytest
-from financial_ai.ml.category_grouping import normalize_description_group
+from financial_ai.ml.transaction_classification.category_grouping import normalize_description_group
 
 
 @pytest.mark.parametrize(

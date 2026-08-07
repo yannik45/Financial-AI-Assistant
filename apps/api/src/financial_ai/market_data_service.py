@@ -42,6 +42,9 @@ class ProviderInstrument:
 class ProviderPrice:
     observed_on: date
     close: Decimal
+    open: Decimal | None = None
+    high: Decimal | None = None
+    low: Decimal | None = None
     adjusted_close: Decimal | None = None
     volume: Decimal | None = None
 
@@ -125,11 +128,15 @@ class AlpacaProvider:
         trading_client: httpx.Client | None = None,
         sec_client: httpx.Client | None = None,
         sec_user_agent: str,
+        historical_feed: str = "iex",
     ) -> None:
         self._api_key = api_key.strip() if api_key else None
         self._secret_key = secret_key.strip() if secret_key else None
         if bool(self._api_key) != bool(self._secret_key):
             raise ValueError("Alpaca requires both API key and secret key")
+        if historical_feed not in {"iex", "sip"}:
+            raise ValueError("Alpaca historical feed must be iex or sip")
+        self.historical_feed = historical_feed
         self._data_client = data_client or httpx.Client(base_url=self.data_url, timeout=20.0)
         self._trading_client = trading_client or httpx.Client(
             base_url=self.trading_url, timeout=20.0
@@ -257,7 +264,7 @@ class AlpacaProvider:
             "start": start.isoformat(),
             "end": end.isoformat(),
             "adjustment": "all",
-            "feed": "iex",
+            "feed": self.historical_feed,
             "sort": "asc",
             "limit": 10000,
         }
@@ -285,6 +292,9 @@ class AlpacaProvider:
                     ProviderPrice(
                         observed_on=date.fromisoformat(str(item["t"])[:10]),
                         close=close,
+                        open=Decimal(str(item["o"])) if item.get("o") is not None else None,
+                        high=Decimal(str(item["h"])) if item.get("h") is not None else None,
+                        low=Decimal(str(item["l"])) if item.get("l") is not None else None,
                         adjusted_close=close,
                         volume=Decimal(str(item["v"])) if item.get("v") is not None else None,
                     )
@@ -298,7 +308,9 @@ class AlpacaProvider:
 
 
 @lru_cache
-def get_market_data_provider(mode: str = "demo") -> MarketDataProvider:
+def get_market_data_provider(
+    mode: str = "demo", *, historical_feed: str = "iex"
+) -> MarketDataProvider:
     settings = get_settings()
     if mode == "demo":
         return DemoProviderAdapter()
@@ -308,6 +320,7 @@ def get_market_data_provider(mode: str = "demo") -> MarketDataProvider:
         settings.alpaca_api_key,
         settings.alpaca_secret_key,
         sec_user_agent=settings.sec_user_agent,
+        historical_feed=historical_feed,
     )
 
 
@@ -346,6 +359,9 @@ class MarketDataService:
             instrument=MarketInstrumentRead.model_validate(instrument),
             observed_on=latest.observed_on,
             close=latest.close,
+            open=latest.open,
+            high=latest.high,
+            low=latest.low,
             adjusted_close=latest.adjusted_close,
             volume=latest.volume,
             source=latest.source,
@@ -378,6 +394,9 @@ class MarketDataService:
                 MarketPriceRead(
                     observed_on=item.observed_on,
                     close=item.close,
+                    open=item.open,
+                    high=item.high,
+                    low=item.low,
                     adjusted_close=item.adjusted_close,
                     volume=item.volume,
                 )
@@ -436,6 +455,9 @@ class MarketDataService:
                 )
                 self._session.add(observation)
             observation.close = point.close
+            observation.open = point.open
+            observation.high = point.high
+            observation.low = point.low
             observation.adjusted_close = point.adjusted_close
             observation.volume = point.volume
             observation.source = self._provider.name

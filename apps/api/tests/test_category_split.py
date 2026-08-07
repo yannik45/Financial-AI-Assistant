@@ -1,6 +1,6 @@
 import pandas as pd
-from financial_ai.ml.category_grouping import normalize_description_group
-from financial_ai.ml.category_split import (
+from financial_ai.ml.transaction_classification.category_grouping import normalize_description_group
+from financial_ai.ml.transaction_classification.category_split import (
     split_category_training_data,
     split_grouped_category_training_data,
 )

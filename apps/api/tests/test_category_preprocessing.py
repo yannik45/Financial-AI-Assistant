@@ -1,6 +1,8 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.category_preprocessing import prepare_category_training_data
+from financial_ai.ml.transaction_classification.category_preprocessing import (
+    prepare_category_training_data,
+)
 
 
 def test_prepare_category_training_data_maps_and_excludes_rows():

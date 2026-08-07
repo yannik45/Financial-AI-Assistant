@@ -5,14 +5,16 @@ from decimal import Decimal
 import pandas as pd
 import pytest
 from financial_ai.database import SessionLocal
-from financial_ai.ml.artifact_integrity import calculate_canonical_text_sha256
-from financial_ai.ml.feedback_export import (
+from financial_ai.ml.artifact_integrity import (
+    calculate_canonical_text_sha256,
+)
+from financial_ai.ml.transaction_classification.contracts import TAXONOMY_VERSION, FeedbackStatus
+from financial_ai.ml.transaction_classification.feedback_export import (
     EXPORT_COLUMNS,
     load_feedback_snapshot,
     prepare_feedback_export,
     write_feedback_snapshot,
 )
-from financial_ai.ml.transaction_classification import TAXONOMY_VERSION, FeedbackStatus
 from financial_ai.models import Account, Transaction, TransactionClassificationRecord
 
 

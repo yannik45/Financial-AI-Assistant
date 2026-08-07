@@ -1,5 +1,8 @@
 import pytest
-from financial_ai.ml.categories import ExpenseCategory, parse_expense_category
+from financial_ai.ml.transaction_classification.categories import (
+    ExpenseCategory,
+    parse_expense_category,
+)
 
 
 @pytest.mark.parametrize(

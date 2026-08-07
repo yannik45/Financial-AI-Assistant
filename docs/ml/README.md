@@ -14,6 +14,7 @@ experimental synthetic-data baseline, not a production classifier.
 | [Classifier service](transaction_classifier_service.md) | What does the current API classifier do? |
 | [Frozen product evaluation](text_classification_evaluation.md) | How do rules, ML, and the hybrid compare? |
 | [Feedback lifecycle](transaction_classification_feedback.md) | How are corrections exported, evaluated, and promoted safely? |
+| [Market forecast data foundation](market_forecast_data_foundation.md) | How will daily market observations become reproducible, leakage-aware datasets? |
 
 ## Reproducibility records
 

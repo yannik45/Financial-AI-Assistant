@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.category_evaluation import evaluate_category_classifier
+from financial_ai.ml.transaction_classification.category_evaluation import (
+    evaluate_category_classifier,
+)
 
 
 class ShoppingOnlyClassifier:
