@@ -1,15 +1,26 @@
 # Financial AI Assistant
 
-A production-oriented portfolio project for deterministic financial analytics
-and applied ML. It combines a FastAPI backend, React dashboard, SQLite ledger,
-bilingual transaction categorization, guarded feedback lifecycle, and a
-reproducible Docker Compose stack.
+A full-stack portfolio intelligence platform that connects portfolio trading,
+account cash flows, deterministic risk analytics, external market data, and
+applied machine learning in one auditable system.
 
-The project demonstrates production-oriented architecture and engineering
-practices, but is not currently intended for production use or real customer
-data. Security prices, demo portfolios, transactions, and ML training data are
-synthetic. The stored ECB FX snapshot is the only real market reference data.
-Nothing in this repository is financial advice.
+## At a glance
+
+| Aspect | Summary |
+|---|---|
+| Product | Portfolio dashboard with linked brokerage accounts, simulated trading, transaction intelligence, risk analytics, and reproducible ML workflows |
+| Problem | Financial data, portfolio state, and ML predictions are often handled in disconnected prototypes; this project keeps them consistent behind tested backend contracts |
+| Engineering focus | Deterministic financial calculations, traceable data provenance, leakage-aware evaluation, human review, versioned artifacts, and containerized delivery |
+| Current ML | Bilingual transaction classification and 20-day market-volatility forecasting with transparent statistical and regularized linear baselines |
+
+## Technology stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React, TypeScript, Vite, TanStack Query, Recharts |
+| Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy 2, Alembic |
+| Data and ML | SQLite, pandas, NumPy, scikit-learn, versioned local artifacts |
+| Delivery | uv, npm, pytest, Ruff, GitHub Actions, Docker Compose, unprivileged Nginx |
 
 ## What is implemented
 
@@ -20,6 +31,7 @@ Nothing in this repository is financial advice.
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
+| Market forecasting | Versioned historical OHLCV snapshots, leakage-aware 20-day volatility targets, chronological purged splits, statistical references, Ridge evaluation, and immutable reports |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
 
@@ -30,9 +42,11 @@ financial metrics itself. RAG and LLM integration are not implemented yet.
 ## Architecture
 
 ```text
-Browser -> React / Nginx -> FastAPI -> SQLite + versioned local ML artifacts
+Browser -> React / Nginx -> FastAPI -> SQLite + cached market data
                               |----> deterministic portfolio analytics
                               `----> rules + bilingual expense classifier
+
+Offline ML commands -> versioned snapshots -> features -> evaluation reports
 ```
 
 See the [system overview](docs/architecture/system-overview.md) for component
@@ -118,6 +132,21 @@ balance derived from its opening balance plus signed cash flows. Risk analytics
 replay the portfolio's current post-trade holdings before reconstructing the
 historical comparison series.
 
+## Data and intended use
+
+The application is built as a production-oriented engineering and applied-ML
+case study. Portfolio orders are simulated and no real brokerage trades are
+placed. Demo portfolios, ledger activity, and transaction-classification
+training data are synthetic; external portfolio prices can optionally come from
+Alpaca, the volatility experiment uses a versioned historical Alpaca SIP
+snapshot, and currency conversion uses a stored ECB reference snapshot.
+
+These boundaries keep the repository reproducible while making the provenance
+of real and generated observations explicit. Production use with customer data
+would additionally require provider licensing, security and privacy reviews,
+operational monitoring, and independent model validation. Nothing in this
+repository is financial advice.
+
 ## Verification
 
 ```powershell
@@ -141,6 +170,8 @@ and an end-to-end proxy smoke test. Generated content in `.venv`,
   experiment records.
 - [Data notes](data/README.md): synthetic data boundaries and ECB provenance.
 
-The next major product increment is transaction fraud/risk scoring. RAG with
-deterministic tool calling follows after the local product and ML foundations
-are stable; cloud deployment remains a later phase.
+The next ML increment compares a nonlinear boosting model with the frozen
+volatility references before any final test evaluation or product integration.
+Transaction risk scoring and an assistant with deterministic tool calling remain
+later product increments; cloud deployment follows after the local system and
+model lifecycle are stable.

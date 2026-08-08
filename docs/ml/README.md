@@ -15,6 +15,7 @@ experimental synthetic-data baseline, not a production classifier.
 | [Frozen product evaluation](text_classification_evaluation.md) | How do rules, ML, and the hybrid compare? |
 | [Feedback lifecycle](transaction_classification_feedback.md) | How are corrections exported, evaluated, and promoted safely? |
 | [Market forecast data foundation](market_forecast_data_foundation.md) | How will daily market observations become reproducible, leakage-aware datasets? |
+| [Market volatility baseline](market_volatility_baseline.md) | Do naive, statistical, and regularized linear forecasts beat simple references? |
 
 ## Reproducibility records
 
