@@ -29,6 +29,7 @@ financial-ai-promote-category-model = "financial_ai.ml.transaction_classificatio
 financial-ai-write-market-snapshot = "financial_ai.ml.market_forecast.snapshot:run"
 financial-ai-download-market-snapshot = "financial_ai.ml.market_forecast.downloader:run"
 financial-ai-build-market-dataset = "financial_ai.ml.market_forecast.dataset:run"
+financial-ai-evaluate-market-validation = "financial_ai.ml.market_forecast.validation_report:run"
 
 [dependency-groups]
 dev = [
