@@ -1,5 +1,6 @@
 """Validation contract for daily OHLCV observations used by forecasting experiments."""
 
+import numpy as np
 import pandas as pd
 
 DAILY_BAR_COLUMNS = (
@@ -47,8 +48,8 @@ def validate_daily_bars(frame: pd.DataFrame) -> pd.DataFrame:
     numeric_columns = list(DAILY_BAR_COLUMNS[2:])
     for column in numeric_columns:
         df[column] = pd.to_numeric(df[column], errors="coerce")
-    if df[numeric_columns].isna().any().any():
-        raise DailyBarValidationError("Daily bars must contain numeric values without gaps")
+    if not np.isfinite(df[numeric_columns].to_numpy(dtype=float)).all():
+        raise DailyBarValidationError("Daily bars must contain finite numeric values without gaps")
 
     price_columns = ["open", "high", "low", "close", "adjusted_close"]
     if df[price_columns].le(0).any().any():

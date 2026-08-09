@@ -5,6 +5,7 @@ import json
 from datetime import date
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from financial_ai.ml.artifact_integrity import (
@@ -185,8 +186,12 @@ def _validate_model_dataset(dataset: pd.DataFrame) -> pd.DataFrame:
     numeric_columns = list(FEATURE_COLUMNS) + [TARGET_COLUMN]
     for column in numeric_columns:
         result[column] = pd.to_numeric(result[column], errors="coerce")
-    if result[["symbol", "observed_on", SPLIT_COLUMN] + numeric_columns].isna().any().any():
+    if result[["symbol", "observed_on", SPLIT_COLUMN]].isna().any().any():
         raise ValueError("Market model dataset contains missing or invalid values")
+    if not np.isfinite(result[numeric_columns].to_numpy(dtype=float)).all():
+        raise ValueError("Market model dataset contains non-finite numeric values")
+    if result[TARGET_COLUMN].le(0).any():
+        raise ValueError("Market model dataset targets must be positive")
     if result["symbol"].eq("").any():
         raise ValueError("Market model dataset contains empty symbols")
     if set(result[SPLIT_COLUMN]) != {"train", "validation", "test"}:

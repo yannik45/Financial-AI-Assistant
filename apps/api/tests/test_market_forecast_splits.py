@@ -5,6 +5,7 @@ import pytest
 from financial_ai.ml.market_forecast.splits import (
     SPLIT_COLUMN,
     assign_chronological_splits,
+    identify_purge_rows,
 )
 from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
 
@@ -51,6 +52,42 @@ def test_chronological_splits_do_not_modify_the_source_frame():
     )
 
     assert SPLIT_COLUMN not in source.columns
+
+
+def test_purge_uses_each_symbols_observation_calendar():
+    frame = pd.DataFrame(
+        {
+            "symbol": ["AAPL"] * 5 + ["MSFT"] * 3,
+            "observed_on": pd.to_datetime(
+                [
+                    "2024-01-02",
+                    "2024-01-03",
+                    "2024-01-04",
+                    "2024-01-05",
+                    "2024-01-08",
+                    "2024-01-02",
+                    "2024-01-03",
+                    "2024-01-05",
+                ]
+            ),
+        }
+    )
+
+    purge_mask = identify_purge_rows(
+        frame,
+        boundary=pd.Timestamp("2024-01-09"),
+        purge_trading_days=2,
+    )
+
+    purged = frame.loc[purge_mask]
+    assert purged.loc[purged["symbol"] == "AAPL", "observed_on"].tolist() == [
+        pd.Timestamp("2024-01-05"),
+        pd.Timestamp("2024-01-08"),
+    ]
+    assert purged.loc[purged["symbol"] == "MSFT", "observed_on"].tolist() == [
+        pd.Timestamp("2024-01-03"),
+        pd.Timestamp("2024-01-05"),
+    ]
 
 
 @pytest.mark.parametrize(

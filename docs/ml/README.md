@@ -1,10 +1,9 @@
 # ML documentation
 
-The current product baseline is a text-first bilingual hybrid: transparent
-rules handle high-signal cases and a character TF-IDF Logistic Regression model
-classifies unmatched expenses. Suggestions are editable, uncertain cases can
-abstain, and model changes follow an offline gated lifecycle. It is an
-experimental synthetic-data baseline, not a production classifier.
+The repository contains two applied-ML tracks: a bilingual hybrid transaction
+classifier with governed feedback, and offline market-volatility forecasting
+with leakage-aware temporal evaluation. Both retain transparent references,
+versioned inputs, and explicit production-readiness limits.
 
 ## Start here
 
@@ -14,8 +13,13 @@ experimental synthetic-data baseline, not a production classifier.
 | [Classifier service](transaction_classifier_service.md) | What does the current API classifier do? |
 | [Frozen product evaluation](text_classification_evaluation.md) | How do rules, ML, and the hybrid compare? |
 | [Feedback lifecycle](transaction_classification_feedback.md) | How are corrections exported, evaluated, and promoted safely? |
-| [Market forecast data foundation](market_forecast_data_foundation.md) | How will daily market observations become reproducible, leakage-aware datasets? |
+| [Market forecast data foundation](market_forecast_data_foundation.md) | How do daily market observations become reproducible, leakage-aware datasets? |
 | [Market volatility baseline](market_volatility_baseline.md) | Do naive, statistical, and regularized linear forecasts beat simple references? |
+| [Market volatility boosting](market_volatility_boosting.md) | Does a preselected nonlinear model improve the frozen references, and where does it fail? |
+
+Aggregate market-forecast evidence is stored under
+[`data/evaluation/market_forecast`](../../data/evaluation/market_forecast/);
+full datasets and reports remain ignored runtime artifacts.
 
 ## Reproducibility records
 

@@ -117,3 +117,30 @@ def test_model_dataset_artifact_preserves_provenance_and_checksum(tmp_path):
     csv_path.write_text(csv_path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
     with pytest.raises(ValueError, match="checksum"):
         load_model_dataset("dataset-v1", tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("column", "value", "message"),
+    [
+        (FEATURE_COLUMNS[0], np.inf, "non-finite"),
+        (TARGET_COLUMN, 0.0, "positive"),
+    ],
+)
+def test_model_dataset_rejects_values_incompatible_with_training(tmp_path, column, value, message):
+    source = daily_bars()
+    dates = source["observed_on"].drop_duplicates().sort_values().reset_index(drop=True)
+    dataset = build_model_dataset(
+        source,
+        validation_start=dates.iloc[80].date(),
+        test_start=dates.iloc[110].date(),
+        purge_trading_days=5,
+    )
+    dataset.loc[dataset.index[0], column] = value
+
+    with pytest.raises(ValueError, match=message):
+        write_model_dataset(
+            dataset,
+            "invalid-v1",
+            source_metadata={"snapshot_version": "source-v1", "sha256": "checksum"},
+            output_directory=tmp_path,
+        )

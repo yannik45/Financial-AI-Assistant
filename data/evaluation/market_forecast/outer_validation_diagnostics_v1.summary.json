@@ -1,0 +1,31 @@
+{
+  "schema_version": "market-volatility-published-evidence-v1",
+  "stage": "outer_validation_diagnostics",
+  "source_runtime_report": {
+    "filename": "market_volatility_boosting_diagnostics_outer-validation-diagnostics-v1.json",
+    "canonical_sha256": "ef16bf604bc19aa767cda263aa59ec91dccc65b04b2a3d50182cb7380db7f91b"
+  },
+  "dataset_sha256": "ed1bf70f3e673c081cf5cfe1865b1145f058f2b480404b0a29404493d2460cec",
+  "selection_report_sha256": "3243e2f9d3b04c2ea1749a452a6b60dca1c058ee6100ade0eaf317583f20092d",
+  "parameter_changes_allowed": false,
+  "bias_definition": "mean_prediction_minus_actual",
+  "xgboost": {
+    "overall": {"mae": 0.0649144380361095, "rmse": 0.09786807733110883, "qlike": 0.23762427266558023, "bias": -0.021624444976785052},
+    "by_year": {
+      "2022": {"mae": 0.07384249361626036, "bias": -0.03539655878237445},
+      "2023": {"mae": 0.055171212163857904, "bias": -0.006594877301989658}
+    },
+    "by_realized_volatility": {
+      "below_15pct": {"row_count": 2511, "mae": 0.05415499297124709, "bias": 0.05369392663786469},
+      "15_to_30pct": {"row_count": 13943, "mae": 0.038225521042571244, "bias": 0.009791592473379346},
+      "at_least_30pct": {"row_count": 7596, "mae": 0.11746058550830185, "bias": -0.10418872108158068}
+    },
+    "largest_symbol_mae": [
+      {"symbol": "NFLX", "mae": 0.17528567406202686},
+      {"symbol": "NVDA", "mae": 0.15505548508591666},
+      {"symbol": "AMZN", "mae": 0.10872948832533884},
+      {"symbol": "NKE", "mae": 0.09405899586848343},
+      {"symbol": "QCOM", "mae": 0.08814192000424591}
+    ]
+  }
+}
