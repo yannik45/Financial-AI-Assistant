@@ -2,13 +2,14 @@
 
 ## Purpose
 
-This branch prepares reproducible daily market observations for later forecasting
-experiments. It does not train a model or expose predictions in the product.
+This foundation defines the reproducible observations, features, targets, and
+temporal boundaries used by the market-volatility experiments. Forecasts are
+evaluated offline and are not exposed in the product.
 
-The first experiment will compare a price-only baseline across a pinned universe
-of liquid US equities. Alpaca SIP daily bars are an acquisition source, not a
-training-time dependency. Validated observations will be frozen as immutable
-local snapshots with metadata and a checksum before feature engineering begins.
+The experiment uses a pinned universe of liquid US equities. Alpaca SIP daily
+bars are an acquisition source, not a training-time dependency. Validated
+observations are frozen as immutable local snapshots with metadata and a
+checksum before feature engineering.
 
 ## Raw observation contract
 
@@ -47,11 +48,11 @@ validation: 2022-01-01 through 2023-12-31
 test:       2024-01-01 through 2025-12-31
 ```
 
-The final 20 observed trading dates before the validation and test boundaries
-are purged from the preceding split. This prevents a 20-day forward target in
-one period from containing returns observed in the next period. The final test
-period must not be used for feature selection, model selection, or threshold
-tuning.
+Each symbol's final 20 observations before the validation and test boundaries
+are purged from the preceding split. This remains correct when instruments have
+different observation calendars and prevents a forward target in one period
+from containing returns observed in the next period. The final test period must
+not be used for feature selection, model selection, or threshold tuning.
 
 ## Initial feature contract
 
@@ -96,8 +97,8 @@ experiments defined before the final test is opened.
   symbol and use no centered windows, negative shifts, or backward filling.
 - Features at date `t` use completed observations no later than `t`.
 - Targets at date `t` use only returns from `t+1` through `t+20`.
-- Twenty trading dates are purged before validation and test so target windows
-  cannot cross an evaluation boundary.
+- Twenty observations per symbol are purged before validation and test so target
+  windows cannot cross an evaluation boundary.
 - Split dates are fixed before model development, and the final test period is
   unavailable for feature or model selection.
 
@@ -161,7 +162,7 @@ Additional limitations remain:
 3. Define chronological development and final-test boundaries.
 4. Build backward-looking features without cross-symbol leakage.
 5. Create a forward-volatility target and remove rows whose future horizon is unknown.
-6. Compare expanding and rolling training windows in a later modeling branch.
+6. Compare declared model candidates with purged expanding-window inner folds.
 
 The validation contract is enforced by
 `apps/api/tests/test_market_forecast_daily_bars.py` and implemented by

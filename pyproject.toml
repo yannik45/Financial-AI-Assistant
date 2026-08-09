@@ -15,6 +15,7 @@ dependencies = [
   "scikit-learn>=1.6,<2",
   "sqlalchemy>=2.0,<3",
   "uvicorn[standard]>=0.30,<1",
+  "xgboost-cpu>=3.3,<4",
 ]
 
 [project.scripts]
@@ -30,6 +31,10 @@ financial-ai-write-market-snapshot = "financial_ai.ml.market_forecast.snapshot:r
 financial-ai-download-market-snapshot = "financial_ai.ml.market_forecast.downloader:run"
 financial-ai-build-market-dataset = "financial_ai.ml.market_forecast.dataset:run"
 financial-ai-evaluate-market-validation = "financial_ai.ml.market_forecast.validation_report:run"
+financial-ai-select-market-boosting-model = "financial_ai.ml.market_forecast.boosting_report:run"
+financial-ai-evaluate-market-boosting = "financial_ai.ml.market_forecast.boosting_validation_report:run"
+financial-ai-diagnose-market-boosting = "financial_ai.ml.market_forecast.boosting_diagnostics:run"
+financial-ai-evaluate-market-final-test = "financial_ai.ml.market_forecast.final_test_report:run"
 
 [dependency-groups]
 dev = [
@@ -56,4 +61,3 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
-

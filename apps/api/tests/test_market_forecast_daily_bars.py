@@ -65,6 +65,7 @@ def test_daily_bars_reject_duplicate_symbol_dates_after_normalization():
     ("column", "value", "message"),
     [
         ("open", "not-a-number", "numeric"),
+        ("open", "inf", "finite"),
         ("close", "0", "positive"),
         ("volume", "-1", "volume"),
         ("high", "180", "OHLC"),

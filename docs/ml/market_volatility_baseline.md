@@ -65,5 +65,4 @@ overwrite an existing version.
 - The fixed validation period is development evidence, not an independent
   production benchmark.
 - Hyperparameters were not tuned in this baseline experiment.
-- Test results remain undisclosed until the feature and model decisions are
-  locked.
+- The final test remains undisclosed in this development-stage report.

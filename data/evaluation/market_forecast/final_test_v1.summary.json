@@ -1,0 +1,31 @@
+{
+  "schema_version": "market-volatility-published-evidence-v1",
+  "stage": "final_test",
+  "source_runtime_report": {
+    "filename": "market_volatility_final_test_us-large-cap-final-v1.json",
+    "canonical_sha256": "de724ae7ef52d99d9a55f9cb8a50f8d471beb64238e6501bf8adbd0cbc567cbe"
+  },
+  "validation_report_sha256": "8e9eec2d829c5841cdedba1b5202ddead86ae7f7ddd61de109c482df75eec513",
+  "dataset": {
+    "version": "us-large-cap-volatility-v1",
+    "sha256": "ed1bf70f3e673c081cf5cfe1865b1145f058f2b480404b0a29404493d2460cec",
+    "fitting_rows": 95600,
+    "test_rows": 24100,
+    "test_period": "2024-01-02/2025-12-02"
+  },
+  "selected_model": {
+    "candidate": "flexible",
+    "boosting_rounds": 144
+  },
+  "model_selection_complete": true,
+  "further_tuning_allowed": false,
+  "evaluations": {
+    "ewma": {"mae": 0.08399315687402466, "rmse": 0.12285776675055939, "qlike": 0.36444929100318885, "bias": 0.0030546748600173436},
+    "ridge": {"mae": 0.0699286576687617, "rmse": 0.1118382560800115, "qlike": 0.351656902611295, "bias": -0.026202352801914543},
+    "xgboost": {"mae": 0.06903959924138174, "rmse": 0.10763526156815507, "qlike": 0.31644328147798756, "bias": -0.019379477931830678}
+  },
+  "xgboost_by_year": {
+    "2024": {"mae": 0.05902882951986208, "rmse": 0.09051838413061737, "qlike": 0.27763173657425155, "bias": -0.01585584584504389},
+    "2025": {"mae": 0.08000792084930762, "rmse": 0.12369944031182706, "qlike": 0.35896723502468963, "bias": -0.023240153087788377}
+  }
+}

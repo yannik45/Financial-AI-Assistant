@@ -147,6 +147,7 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
+    { name = "xgboost-cpu" },
 ]
 
 [package.dev-dependencies]
@@ -168,6 +169,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.6,<2" },
     { name = "sqlalchemy", specifier = ">=2.0,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30,<1" },
+    { name = "xgboost-cpu", specifier = ">=3.3,<4" },
 ]
 
 [package.metadata.requires-dev]
@@ -916,4 +918,20 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/e8/dc/5cbfcb41824502f6af93b8f3943a4d06c67c23c7d2e31eb18748c4a5b2a7/websockets-16.1.1-cp313-cp313-win32.whl", hash = "sha256:cfb70b4eb56cac4da0a83588f3ad50d46beb0690391082f3d4e2d488c70b68ea", size = 179928, upload-time = "2026-07-17T22:50:01.685Z" },
     { url = "https://files.pythonhosted.org/packages/b0/c1/71e5deb5b7f8f226997ab64908c184ac3105c0155ce2d486f318e5dd08a8/websockets-16.1.1-cp313-cp313-win_amd64.whl", hash = "sha256:d9531d9cbeac99af6f038fb1bc351403531f7d634a2c2e10e2f7c854c6ed5b68", size = 180242, upload-time = "2026-07-17T22:50:03.117Z" },
     { url = "https://files.pythonhosted.org/packages/be/4d/2d0d67834092e354d2b0498f014a41249a89556bc406cf86f3e1557bb463/websockets-16.1.1-py3-none-any.whl", hash = "sha256:6abbd3e82c731c8e531714466acd5d87b5e88ac3243465337ba71d68e23ae7e3", size = 173814, upload-time = "2026-07-17T22:51:04.184Z" },
+]
+
+[[package]]
+name = "xgboost-cpu"
+version = "3.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/de/17/bc5021799fd948d6364446b9ca633e0287ad91de1dae13d8be35e7976a58/xgboost_cpu-3.4.0.tar.gz", hash = "sha256:d65e8045f25e28f631da33ac5a51e305937bb81e3911ac9141823dbc4da1a0bb", size = 1232160, upload-time = "2026-08-04T11:10:19.658Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/13/76/8eb0a5b7b2fff189ac89a2d71044ceaaf4d618bb7edc83a2838ec0a451de/xgboost_cpu-3.4.0-py3-none-manylinux_2_28_aarch64.whl", hash = "sha256:454eb0cac636cc34714e3bc92d9eb25f172ca0f971cdaaf658fa40e3324eb063", size = 5386247, upload-time = "2026-08-04T11:10:08.759Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/df/86f85297045552cb294ad642ac44b72baf19153d60e792faa2bee572c760/xgboost_cpu-3.4.0-py3-none-manylinux_2_28_x86_64.whl", hash = "sha256:9818d48e5277527015419073a418a76c99cf5b094dbf1287533ea6a9f0b86301", size = 5796110, upload-time = "2026-08-04T11:10:12.478Z" },
+    { url = "https://files.pythonhosted.org/packages/62/89/ce79089ed5310446dc2f59c4288f5780548fb5f1d930d5b65a78f5813240/xgboost_cpu-3.4.0-py3-none-win_amd64.whl", hash = "sha256:45ab4ec708617ba4144ac821ca34a3a54648fe7e43e909dfcefaedd9f697b65d", size = 2163532, upload-time = "2026-08-04T11:10:15.202Z" },
+    { url = "https://files.pythonhosted.org/packages/cc/8a/10a5f3786da9b97376f09c65f15f61cce2edc65fc6de313a38d4da87e1cd/xgboost_cpu-3.4.0-py3-none-win_arm64.whl", hash = "sha256:3d6f202b79edb8c9a2067fcb61022995a02208e070a1333ebd85967fd6b60595", size = 2094444, upload-time = "2026-08-04T11:10:17.49Z" },
 ]

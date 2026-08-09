@@ -30,7 +30,7 @@ React dashboard ---- /api ----> FastAPI
                                 |
                                 |-- SQLite database
                                 |-- generated ML artifacts
-                                `-- synthetic prices + stored ECB FX snapshot
+                                `-- synthetic/external prices + stored ECB FX
 ```
 
 | Component | Location | Responsibility |
@@ -39,7 +39,7 @@ React dashboard ---- /api ----> FastAPI
 | FastAPI application | `apps/api/src/financial_ai` | HTTP contracts, validation, persistence, analytics, and trusted classification |
 | Database migrations | `apps/api/alembic` | Versioned SQLite schema changes |
 | Transaction classification ML | `apps/api/src/financial_ai/ml/transaction_classification` | Taxonomy, data preparation, baselines, artifact building, evaluation, and feedback lifecycle |
-| Market forecast ML | `apps/api/src/financial_ai/ml/market_forecast` | Daily market-data validation and future forecasting experiments |
+| Market forecast ML | `apps/api/src/financial_ai/ml/market_forecast` | Versioned market data, leakage-aware features, temporal model selection, and offline evaluation |
 | Versioned inputs | `data/market`, `data/evaluation` | ECB snapshot and frozen evaluation assets |
 | Local runtime state | `data/runtime` | SQLite, generated datasets, models, exports, and reports; ignored by Git |
 | Market-data service | `market_data_service.py` | Provider-neutral discovery, daily-price retrieval, persistent caching, provenance, and freshness |
@@ -61,10 +61,11 @@ risk from diversification quality and liquidity resilience. The response
 contains component inputs, weights, main drivers, and interpretation limits. See the
 [risk-score method](portfolio-risk-score.md).
 
-Security prices are deterministic synthetic data. ECB USD, GBP, and JPY
-reference rates are stored with provenance and inverted at runtime to the EUR
-conversion required by analytics. Historical risk reconstructs today's
-quantities backwards and is not actual account performance.
+Demo security prices are deterministic synthetic data; external portfolios use
+cached Alpaca daily observations with source and freshness metadata. ECB USD,
+GBP, and JPY reference rates are stored with provenance and inverted into EUR
+conversion rates. Historical risk reconstructs today's quantities backwards
+and is not actual account performance.
 
 The market-data foundation exposes instrument search, latest daily quotes, and
 history through a provider-neutral service. Each portfolio permanently selects
@@ -141,11 +142,12 @@ images, starts the stack, and probes the browser-facing proxy path.
   horizontal production deployment.
 - Classifier training and evaluation data is synthetic; probabilities are not
   calibrated and reported metrics are development evidence only.
-- No LLM, RAG, cloud resources, secrets manager, or live market-data provider is
-  implemented.
+- No LLM, RAG, cloud resources, or secrets manager is implemented. Alpaca is an
+  optional external daily-market-data provider; it is not a brokerage connection.
 - Production deployment would require identity and authorization, an external
   database, durable object/model storage, privacy controls, monitoring, TLS,
   secrets management, and licensed data.
 
-The planned sequence is fraud/risk scoring, then RAG with deterministic tool
-calling, followed later by cloud infrastructure and deeper observability.
+The current ML sequence completes volatility-model evaluation before any
+product integration. Broader risk modeling, deterministic assistant tool
+calling, observability, and cloud infrastructure remain later increments.

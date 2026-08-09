@@ -11,7 +11,7 @@ applied machine learning in one auditable system.
 | Product | Portfolio dashboard with linked brokerage accounts, simulated trading, transaction intelligence, risk analytics, and reproducible ML workflows |
 | Problem | Financial data, portfolio state, and ML predictions are often handled in disconnected prototypes; this project keeps them consistent behind tested backend contracts |
 | Engineering focus | Deterministic financial calculations, traceable data provenance, leakage-aware evaluation, human review, versioned artifacts, and containerized delivery |
-| Current ML | Bilingual transaction classification and 20-day market-volatility forecasting with transparent statistical and regularized linear baselines |
+| Current ML | Bilingual transaction classification and leakage-aware 20-day volatility forecasting with statistical, Ridge, and XGBoost models |
 
 ## Technology stack
 
@@ -19,7 +19,7 @@ applied machine learning in one auditable system.
 |---|---|
 | Frontend | React, TypeScript, Vite, TanStack Query, Recharts |
 | Backend | Python 3.12, FastAPI, Pydantic, SQLAlchemy 2, Alembic |
-| Data and ML | SQLite, pandas, NumPy, scikit-learn, versioned local artifacts |
+| Data and ML | SQLite, pandas, NumPy, scikit-learn, XGBoost, versioned local artifacts |
 | Delivery | uv, npm, pytest, Ruff, GitHub Actions, Docker Compose, unprivileged Nginx |
 
 ## What is implemented
@@ -31,7 +31,7 @@ applied machine learning in one auditable system.
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
-| Market forecasting | Versioned historical OHLCV snapshots, leakage-aware 20-day volatility targets, chronological purged splits, statistical references, Ridge evaluation, and immutable reports |
+| Market forecasting | Versioned historical OHLCV data, purged temporal evaluation, statistical and Ridge references, and a final-tested XGBoost candidate |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
 
@@ -108,29 +108,15 @@ This fallback cannot install or update dependencies. Copy `.env.example` to
 `.env` for backend overrides and `apps/web/.env.example` to `apps/web/.env` for
 frontend overrides. Do not commit secrets.
 
-Demo portfolios require no credentials and keep tests reproducible. To enable
-the `External market data` option for a new paper portfolio, copy `.env.example`
-to `.env` and set `FINANCIAL_AI_ALPACA_API_KEY` plus
-`FINANCIAL_AI_ALPACA_SECRET_KEY`. Docker Compose reads that local file and passes
-the values only to the API container; neither the browser nor the repository
-contains the credentials. Search and adjusted daily bars then come from Alpaca
-while orders remain simulated. A keyless SEC company catalog supports US stock
-discovery without price access. Reviewers without credentials can use every demo
-workflow. External data remains subject to the provider's plan, freshness,
-licensing, and usage terms.
+Demo portfolios require no credentials. Optional Alpaca search and daily bars
+require `FINANCIAL_AI_ALPACA_API_KEY` and `FINANCIAL_AI_ALPACA_SECRET_KEY` in a
+local `.env`; credentials are passed only to the backend. Orders remain
+simulated, and reviewers without credentials can use every demo workflow.
 
-Each portfolio owns one brokerage account. Orders are priced by the backend
-from the latest cached daily close and stored as regular signed ledger
-transactions: a buy reduces cash and increases the holding; a sale increases
-cash and reduces the holding. Portfolio cash, holdings, average cost, and P&L
-are derived from the linked account and its transactions. No real brokerage
-order is placed.
-
-The Transactions view reads that same ledger. Portfolio buys and sells appear
-there alongside checking and savings activity, and every account exposes a
-balance derived from its opening balance plus signed cash flows. Risk analytics
-replay the portfolio's current post-trade holdings before reconstructing the
-historical comparison series.
+Each portfolio owns one brokerage account. Buys, sales, cash, holdings, cost
+basis, P&L, and the general Transactions view share the same signed ledger. See
+the [system overview](docs/architecture/system-overview.md) for pricing,
+persistence, and trust boundaries.
 
 ## Data and intended use
 
@@ -170,8 +156,6 @@ and an end-to-end proxy smoke test. Generated content in `.venv`,
   experiment records.
 - [Data notes](data/README.md): synthetic data boundaries and ECB provenance.
 
-The next ML increment compares a nonlinear boosting model with the frozen
-volatility references before any final test evaluation or product integration.
-Transaction risk scoring and an assistant with deterministic tool calling remain
-later product increments; cloud deployment follows after the local system and
-model lifecycle are stable.
+The volatility model has completed its frozen 2024–2025 final test. Product
+integration, broader risk modeling, and an assistant with deterministic tool
+calling remain later increments.

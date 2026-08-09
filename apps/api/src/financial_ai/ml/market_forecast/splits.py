@@ -10,6 +10,31 @@ DEFAULT_PURGE_TRADING_DAYS = 20
 SPLIT_COLUMN = "split"
 
 
+def identify_purge_rows(
+    frame: pd.DataFrame,
+    *,
+    boundary: pd.Timestamp,
+    purge_trading_days: int,
+    period_start: pd.Timestamp | None = None,
+) -> pd.Series:
+    """Identify each symbol's final observations before a temporal boundary."""
+    eligible_mask = frame["observed_on"] < boundary
+    if period_start is not None:
+        eligible_mask &= frame["observed_on"] >= period_start
+    eligible = (
+        frame.loc[eligible_mask, ["symbol", "observed_on"]]
+        .drop_duplicates()
+        .sort_values(["symbol", "observed_on"])
+    )
+    observations_per_symbol = eligible.groupby("symbol", sort=False).size()
+    if observations_per_symbol.empty or observations_per_symbol.lt(purge_trading_days).any():
+        raise ValueError("Not enough symbol observations for the configured purge period")
+    purge_pairs = eligible.groupby("symbol", sort=False).tail(purge_trading_days)
+    purge_index = pd.MultiIndex.from_frame(purge_pairs)
+    row_index = pd.MultiIndex.from_frame(frame.loc[:, ["symbol", "observed_on"]])
+    return pd.Series(row_index.isin(purge_index), index=frame.index)
+
+
 def assign_chronological_splits(
     frame: pd.DataFrame,
     *,
@@ -34,27 +59,25 @@ def assign_chronological_splits(
     if result["observed_on"].isna().any():
         raise ValueError("Forecast dataset contains invalid observation dates")
 
-    trading_dates = result["observed_on"].drop_duplicates().sort_values()
     validation_boundary = pd.Timestamp(validation_start)
     test_boundary = pd.Timestamp(test_start)
-
-    def dates_to_purge(boundary: pd.Timestamp, period_start: pd.Timestamp | None = None):
-        eligible_dates = trading_dates[trading_dates < boundary]
-        if period_start is not None:
-            eligible_dates = eligible_dates[eligible_dates >= period_start]
-        if len(eligible_dates) < purge_trading_days:
-            raise ValueError("Not enough trading dates for the configured purge period")
-        return eligible_dates.iloc[-purge_trading_days:]
-
-    train_purge_dates = dates_to_purge(validation_boundary)
-    validation_purge_dates = dates_to_purge(test_boundary, validation_boundary)
+    train_purge_mask = identify_purge_rows(
+        result,
+        boundary=validation_boundary,
+        purge_trading_days=purge_trading_days,
+    )
+    validation_purge_mask = identify_purge_rows(
+        result,
+        boundary=test_boundary,
+        period_start=validation_boundary,
+        purge_trading_days=purge_trading_days,
+    )
 
     result[SPLIT_COLUMN] = "test"
     result.loc[result["observed_on"] < test_boundary, SPLIT_COLUMN] = "validation"
     result.loc[result["observed_on"] < validation_boundary, SPLIT_COLUMN] = "train"
 
-    purge_dates = pd.concat([train_purge_dates, validation_purge_dates])
-    result = result.loc[~result["observed_on"].isin(purge_dates)]
+    result = result.loc[~(train_purge_mask | validation_purge_mask)]
     if set(result[SPLIT_COLUMN]) != {"train", "validation", "test"}:
         raise ValueError("Chronological split configuration leaves an empty period")
 

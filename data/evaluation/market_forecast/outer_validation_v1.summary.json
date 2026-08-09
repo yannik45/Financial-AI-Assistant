@@ -1,0 +1,25 @@
+{
+  "schema_version": "market-volatility-published-evidence-v1",
+  "stage": "outer_validation",
+  "source_runtime_report": {
+    "filename": "market_volatility_boosting_validation_us-large-cap-xgboost-v1.json",
+    "canonical_sha256": "8e9eec2d829c5841cdedba1b5202ddead86ae7f7ddd61de109c482df75eec513"
+  },
+  "selection_report_sha256": "3243e2f9d3b04c2ea1749a452a6b60dca1c058ee6100ade0eaf317583f20092d",
+  "dataset": {
+    "version": "us-large-cap-volatility-v1",
+    "sha256": "ed1bf70f3e673c081cf5cfe1865b1145f058f2b480404b0a29404493d2460cec",
+    "validation_rows": 24050,
+    "validation_period": "2022-01-03/2023-11-30"
+  },
+  "selected_model": {
+    "candidate": "flexible",
+    "boosting_rounds": 144
+  },
+  "test_split_evaluated": false,
+  "evaluations": {
+    "ewma": {"mae": 0.07380130890533053, "rmse": 0.106397022331516, "qlike": 0.2646750714772314},
+    "ridge": {"mae": 0.06669468100221543, "rmse": 0.10343389487482749, "qlike": 0.27465039316541845},
+    "xgboost": {"mae": 0.0649144380361095, "rmse": 0.09786807733110883, "qlike": 0.23762427266558023}
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "market-volatility-published-evidence-v1",
+  "stage": "inner_cross_validation",
+  "source_runtime_report": {
+    "filename": "market_volatility_boosting_selection_inner-cv-v1.json",
+    "canonical_sha256": "3243e2f9d3b04c2ea1749a452a6b60dca1c058ee6100ade0eaf317583f20092d"
+  },
+  "dataset": {
+    "version": "us-large-cap-volatility-v1",
+    "sha256": "ed1bf70f3e673c081cf5cfe1865b1145f058f2b480404b0a29404493d2460cec"
+  },
+  "protocol": {
+    "outer_train_period": "2016-03-31/2021-12-02",
+    "validation_years": [2019, 2020, 2021],
+    "purge_observations_per_symbol": 20,
+    "selection_metric": "mean_mae_original_scale",
+    "early_stopping_metric": "mae_log_target_scale"
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "candidate": "flexible",
+      "max_depth": 4,
+      "min_child_weight": 5.0,
+      "mean_metrics": {"mae": 0.08332863219185681, "rmse": 0.13737939968355303, "qlike": 0.7685739200509686},
+      "median_boosting_rounds": 144,
+      "fold_mae": {"2019": 0.05168621115334657, "2020": 0.14773733386896426, "2021": 0.050562351553259596}
+    },
+    {
+      "rank": 2,
+      "candidate": "balanced",
+      "max_depth": 3,
+      "min_child_weight": 10.0,
+      "mean_metrics": {"mae": 0.08349360798731677, "rmse": 0.13721931630289777, "qlike": 0.7725957049476336},
+      "median_boosting_rounds": 301
+    },
+    {
+      "rank": 3,
+      "candidate": "shallow",
+      "max_depth": 2,
+      "min_child_weight": 20.0,
+      "mean_metrics": {"mae": 0.08383658639886077, "rmse": 0.13762854262324517, "qlike": 0.7760520789648818},
+      "median_boosting_rounds": 153
+    }
+  ]
+}
