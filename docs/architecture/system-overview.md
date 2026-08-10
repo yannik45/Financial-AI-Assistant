@@ -75,6 +75,15 @@ daily history are cached in SQLite with provider, observation, and retrieval
 timestamps. External data is not silently presented as live: the UI and API
 expose its source and cache freshness, while all orders remain simulated.
 
+The volatility-forecast endpoint refreshes up to 600 calendar days of cached
+daily bars when the cache TTL expires or the latest completed US session is
+missing. It excludes open sessions, validates complete OHLCV observations,
+rebuilds the frozen feature contract, and loads a checksum-verified native
+XGBoost artifact. Existing cached data may be returned with `stale` status when
+the provider is temporarily unavailable; no forecast is fabricated without a
+usable cache. The response also exposes whether the inference feed matches the
+SIP feed used by the V1 training snapshot.
+
 ### Transaction categorization
 
 The classifier receives description, optional counterparty, and signed amount.

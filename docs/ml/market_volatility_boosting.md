@@ -98,6 +98,10 @@ as an independent final test.
 
 ## Reproduction
 
+The versioned snapshot and derived dataset are prerequisites. Their download,
+credentials, SIP-access requirement, validation, and build commands are defined
+in the [market forecast data foundation](market_forecast_data_foundation.md).
+
 ```powershell
 uv run financial-ai-select-market-boosting-model `
   --dataset-version us-large-cap-volatility-v1 `
@@ -117,6 +121,9 @@ uv run financial-ai-evaluate-market-final-test `
   --dataset-version us-large-cap-volatility-v1 `
   --validation-version us-large-cap-xgboost-v1 `
   --test-version us-large-cap-final-v1
+
+uv run financial-ai-build-market-forecast-model `
+  --dataset-version us-large-cap-volatility-v1
 ```
 
 Full reports are immutable, checksum-linked runtime artifacts. Compact aggregate
@@ -124,3 +131,24 @@ evidence is versioned under
 [`data/evaluation/market_forecast`](../../data/evaluation/market_forecast/) so
 the selection and evaluation chain can be inspected without redistributing raw
 market observations. The final test closes model selection for V1.
+
+The deployable native XGBoost artifact is a post-evaluation refit on all
+119,700 labeled rows. Its metadata records the frozen candidate, 144 boosting
+rounds, feature order, training coverage, source-dataset checksum, library
+versions, and model checksum. Published test metrics remain evidence from the
+earlier frozen test fit; they are not recomputed or attributed to this refit.
+
+## Backend inference contract
+
+`GET /v1/market/instruments/{instrument_id}/volatility-forecast` refreshes
+cached daily bars through the latest safely completed US session, reconstructs
+the ten frozen features, and returns the annualized 20-trading-day volatility
+forecast with observation date, model version, source, retrieval time, and
+freshness status. A provider failure may fall back only to an existing cache,
+which is labeled `stale`; missing models or unusable OHLCV history fail
+explicitly.
+
+V1 was trained on Alpaca SIP observations. The default free application feed
+is IEX, whose coverage and volume differ. The API therefore reports the
+training feed and `feed_match`; IEX forecasts remain a product demonstration,
+not evidence that the frozen SIP evaluation transfers unchanged.

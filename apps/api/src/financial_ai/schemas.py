@@ -97,6 +97,20 @@ class MarketHistoryRead(BaseModel):
     points: list[MarketPriceRead]
 
 
+class MarketVolatilityForecastRead(BaseModel):
+    symbol: str
+    observed_on: date
+    horizon_trading_days: int = Field(gt=0)
+    predicted_annualized_volatility: float = Field(gt=0)
+    annualized: bool = True
+    model_version: str
+    source: str
+    retrieved_at: datetime
+    data_status: str = Field(pattern="^(current|stale)$")
+    training_source_feed: str
+    feed_match: bool | None
+
+
 class TradeSide(StrEnum):
     BUY = "buy"
     SELL = "sell"

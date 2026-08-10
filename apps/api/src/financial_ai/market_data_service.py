@@ -149,6 +149,10 @@ class AlpacaProvider:
     def configured(self) -> bool:
         return bool(self._api_key and self._secret_key)
 
+    @property
+    def source_name(self) -> str:
+        return f"{self.name}:{self.historical_feed}"
+
     def _alpaca_headers(self) -> dict[str, str]:
         if not self.configured:
             raise MarketDataProviderError(
@@ -460,7 +464,11 @@ class MarketDataService:
             observation.low = point.low
             observation.adjusted_close = point.adjusted_close
             observation.volume = point.volume
-            observation.source = self._provider.name
+            observation.source = getattr(
+                self._provider,
+                "source_name",
+                self._provider.name,
+            )
             observation.retrieved_at = retrieved_at
         self._session.commit()
 
@@ -485,6 +493,10 @@ class MarketDataService:
 
     def _is_stale(self, retrieved_at: datetime) -> bool:
         return datetime.now(UTC).replace(tzinfo=None) - retrieved_at > self._cache_ttl
+
+    def is_stale(self, retrieved_at: datetime) -> bool:
+        """Return whether cached provider data has exceeded its configured TTL."""
+        return self._is_stale(retrieved_at)
 
 
 def build_market_data_service(session: Session, mode: str = "demo") -> MarketDataService:

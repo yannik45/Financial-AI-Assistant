@@ -35,6 +35,7 @@ financial-ai-select-market-boosting-model = "financial_ai.ml.market_forecast.boo
 financial-ai-evaluate-market-boosting = "financial_ai.ml.market_forecast.boosting_validation_report:run"
 financial-ai-diagnose-market-boosting = "financial_ai.ml.market_forecast.boosting_diagnostics:run"
 financial-ai-evaluate-market-final-test = "financial_ai.ml.market_forecast.final_test_report:run"
+financial-ai-build-market-forecast-model = "financial_ai.ml.market_forecast.model_artifact:run"
 
 [dependency-groups]
 dev = [
