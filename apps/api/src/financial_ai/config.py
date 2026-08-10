@@ -23,6 +23,12 @@ class Settings(BaseSettings):
         "data/runtime/ml/models/transaction_category_bilingual_v1.json"
     )
     category_review_threshold: float = 0.65
+    market_forecast_model_artifact_path: Path = Path(
+        "data/runtime/ml/market_forecast/models/market_volatility_xgboost_v1.ubj"
+    )
+    market_forecast_model_metadata_path: Path = Path(
+        "data/runtime/ml/market_forecast/models/market_volatility_xgboost_v1.metadata.json"
+    )
 
 
 @lru_cache

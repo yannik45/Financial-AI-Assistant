@@ -23,6 +23,13 @@ from financial_ai.market_data_service import (
     MarketDataService,
     build_market_data_service,
 )
+from financial_ai.market_forecast_service import (
+    MarketForecastService,
+    get_loaded_market_forecast_model,
+)
+from financial_ai.ml.market_forecast.daily_bars import DailyBarValidationError
+from financial_ai.ml.market_forecast.inference import InsufficientForecastHistoryError
+from financial_ai.ml.market_forecast.model_artifact import MarketForecastArtifactError
 from financial_ai.ml.transaction_classification.category_artifact import ModelArtifactError
 from financial_ai.ml.transaction_classification.category_service import (
     TransactionClassification,
@@ -60,6 +67,7 @@ from financial_ai.schemas import (
     MarketHistoryRead,
     MarketInstrumentRead,
     MarketQuoteRead,
+    MarketVolatilityForecastRead,
     PortfolioCreate,
     PortfolioOrderCreate,
     PortfolioRead,
@@ -203,6 +211,36 @@ def market_service_for_instrument(session: Session, instrument_id: str) -> Marke
     return build_market_data_service(session, mode)
 
 
+def get_market_forecast_service(
+    instrument_id: str,
+    session: SessionDependency,
+) -> MarketForecastService:
+    try:
+        market_data = market_service_for_instrument(session, instrument_id)
+    except InstrumentNotFoundError as exc:
+        raise market_error(exc) from exc
+    try:
+        loaded_model = get_loaded_market_forecast_model()
+    except MarketForecastArtifactError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "market_forecast_model_unavailable",
+                "message": str(exc),
+            },
+        ) from exc
+    return MarketForecastService(
+        market_data,
+        loaded_model,
+    )
+
+
+MarketForecastDependency = Annotated[
+    MarketForecastService,
+    Depends(get_market_forecast_service),
+]
+
+
 @app.get("/v1/market/instruments/{instrument_id}/quote", response_model=MarketQuoteRead)
 def get_market_quote(
     instrument_id: str,
@@ -229,6 +267,57 @@ def get_market_history(
         return service.history(instrument_id, date_from, date_to, refresh)
     except (InstrumentNotFoundError, MarketDataProviderError, ValueError) as exc:
         raise market_error(exc) from exc
+
+
+@app.get(
+    "/v1/market/instruments/{instrument_id}/volatility-forecast",
+    response_model=MarketVolatilityForecastRead,
+)
+def get_market_volatility_forecast(
+    instrument_id: str,
+    service: MarketForecastDependency,
+) -> MarketVolatilityForecastRead:
+    try:
+        result = service.forecast(instrument_id)
+    except InstrumentNotFoundError as exc:
+        raise market_error(exc) from exc
+    except MarketDataProviderError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "market_forecast_data_unavailable",
+                "message": str(exc),
+            },
+        ) from exc
+    except (DailyBarValidationError, InsufficientForecastHistoryError) as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "market_forecast_history_insufficient",
+                "message": str(exc),
+            },
+        ) from exc
+    except MarketForecastArtifactError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "market_forecast_model_unavailable",
+                "message": str(exc),
+            },
+        ) from exc
+    forecast = result.forecast
+    return MarketVolatilityForecastRead(
+        symbol=forecast.symbol,
+        observed_on=forecast.observed_on,
+        horizon_trading_days=forecast.horizon_trading_days,
+        predicted_annualized_volatility=forecast.predicted_annualized_volatility,
+        model_version=forecast.model_version,
+        source=result.source,
+        retrieved_at=result.retrieved_at,
+        data_status=result.data_status,
+        training_source_feed=result.training_source_feed,
+        feed_match=result.feed_match,
+    )
 
 
 def portfolio_trading_error(exc: PortfolioTradingError) -> HTTPException:

@@ -3,8 +3,9 @@
 ## Purpose
 
 This foundation defines the reproducible observations, features, targets, and
-temporal boundaries used by the market-volatility experiments. Forecasts are
-evaluated offline and are not exposed in the product.
+temporal boundaries used to evaluate and build the market-volatility model.
+The backend exposes inference only through a separately built, checksum-verified
+deployment artifact.
 
 The experiment uses a pinned universe of liquid US equities. Alpaca SIP daily
 bars are an acquisition source, not a training-time dependency. Validated
@@ -163,6 +164,7 @@ Additional limitations remain:
 4. Build backward-looking features without cross-symbol leakage.
 5. Create a forward-volatility target and remove rows whose future horizon is unknown.
 6. Compare declared model candidates with purged expanding-window inner folds.
+7. Build the frozen deployment artifact only after the final evaluation is closed.
 
 The validation contract is enforced by
 `apps/api/tests/test_market_forecast_daily_bars.py` and implemented by
@@ -180,6 +182,11 @@ The command writes an immutable CSV and metadata JSON containing provenance,
 coverage, schema, and a canonical SHA-256 checksum.
 
 Historical observations can be downloaded and frozen in one command:
+
+The downloader requires `FINANCIAL_AI_ALPACA_API_KEY` and
+`FINANCIAL_AI_ALPACA_SECRET_KEY` in the local `.env`. It explicitly requests
+the SIP feed, so the Alpaca account must have access to the requested historical
+SIP range.
 
 ```powershell
 uv run financial-ai-download-market-snapshot `
@@ -206,3 +213,16 @@ source snapshot checksum, feature and target contracts, split configuration,
 row coverage, and its own canonical checksum. Generated market data remains
 ignored by Git; later evaluation reports may reference these versions and
 checksums without redistributing the underlying observations.
+
+After this dataset exists, build the local deployment artifact with:
+
+```powershell
+uv run financial-ai-build-market-forecast-model `
+  --dataset-version us-large-cap-volatility-v1
+```
+
+The command writes the native XGBoost model and its metadata under
+`data/runtime/ml/market_forecast/models/`. Both files remain ignored runtime
+artifacts. Model selection, final-test evidence, and the distinction between
+the evaluated fit and deployment refit are documented in the
+[market volatility model card](market_volatility_boosting.md).

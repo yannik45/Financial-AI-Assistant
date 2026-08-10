@@ -31,7 +31,7 @@ applied machine learning in one auditable system.
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
 | Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
-| Market forecasting | Versioned historical OHLCV data, purged temporal evaluation, statistical and Ridge references, and a final-tested XGBoost candidate |
+| Market forecasting | Versioned historical OHLCV data, purged temporal evaluation, final-tested XGBoost, checksum-verified deployment artifact, and a current-data backend forecast endpoint |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
 
@@ -156,6 +156,7 @@ and an end-to-end proxy smoke test. Generated content in `.venv`,
   experiment records.
 - [Data notes](data/README.md): synthetic data boundaries and ECB provenance.
 
-The volatility model has completed its frozen 2024–2025 final test. Product
-integration, broader risk modeling, and an assistant with deterministic tool
-calling remain later increments.
+The volatility model has completed its frozen 2024–2025 final test and has a
+checksum-verified native XGBoost deployment artifact. API/UI integration,
+broader risk modeling, and an assistant with deterministic tool calling remain
+later increments.
