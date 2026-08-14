@@ -20,7 +20,7 @@ class ComponentDefinition:
 
 
 COMPONENTS = {
-    "volatility": ComponentDefinition("volatility", "Market volatility", 0.55),
+    "volatility": ComponentDefinition("volatility", "Historical portfolio volatility", 0.55),
     "drawdown": ComponentDefinition("drawdown", "Historical drawdown", 0.35),
     "asset_mix": ComponentDefinition("asset_mix", "Structural exposure", 0.10),
 }
@@ -96,7 +96,7 @@ def calculate_risk_score(
             volatility_score,
             volatility,
             "% annualized",
-            f"Annualized volatility is {volatility:.1f}%.",
+            f"Annualized historical portfolio volatility is {volatility:.1f}%.",
         ),
         _component(
             "drawdown",

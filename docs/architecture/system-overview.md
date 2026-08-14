@@ -84,6 +84,11 @@ the provider is temporarily unavailable; no forecast is fabricated without a
 usable cache. The response also exposes whether the inference feed matches the
 SIP feed used by the V1 training snapshot.
 
+The trading workflow loads quote and forecast as independent browser queries.
+A forecast failure never disables an otherwise valid simulated order. Users can
+open the same forecast panel from instrument selection or an existing holding;
+structured API errors, stale data, and feed mismatch remain distinct UI states.
+
 ### Transaction categorization
 
 The classifier receives description, optional counterparty, and signed amount.

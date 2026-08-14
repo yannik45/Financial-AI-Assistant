@@ -18,7 +18,7 @@ The implementation is versioned as `portfolio-risk-score-v2` in
 ## Market-risk method
 
 ```text
-market risk = 55% volatility + 35% drawdown + 10% structural exposure
+market risk = 55% historical portfolio volatility + 35% drawdown + 10% structural exposure
 ```
 
 Each raw input is mapped to 0–100 by documented piecewise-linear anchors. The
@@ -27,7 +27,9 @@ more informative than a coarse asset label. Its current factors are cash 5,
 bonds 30, gold or commodities 55, broad equity ETFs 60, individual equities 75,
 real estate 75, and crypto 100.
 
-The volatility anchors use the historical UCITS SRRI intervals only as public
+Portfolio volatility is calculated from the reconstructed daily value series of
+the current holdings, so joint and offsetting price movements are reflected. The
+volatility anchors use the historical UCITS SRRI intervals only as public
 reference points. This is not an SRRI or PRIIPs calculation.
 
 | Market-risk score | Label |

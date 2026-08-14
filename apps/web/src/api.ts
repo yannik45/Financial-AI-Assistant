@@ -5,6 +5,7 @@ import type {
   MarketInstrument,
   MarketDataStatus,
   MarketQuote,
+  MarketVolatilityForecast,
   PortfolioOrderCreate,
   TradingPortfolio,
   PortfolioCreate,
@@ -18,17 +19,29 @@ import type {
 
 const API_URL = import.meta.env.VITE_API_URL ?? "/api";
 
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, init);
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     const details = payload?.details?.map((item: { row?: number; field: string; message: string }) => `${item.row ? `Row ${item.row}, ` : ""}${item.field}: ${item.message}`).join("\n");
-    throw new Error(
+    const message =
       details ||
-        payload?.detail?.message ||
-        payload?.message ||
-        `Request failed (${response.status})`,
-    );
+      payload?.detail?.message ||
+      payload?.message ||
+      `Request failed (${response.status})`;
+    throw new ApiError(message, response.status, payload?.detail?.code);
   }
   return response.json() as Promise<T>;
 }
@@ -67,6 +80,10 @@ export const api = {
     request<MarketInstrument[]>(`/v1/market/instruments?query=${encodeURIComponent(query)}&mode=${mode}`),
   marketQuote: (instrumentId: string) =>
     request<MarketQuote>(`/v1/market/instruments/${instrumentId}/quote`),
+  marketVolatilityForecast: (instrumentId: string) =>
+    request<MarketVolatilityForecast>(
+      `/v1/market/instruments/${instrumentId}/volatility-forecast`,
+    ),
   portfolioOverview: (id: string) =>
     request<TradingPortfolio>(`/v1/portfolios/${id}/overview`),
   createPortfolio: (payload: PortfolioCreate) =>
