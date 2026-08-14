@@ -55,6 +55,9 @@ price/FX observations from backend providers and calculates valuation, cost
 basis, P&L, allocations, return, volatility, drawdown, and concentration. A buy
 or sale therefore updates both the account ledger and the risk analytics. The
 React application receives final values and time series for presentation.
+It remembers only the selected portfolio identifier in browser storage and
+validates that identifier against the current API response on startup; financial
+state remains backend-owned.
 
 A versioned deterministic risk-indicator service separates measured market
 risk from diversification quality and liquidity resilience. The response
@@ -123,8 +126,10 @@ technical UTC event timestamp; and `price_observed_on` is the date of the market
 observation used for pricing. A stale daily close therefore never backdates the
 ledger transaction.
 
-The general Transactions view reads the same rows. Brokerage accounts expose
-their linked portfolio identity and every account balance is derived from its
+The portfolio workspace reads the same rows in one integrated activity view,
+which defaults to the selected portfolio's brokerage account while allowing
+other accounts to be selected. Brokerage accounts expose their linked portfolio
+identity and every account balance is derived from its
 opening balance plus signed ledger entries. Market orders use the deterministic
 `Investments` category because their transaction semantics are already known;
 free-form cash transactions continue through the editable classification flow.

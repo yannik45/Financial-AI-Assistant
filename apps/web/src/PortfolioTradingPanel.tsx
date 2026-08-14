@@ -19,6 +19,7 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
   const [forecastInstrument, setForecastInstrument] = useState<MarketInstrument | null>(null);
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [quantity, setQuantity] = useState("1");
+  const [showTrade, setShowTrade] = useState(false);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setDebouncedSearch(searchText.trim()), 400);
@@ -60,6 +61,7 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
       setForecastInstrument(null);
       setQuantity("1");
       setSearchText("");
+      setShowTrade(false);
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ["portfolios"] }),
         queryClient.invalidateQueries({ queryKey: ["portfolio-overview", portfolioId] }),
@@ -81,6 +83,7 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
     });
   };
   const prepareHoldingOrder = (holding: PortfolioHolding, orderSide: "buy" | "sell") => {
+    setShowTrade(true);
     setInstrument(holding.instrument);
     if (overview.data?.market_data_mode === "external") {
       setForecastInstrument(holding.instrument);
@@ -88,6 +91,10 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
     setSide(orderSide);
     setQuantity(orderSide === "buy" ? "1" : holding.quantity);
     setSearchText(holding.instrument.symbol);
+  };
+  const openForecast = (selected: MarketInstrument) => {
+    setForecastInstrument(selected);
+    setShowTrade(true);
   };
   const selectInstrument = (selected: MarketInstrument | null) => {
     setInstrument(selected);
@@ -106,13 +113,12 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
   if (overview.isError) return <div className="error">{overview.error.message}</div>;
   if (!overview.data) return null;
   const portfolio = overview.data;
+  const selectedHolding = instrument
+    ? portfolio.holdings.find((holding) => holding.instrument.id === instrument.id)
+    : undefined;
 
   return (
     <>
-      <div className="demo-banner paper-banner">
-        <b>{portfolio.market_data_mode === "external" ? "EXTERNAL MARKET DATA · PAPER TRADING" : "SYNTHETIC DATA · PAPER TRADING"}</b>
-        <span>Orders are simulated and update this portfolio's brokerage ledger</span>
-      </div>
       <section className="metrics-grid paper-metrics">
         <Metric label="Total equity" value={portfolio.total_equity} currency={portfolio.base_currency} note="Cash plus holdings" />
         <Metric label="Available cash" value={portfolio.cash_balance} currency={portfolio.base_currency} note="Opening cash plus ledger cash flows" />
@@ -120,8 +126,14 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
         <Metric label="Realized P&L" value={portfolio.realized_pnl} currency={portfolio.base_currency} note="Average-cost method" />
       </section>
 
-      <section className="panel order-panel">
-        <div className="panel-title"><div><span className="eyebrow">BUY OR SELL</span><h3>Trade from this portfolio</h3></div><span className="page-meta">Cash: {formatMoney(portfolio.cash_balance, portfolio.base_currency)}</span></div>
+      <button className="floating-trade-button" type="button" onClick={() => setShowTrade(true)}>
+        <span aria-hidden="true">⌕</span> Trade
+      </button>
+      {showTrade ? (
+        <div className="trade-sheet-backdrop" onMouseDown={() => setShowTrade(false)}>
+          <section className="trade-sheet" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="panel-title"><div><span className="eyebrow">TRADE</span><h2>Buy or sell</h2></div><button className="secondary compact" type="button" onClick={() => setShowTrade(false)}>Close</button></div>
+        <span className="page-meta">Available cash: {formatMoney(portfolio.cash_balance, portfolio.base_currency)}</span>
         <div className="instrument-search">
           {portfolio.market_data_mode === "demo" ? (
             <label>
@@ -187,56 +199,97 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
         </div>
         {instrument ? (
           <form className="paper-order-form" noValidate onSubmit={submitOrder}>
-            <div><b>{instrument.symbol}</b><span>{instrument.name}</span></div>
-            <div className="selected-quote">
-              <b aria-label="Selected instrument price">
-                {selectedQuote.isLoading
-                  ? "Loading latest close…"
-                  : selectedQuote.data
-                    ? formatMoney(selectedQuote.data.close, instrument.currency)
-                    : "Price unavailable"}
-              </b>
-              {selectedQuote.data ? (
-                <span>
-                  Latest daily close · {selectedQuote.data.observed_on} · {selectedQuote.data.source}
-                  {selectedQuote.data.is_stale ? " · stale cache" : ""}
-                </span>
-              ) : null}
-              {selectedQuote.isError ? (
-                <span className="negative">{selectedQuote.error.message}</span>
-              ) : null}
+            <div className="order-instrument-summary">
+              <div>
+                <b>{instrument.symbol}</b>
+                <span>{instrument.name}</span>
+                <small>{selectedHolding ? `${Number(selectedHolding.quantity).toLocaleString()} units held` : "Not currently held"}</small>
+              </div>
+              <div className="selected-quote">
+                <b aria-label="Selected instrument price">
+                  {selectedQuote.isLoading
+                    ? "Loading latest close…"
+                    : selectedQuote.data
+                      ? formatMoney(selectedQuote.data.close, instrument.currency)
+                      : "Price unavailable"}
+                </b>
+                {selectedQuote.data ? (
+                  <span>
+                    Latest close · {selectedQuote.data.observed_on}
+                    {selectedQuote.data.is_stale ? " · stale" : ""}
+                  </span>
+                ) : null}
+                {selectedQuote.isError ? (
+                  <span className="negative">{selectedQuote.error.message}</span>
+                ) : null}
+              </div>
             </div>
-            <label>Side<select value={side} onChange={(event) => setSide(event.target.value as "buy" | "sell")}><option value="buy">Buy</option><option value="sell" disabled={!portfolio.holdings.some((holding) => holding.instrument.id === instrument.id)}>Sell</option></select></label>
-            <label>Quantity<input required min="1" step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>
-            <button disabled={executeOrder.isPending || selectedQuote.isLoading || selectedQuote.isError}>{executeOrder.isPending ? "Executing…" : side === "buy" ? "Buy position" : "Sell position"}</button>
+            <div className="order-controls">
+              <fieldset className="side-field">
+                <legend>Order side</legend>
+                <div className="side-toggle">
+                  <button className={side === "buy" ? "active" : ""} type="button" aria-pressed={side === "buy"} onClick={() => setSide("buy")}>Buy</button>
+                  <button className={side === "sell" ? "active" : ""} type="button" aria-pressed={side === "sell"} disabled={!selectedHolding} onClick={() => {
+                    setSide("sell");
+                    if (selectedHolding && Number(quantity) > Number(selectedHolding.quantity)) {
+                      setQuantity(selectedHolding.quantity);
+                    }
+                  }}>Sell</button>
+                </div>
+              </fieldset>
+              <fieldset className="quantity-field">
+                <legend>Quantity</legend>
+                <div className="quantity-presets">
+                  {[1, 3, 5, 10].map((value) => (
+                    <button
+                      className={quantity === String(value) ? "active" : ""}
+                      type="button"
+                      key={value}
+                      aria-label={`Set quantity to ${value}`}
+                      disabled={side === "sell" && Boolean(selectedHolding) && value > Number(selectedHolding?.quantity)}
+                      onClick={() => setQuantity(String(value))}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+                <input aria-label="Custom quantity" required min="1" max={side === "sell" ? selectedHolding?.quantity : undefined} step="1" type="number" value={quantity} onChange={(event) => setQuantity(event.target.value)} />
+              </fieldset>
+            </div>
+            <div className="order-total">
+              <span>Estimated order value</span>
+              <strong aria-label="Estimated order value">
+                {selectedQuote.data && Number(quantity) > 0
+                  ? formatMoney(
+                      String(Number(selectedQuote.data.close) * Number(quantity)),
+                      instrument.currency,
+                    )
+                  : "—"}
+              </strong>
+            </div>
+            <button className="submit-order" disabled={executeOrder.isPending || selectedQuote.isLoading || selectedQuote.isError || Number(quantity) < 1 || (side === "sell" && Boolean(selectedHolding) && Number(quantity) > Number(selectedHolding?.quantity))}>{executeOrder.isPending ? "Executing…" : side === "buy" ? "Buy position" : "Sell position"}</button>
             {instrument.currency !== portfolio.base_currency ? <span className="order-note">The backend converts {instrument.currency} settlement into {portfolio.base_currency} using the stored FX reference rate.</span> : null}
           </form>
         ) : null}
         {executeOrder.isError ? <div className="error">{executeOrder.error.message}</div> : null}
-      </section>
-
-      {forecastInstrument && portfolio.market_data_mode === "external" ? (
+        {forecastInstrument && portfolio.market_data_mode === "external" ? (
         <InstrumentForecast
           instrumentId={forecastInstrument.id}
           symbol={forecastInstrument.symbol}
           onClose={() => setForecastInstrument(null)}
         />
       ) : null}
+          </section>
+        </div>
+      ) : null}
 
       <HoldingsTable
         holdings={portfolio.holdings}
         currency={portfolio.base_currency}
         canForecast={portfolio.market_data_mode === "external"}
-        onForecast={setForecastInstrument}
+        onForecast={openForecast}
         onOrder={prepareHoldingOrder}
       />
-      <section className="panel">
-        <div className="panel-title"><div><span className="eyebrow">PORTFOLIO LEDGER</span><h3>Security transactions</h3></div><span className="page-meta">{portfolio.trade_count} trades</span></div>
-        <div className="table-wrap"><table><thead><tr><th>Date</th><th>Instrument</th><th>Side</th><th>Quantity</th><th>Price</th><th>Cash flow</th></tr></thead><tbody>
-          {[...portfolio.trades].reverse().map((trade) => <tr key={trade.id}><td>{trade.booked_at}</td><td>{trade.instrument.symbol}</td><td>{trade.side.toUpperCase()}</td><td>{Number(trade.quantity).toLocaleString()}</td><td>{formatMoney(trade.unit_price, trade.instrument_currency)}<small>Price observed {trade.price_observed_on}</small></td><td className={trade.side === "buy" ? "negative" : "positive"}>{trade.side === "buy" ? "−" : "+"}{formatMoney(trade.settlement_amount, trade.currency)}</td></tr>)}
-          {!portfolio.trades.length ? <tr><td colSpan={6} className="empty-state">No trades yet.</td></tr> : null}
-        </tbody></table></div>
-      </section>
       <ul className="warnings">{portfolio.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
     </>
   );

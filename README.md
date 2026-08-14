@@ -26,7 +26,7 @@ applied machine learning in one auditable system.
 
 | Area | Current capability |
 |---|---|
-| Portfolio analytics | Ledger-derived holdings, valuation, allocation, P&L, return, volatility, drawdown, separate market-risk, diversification, and liquidity indicators, time series, and CSV import |
+| Portfolio analytics | Ledger-derived holdings, valuation, allocation, P&L, return, volatility, drawdown, separate market-risk, diversification, and liquidity indicators, and time series |
 | Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Alpaca adapter |
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
 | Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
@@ -114,7 +114,7 @@ local `.env`; credentials are passed only to the backend. Orders remain
 simulated, and reviewers without credentials can use every demo workflow.
 
 Each portfolio owns one brokerage account. Buys, sales, cash, holdings, cost
-basis, P&L, and the general Transactions view share the same signed ledger. See
+basis, P&L, and the integrated activity view share the same signed ledger. See
 the [system overview](docs/architecture/system-overview.md) for pricing,
 persistence, and trust boundaries.
 
