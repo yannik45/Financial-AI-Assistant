@@ -178,7 +178,7 @@ export default function PortfolioTradingPanel({ portfolioId }: { portfolioId: st
                 <span>No matching US instrument found.</span>
               ) : null}
               {instruments.data?.map((item) => (
-              <button type="button" className={instrument?.id === item.id ? "instrument active" : "instrument"} key={item.id} onClick={() => selectInstrument(item)}>
+              <button type="button" className="instrument" key={item.id} onClick={() => selectInstrument(item)}>
                 <b>{item.symbol}</b><span>{item.name}</span><small>{item.exchange || item.provider} · {item.currency}</small>
               </button>
               ))}

@@ -97,7 +97,8 @@ test("opens the same instrument forecast from holdings and order preparation", a
   );
 
   fireEvent.click(await screen.findByRole("button", { name: "Forecast" }));
-  expect(await screen.findByText("23.7%")).toBeInTheDocument();
+  expect(await screen.findByText("6.7%")).toBeInTheDocument();
+  expect(screen.getByText("23.7% annualized")).toBeInTheDocument();
   fireEvent.click(screen.getByRole("button", { name: "Close" }));
   expect(screen.queryByLabelText("AAPL volatility forecast")).not.toBeInTheDocument();
 

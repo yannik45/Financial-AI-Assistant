@@ -20,9 +20,7 @@ class ComponentDefinition:
 
 
 COMPONENTS = {
-    "volatility": ComponentDefinition(
-        "volatility", "Historical portfolio volatility", 0.55
-    ),
+    "volatility": ComponentDefinition("volatility", "Historical portfolio volatility", 0.55),
     "drawdown": ComponentDefinition("drawdown", "Historical drawdown", 0.35),
     "asset_mix": ComponentDefinition("asset_mix", "Structural exposure", 0.10),
 }
