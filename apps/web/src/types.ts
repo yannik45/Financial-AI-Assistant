@@ -282,6 +282,20 @@ export type MarketQuote = {
   is_stale: boolean;
 };
 
+export type MarketVolatilityForecast = {
+  symbol: string;
+  observed_on: string;
+  horizon_trading_days: number;
+  predicted_annualized_volatility: number;
+  annualized: boolean;
+  model_version: string;
+  source: string;
+  retrieved_at: string;
+  data_status: "current" | "stale";
+  training_source_feed: string;
+  feed_match: boolean | null;
+};
+
 export type PortfolioOrderCreate = {
   client_order_id: string;
   instrument_id: string;

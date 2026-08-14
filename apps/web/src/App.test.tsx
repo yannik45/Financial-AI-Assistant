@@ -195,13 +195,13 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
       components: [
         {
           key: "volatility",
-          label: "Market volatility",
+          label: "Historical portfolio volatility",
           score: 48,
           weight: 0.55,
           contribution: 26.4,
           raw_value: 12,
           raw_unit: "% annualized",
-          summary: "Annualized volatility is 12.0%.",
+          summary: "Annualized historical portfolio volatility is 12.0%.",
           details: {},
         },
       ],
@@ -209,7 +209,7 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
         {
           component: "volatility",
           contribution: 26.4,
-          explanation: "Annualized volatility is 12.0%.",
+          explanation: "Annualized historical portfolio volatility is 12.0%.",
         },
       ],
       diversification: { key: "diversification", label: "Diversification quality", score: 75, level: "strong", summary: "Broad-market exposure receives a limited look-through credit.", details: {} },
@@ -250,7 +250,7 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
   renderApp();
   expect(await screen.findByText("58.4")).toBeInTheDocument();
   expect(screen.getByText("Diversification quality")).toBeInTheDocument();
-  expect(screen.getByText("Market volatility")).toBeInTheDocument();
+  expect(screen.getByText("Historical portfolio volatility")).toBeInTheDocument();
   expect(await screen.findByText("2026-08-01")).toBeInTheDocument();
   expect(screen.getByText("Price observed 2026-06-30")).toBeInTheDocument();
   expect(screen.getByLabelText("Demo instrument")).toBeInTheDocument();
