@@ -49,6 +49,7 @@ const jsonResponse = (payload: unknown) =>
   Promise.resolve({ ok: true, json: () => Promise.resolve(payload) } as Response);
 
 beforeEach(() => {
+  window.localStorage.clear();
   vi.stubGlobal(
     "fetch",
     vi.fn((input: string | URL | Request) => {
@@ -80,13 +81,38 @@ function renderApp() {
   );
 }
 
-test("renders the portfolio view and import action", () => {
+test("renders the unified portfolio workspace", () => {
   renderApp();
-  expect(screen.getByText("FINANCIAL AI")).toBeInTheDocument();
-  expect(screen.queryByText("NORTHSTAR")).not.toBeInTheDocument();
-  expect(screen.getByText("Risk, concentration and performance")).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Import CSV" })).toBeInTheDocument();
-  expect(screen.getByText("SYNTHETIC DEMO MARKET DATA")).toBeInTheDocument();
+  expect(screen.getByText("Financial AI")).toBeInTheDocument();
+  expect(screen.getByText("Your investments")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "New portfolio" })).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Import CSV" })).not.toBeInTheDocument();
+  expect(screen.getByText("Demo market data · Paper portfolio")).toBeInTheDocument();
+});
+
+test("restores and updates the selected portfolio", async () => {
+  const portfolioOptions = [
+    { id: "portfolio-one", name: "First Portfolio", kind: "manual", market_data_mode: "demo", base_currency: "EUR", created_at: "2026-08-01T00:00:00", position_count: 0, account_id: null },
+    { id: "portfolio-two", name: "Second Portfolio", kind: "manual", market_data_mode: "demo", base_currency: "EUR", created_at: "2026-08-02T00:00:00", position_count: 0, account_id: null },
+  ];
+  window.localStorage.setItem("financial-ai:selected-portfolio", "portfolio-two");
+  vi.mocked(fetch).mockImplementation((input: string | URL | Request) => {
+    const url = String(input);
+    if (url.endsWith("/v1/portfolios")) return jsonResponse(portfolioOptions);
+    if (url.includes("/analytics") || url.includes("/overview")) {
+      return new Promise<Response>(() => undefined);
+    }
+    if (url.includes("/v1/accounts")) return jsonResponse(accounts);
+    if (url.includes("/v1/transactions")) return jsonResponse(transactions);
+    if (url.includes("/v1/market/status")) return jsonResponse({ demo_available: true, external_available: false, external_provider: "alpaca" });
+    return jsonResponse([]);
+  });
+
+  renderApp();
+  const selector = await screen.findByLabelText("Select portfolio");
+  await waitFor(() => expect(selector).toHaveValue("portfolio-two"));
+  fireEvent.change(selector, { target: { value: "portfolio-one" } });
+  expect(window.localStorage.getItem("financial-ai:selected-portfolio")).toBe("portfolio-one");
 });
 
 test("keeps external portfolios unavailable without a server-side API key", async () => {
@@ -244,6 +270,8 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     }
     if (url.endsWith("/v1/portfolios")) return jsonResponse([summary]);
     if (url.endsWith("/v1/portfolios/portfolio-id/analytics")) return jsonResponse(analytics);
+    if (url.includes("/v1/accounts")) return jsonResponse(accounts);
+    if (url.includes("/v1/transactions")) return jsonResponse(transactions);
     return jsonResponse([]);
   });
 
@@ -251,20 +279,23 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
   expect(await screen.findByText("58.4")).toBeInTheDocument();
   expect(screen.getByText("Diversification quality")).toBeInTheDocument();
   expect(screen.getByText("Historical portfolio volatility")).toBeInTheDocument();
-  expect(await screen.findByText("2026-08-01")).toBeInTheDocument();
-  expect(screen.getByText("Price observed 2026-06-30")).toBeInTheDocument();
+  fireEvent.click(await screen.findByRole("button", { name: "Buy more" }));
   expect(screen.getByLabelText("Demo instrument")).toBeInTheDocument();
   expect(
     screen.getByText("All selectable instruments use deterministic synthetic prices."),
   ).toBeInTheDocument();
-  fireEvent.click(await screen.findByRole("button", { name: "Buy more" }));
-  expect(screen.getByLabelText("Side")).toHaveValue("buy");
-  expect(screen.getByLabelText("Quantity")).toHaveValue(1);
+  expect(screen.getByRole("button", { name: /^Buy$/ })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByLabelText("Custom quantity")).toHaveValue(1);
+  expect(screen.getByText("4 units held")).toBeInTheDocument();
   await waitFor(() =>
     expect(screen.getByLabelText("Selected instrument price")).toHaveTextContent("€110.00"),
   );
-  expect(screen.getByLabelText("Quantity")).toHaveAttribute("step", "1");
-  expect(screen.getByLabelText("Quantity")).toHaveAttribute("min", "1");
+  expect(screen.getByLabelText("Custom quantity")).toHaveAttribute("step", "1");
+  expect(screen.getByLabelText("Custom quantity")).toHaveAttribute("min", "1");
+  expect(screen.getByLabelText("Estimated order value")).toHaveTextContent("€110.00");
+  fireEvent.click(screen.getByRole("button", { name: "Set quantity to 3" }));
+  expect(screen.getByLabelText("Custom quantity")).toHaveValue(3);
+  expect(screen.getByLabelText("Estimated order value")).toHaveTextContent("€330.00");
   fireEvent.click(screen.getByRole("button", { name: "Buy position" }));
 
   await waitFor(() => {
@@ -273,7 +304,7 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
     );
     expect(call).toBeDefined();
     const payload = JSON.parse(String(call?.[1]?.body));
-    expect(payload).toMatchObject({ instrument_id: "instrument-id", side: "buy", quantity: "1" });
+    expect(payload).toMatchObject({ instrument_id: "instrument-id", side: "buy", quantity: "3" });
     expect(payload).not.toHaveProperty("unit_price");
     expect(payload.client_order_id).toBeTruthy();
   });
@@ -285,9 +316,7 @@ test("submits a portfolio order that updates the shared brokerage ledger", async
 
 test("opens the transaction history and add transaction form", async () => {
   renderApp();
-  fireEvent.click(screen.getByRole("button", { name: /Transactions/ }));
-
-  expect(await screen.findByText("Accounts and transaction history")).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Transactions" })).toBeInTheDocument();
   expect(await screen.findByText("Supermarket")).toBeInTheDocument();
   expect(screen.getAllByText("Groceries")).toHaveLength(2);
   expect(screen.getByText("-€92.18")).toBeInTheDocument();
@@ -303,7 +332,6 @@ test("opens the transaction history and add transaction form", async () => {
 
 test("suggests a category and preserves a user correction when saving", async () => {
   renderApp();
-  fireEvent.click(screen.getByRole("button", { name: /Transactions/ }));
   const addButton = await screen.findByRole("button", { name: "Add transaction" });
   await waitFor(() => expect(addButton).toBeEnabled());
   fireEvent.click(addButton);
@@ -370,7 +398,6 @@ test("does not auto-apply a suggestion that requires review", async () => {
     return jsonResponse([]);
   });
   renderApp();
-  fireEvent.click(screen.getByRole("button", { name: /Transactions/ }));
   const addButton = await screen.findByRole("button", { name: "Add transaction" });
   await waitFor(() => expect(addButton).toBeEnabled());
   fireEvent.click(addButton);

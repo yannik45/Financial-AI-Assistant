@@ -133,7 +133,6 @@ function Dashboard({ analytics }: { analytics: Analytics }) {
   const positive = Number(analytics.unrealized_pnl_eur) >= 0;
   return (
     <>
-      {analytics.risk_score ? <RiskScorePanel risk={analytics.risk_score} /> : null}
       <div className="metrics-grid">
         <MetricCard
           label="Portfolio value"
@@ -205,42 +204,7 @@ function Dashboard({ analytics }: { analytics: Analytics }) {
         <AllocationChart title="Asset class allocation" data={analytics.allocations.asset_class} />
         <AllocationChart title="Regional allocation" data={analytics.allocations.region} />
       </div>
-      <section className="panel">
-        <div className="panel-title">
-          <div>
-            <span className="eyebrow">HOLDINGS</span>
-            <h3>Position contribution</h3>
-          </div>
-        </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Symbol</th>
-                <th>Market value</th>
-                <th>Cost basis</th>
-                <th>P&amp;L</th>
-                <th>Weight</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analytics.positions.map((position) => (
-                <tr key={position.symbol}>
-                  <td>
-                    <b>{position.symbol}</b>
-                  </td>
-                  <td>{euro.format(Number(position.market_value_eur))}</td>
-                  <td>{euro.format(Number(position.cost_basis_eur))}</td>
-                  <td className={Number(position.pnl_eur) >= 0 ? "positive" : "negative"}>
-                    {euro.format(Number(position.pnl_eur))}
-                  </td>
-                  <td>{pct(position.weight * 100)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {analytics.risk_score ? <RiskScorePanel risk={analytics.risk_score} /> : null}
       <div className="warnings">
         {analytics.warnings.map((warning) => (
           <p key={warning}>ⓘ {warning}</p>
@@ -504,14 +468,21 @@ function AddTransactionModal({
   );
 }
 
-function TransactionsView() {
+function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
   const [showAdd, setShowAdd] = useState(false);
-  const [filters, setFilters] = useState<TransactionFilters>({ limit: 10, offset: 0 });
+  const [filters, setFilters] = useState<TransactionFilters>({
+    account_id: initialAccountId || undefined,
+    limit: 10,
+    offset: 0,
+  });
   const accounts = useQuery({ queryKey: ["accounts"], queryFn: api.accounts });
   const transactions = useQuery({
     queryKey: ["transactions", filters],
     queryFn: () => api.transactions(filters),
   });
+  const visibleAccounts = accounts.data?.filter(
+    (account) => account.account_type !== "brokerage" || account.id === initialAccountId,
+  );
   const accountNames = new Map(accounts.data?.map((account) => [account.id, account.name]));
   const setFilter = (key: keyof TransactionFilters, value: string) =>
     setFilters((current) => ({ ...current, [key]: value || undefined, offset: 0 }));
@@ -519,13 +490,21 @@ function TransactionsView() {
     Boolean(transactions.data) &&
     filters.offset + filters.limit < (transactions.data?.total ?? 0);
 
+  useEffect(() => {
+    setFilters((current) => ({
+      ...current,
+      account_id: initialAccountId || undefined,
+      offset: 0,
+    }));
+  }, [initialAccountId]);
+
   return (
-    <main>
-      <header>
+    <section className="activity-section" id="activity">
+      <header className="section-header">
         <div>
-          <span className="eyebrow">TRANSACTION LEDGER</span>
-          <h1>Accounts and transaction history</h1>
-          <p>One ledger for cash accounts, portfolio orders, and editable ML categories.</p>
+          <span className="eyebrow">ACTIVITY</span>
+          <h2>Transactions</h2>
+          <p>Portfolio orders and account cash movements in one ledger.</p>
         </div>
         <div className="header-actions">
           <button onClick={() => setShowAdd(true)} disabled={!accounts.data?.length}>
@@ -533,22 +512,8 @@ function TransactionsView() {
           </button>
         </div>
       </header>
-      <div className="demo-banner">
-        <b>SHARED ACCOUNT LEDGER</b>
-        <span>Portfolio orders and account cash use the same signed transactions</span>
-      </div>
-      {accounts.data ? (
-        <section className="metrics-grid account-metrics">
-          {accounts.data.map((account) => (
-            <article className="metric" key={account.id}>
-              <p>{account.account_type === "brokerage" ? "Brokerage cash" : account.account_type}</p>
-              <strong>{formatMoney(account.current_balance, account.currency)}</strong>
-              <span>{account.portfolio_name ? `${account.name} · ${account.portfolio_name}` : account.name}</span>
-            </article>
-          ))}
-        </section>
-      ) : null}
-      <section className="panel filter-panel">
+      <details className="panel filter-panel">
+        <summary>Filter activity</summary>
         <div className="filter-grid">
           <label>
             Account
@@ -557,8 +522,7 @@ function TransactionsView() {
               value={filters.account_id ?? ""}
               onChange={(event) => setFilter("account_id", event.target.value)}
             >
-              <option value="">All accounts</option>
-              {accounts.data?.map((account) => (
+              {visibleAccounts?.map((account) => (
                 <option key={account.id} value={account.id}>
                   {account.name}{account.portfolio_name ? ` · ${account.portfolio_name}` : ""} · {formatMoney(account.current_balance, account.currency)} ({account.transaction_count})
                 </option>
@@ -609,7 +573,7 @@ function TransactionsView() {
             />
           </label>
         </div>
-      </section>
+      </details>
       {accounts.isError || transactions.isError ? (
         <div className="error">
           {(accounts.error as Error | null)?.message ??
@@ -704,53 +668,62 @@ function TransactionsView() {
           </div>
         </section>
       )}
-      {showAdd && accounts.data && (
+      {showAdd && visibleAccounts && (
         <AddTransactionModal
-          accounts={accounts.data}
-          initialAccountId={filters.account_id ?? ""}
+          accounts={visibleAccounts}
+          initialAccountId={filters.account_id ?? visibleAccounts[0]?.id ?? ""}
           onClose={() => setShowAdd(false)}
         />
       )}
-    </main>
+    </section>
   );
 }
 
 function PortfolioView() {
   const queryClient = useQueryClient();
-  const [selected, setSelected] = useState("");
-  const [showImport, setShowImport] = useState(false);
+  const [selected, setSelected] = useState(() =>
+    window.localStorage.getItem("financial-ai:selected-portfolio") ?? "",
+  );
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState("");
   const [startingCash, setStartingCash] = useState("10000");
   const [marketDataMode, setMarketDataMode] = useState<"demo" | "external">(
     "demo",
   );
-  const [file, setFile] = useState<File | null>(null);
   const portfolios = useQuery({ queryKey: ["portfolios"], queryFn: api.portfolios });
   const marketStatus = useQuery({
     queryKey: ["market-data-status"],
     queryFn: api.marketDataStatus,
   });
+  const visiblePortfolios = portfolios.data?.filter(
+    (portfolio) =>
+      portfolio.kind !== "demo" ||
+      [
+        "Diversified Global Portfolio",
+        "Technology Concentration",
+        "Defensive ETF Portfolio",
+      ].includes(portfolio.name),
+  );
   const selectedPortfolio = portfolios.data?.find(
     (portfolio) => portfolio.id === selected,
   );
   useEffect(() => {
-    if (!selected && portfolios.data?.length) setSelected(portfolios.data[0].id);
-  }, [portfolios.data, selected]);
+    if (!portfolios.data?.length) return;
+    if (!visiblePortfolios?.some((portfolio) => portfolio.id === selected)) {
+      const preferred =
+        visiblePortfolios?.find((portfolio) => portfolio.kind !== "demo") ??
+        visiblePortfolios?.[0] ??
+        portfolios.data[0];
+      setSelected(preferred.id);
+    }
+  }, [portfolios.data, selected, visiblePortfolios]);
+  useEffect(() => {
+    if (selected) window.localStorage.setItem("financial-ai:selected-portfolio", selected);
+  }, [selected]);
   const analytics = useQuery({
     queryKey: ["analytics", selected],
     queryFn: () => api.analytics(selected),
     enabled: Boolean(selected),
-  });
-  const importer = useMutation({
-    mutationFn: () => api.importPortfolio(name, file!),
-    onSuccess: async (portfolio) => {
-      await queryClient.invalidateQueries({ queryKey: ["portfolios"] });
-      setSelected(portfolio.id);
-      setShowImport(false);
-      setName("");
-      setFile(null);
-    },
   });
   const creator = useMutation({
     mutationFn: () =>
@@ -771,12 +744,12 @@ function PortfolioView() {
   });
 
   return (
-    <main>
-      <header>
+    <main className="portfolio-workspace">
+      <header className="workspace-header">
         <div>
-          <span className="eyebrow">PORTFOLIO INTELLIGENCE</span>
-          <h1>Risk, concentration and performance</h1>
-          <p>Deterministic analytics for transparent financial exploration.</p>
+          <span className="eyebrow">PORTFOLIO</span>
+          <h1>{selectedPortfolio?.name ?? "Your investments"}</h1>
+          <p>Positions, risk and account activity in one place.</p>
         </div>
         <div className="header-actions">
           <select
@@ -784,7 +757,7 @@ function PortfolioView() {
             value={selected}
             onChange={(event) => setSelected(event.target.value)}
           >
-            {portfolios.data?.map((portfolio) => (
+            {visiblePortfolios?.map((portfolio) => (
               <option key={portfolio.id} value={portfolio.id}>
                 {portfolio.name} {portfolio.kind === "demo" ? "· Demo" : ""}
               </option>
@@ -793,21 +766,20 @@ function PortfolioView() {
           <button className="secondary" onClick={() => setShowCreate(true)}>
             New portfolio
           </button>
-          <button onClick={() => setShowImport(true)}>Import CSV</button>
         </div>
       </header>
-      <div className="demo-banner">
-        <b>
+      <details className="data-context">
+        <summary>
           {selectedPortfolio?.market_data_mode === "external"
-            ? "ALPACA DATA · SIMULATED PORTFOLIO"
-            : "SYNTHETIC DEMO MARKET DATA"}
-        </b>
-        <span>
+            ? "External market data · Paper portfolio"
+            : "Demo market data · Paper portfolio"}
+        </summary>
+        <p>
           {selectedPortfolio?.market_data_mode === "external"
-            ? "External observations · No real orders"
-            : "Deterministic observations · No real orders"}
-        </span>
-      </div>
+            ? "Quotes and history are retrieved from Alpaca. Orders remain simulated and no brokerage account is connected."
+            : "Prices are deterministic synthetic observations for reproducible product exploration."}
+        </p>
+      </details>
       {portfolios.isError && (
         <div className="error">Could not reach the API. Start the FastAPI service on port 8000.</div>
       )}
@@ -815,6 +787,7 @@ function PortfolioView() {
       {analytics.isError && <div className="error">{analytics.error.message}</div>}
       {analytics.data && <Dashboard analytics={analytics.data} />}
       {selected && <PortfolioTradingPanel portfolioId={selected} />}
+      <ActivitySection initialAccountId={selectedPortfolio?.account_id ?? ""} />
       {showCreate && (
         <div className="modal-backdrop" onMouseDown={() => setShowCreate(false)}>
           <form
@@ -889,95 +862,21 @@ function PortfolioView() {
           </form>
         </div>
       )}
-      {showImport && (
-        <div className="modal-backdrop" onMouseDown={() => setShowImport(false)}>
-          <form
-            className="modal"
-            onSubmit={(event) => {
-              event.preventDefault();
-              importer.mutate();
-            }}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <span className="eyebrow">NEW PORTFOLIO</span>
-            <h2>Import positions</h2>
-            <p>
-              Use the exact market catalog metadata. The complete file is rejected when any row is
-              invalid.
-            </p>
-            <label>
-              Portfolio name
-              <input
-                required
-                maxLength={120}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="My demo portfolio"
-              />
-            </label>
-            <label>
-              UTF-8 CSV
-              <input
-                required
-                type="file"
-                accept=".csv,text/csv"
-                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              />
-            </label>
-            {importer.isError && <pre className="error">{importer.error.message}</pre>}
-            <div className="modal-actions">
-              <a href="/portfolio_template.csv" download>
-                Download template
-              </a>
-              <button type="button" className="secondary" onClick={() => setShowImport(false)}>
-                Cancel
-              </button>
-              <button disabled={!file || !name || importer.isPending}>
-                {importer.isPending ? "Importing…" : "Import portfolio"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
     </main>
   );
 }
 
 export default function App() {
-  const [view, setView] = useState<"portfolio" | "transactions">("portfolio");
   return (
     <div className="app-shell">
-      <aside>
+      <div className="topbar">
         <div className="brand">
           <div className="brand-mark">F</div>
-          <div>
-            <strong>FINANCIAL AI</strong>
-            <span>ASSISTANT</span>
-          </div>
+          <strong>Financial AI</strong>
         </div>
-        <nav>
-          <button
-            className={view === "portfolio" ? "active" : ""}
-            onClick={() => setView("portfolio")}
-          >
-            ⌁ Portfolio overview
-          </button>
-          <button
-            className={view === "transactions" ? "active" : ""}
-            onClick={() => setView("transactions")}
-          >
-            ◇ Transactions
-          </button>
-          <button className="disabled" disabled>
-            ◈ AI assistant <small>Later phase</small>
-          </button>
-        </nav>
-        <div className="sidebar-note">
-          <span>LOCAL MODE</span>
-          <p>Portfolio state stays local. Quote sources are shown with market observations.</p>
-        </div>
-      </aside>
-      {view === "portfolio" ? <PortfolioView /> : <TransactionsView />}
+        <a href="#activity">Activity</a>
+      </div>
+      <PortfolioView />
     </div>
   );
 }
