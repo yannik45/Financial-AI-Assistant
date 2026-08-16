@@ -96,6 +96,7 @@ input, select, textarea {
 .panel { padding: 26px; margin-top: 16px; }
 .panel-title { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 20px; }
 .panel-title h3 { margin-top: 5px; }
+.panel-title small { display: block; margin-top: 5px; color: var(--muted); font-size: 11px; }
 .page-meta { color: var(--muted); font-size: 12px; }
 .return-pill, .forecast-status, .category-pill {
   display: inline-flex;

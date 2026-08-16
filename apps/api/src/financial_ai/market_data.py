@@ -23,6 +23,27 @@ class Asset:
     annual_volatility: float
 
 
+@dataclass(frozen=True)
+class EconomicExposure:
+    asset_class: str
+    sector: str
+    region: str
+
+
+# Alpaca identifies these instruments by their US listing but does not expose
+# fund holdings. Keep the small override set explicit so broad-market funds can
+# receive conservative look-through treatment without classifying every ETF as
+# diversified.
+BROAD_MARKET_FUND_EXPOSURES: dict[str, EconomicExposure] = {
+    "ACWI": EconomicExposure("Equity ETF", "Broad Market", "Global"),
+    "VT": EconomicExposure("Equity ETF", "Broad Market", "Global"),
+    "VTI": EconomicExposure("Equity ETF", "Broad Market", "United States"),
+    "SPY": EconomicExposure("Equity ETF", "Broad Market", "United States"),
+    "IVV": EconomicExposure("Equity ETF", "Broad Market", "United States"),
+    "VOO": EconomicExposure("Equity ETF", "Broad Market", "United States"),
+}
+
+
 ASSETS: dict[str, Asset] = {
     "WORLD-ETF": Asset(
         "WORLD-ETF",

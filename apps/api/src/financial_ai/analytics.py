@@ -9,6 +9,7 @@ import pandas as pd
 
 from financial_ai.market_data import (
     ASSETS,
+    BROAD_MARKET_FUND_EXPOSURES,
     DATA_VERSION,
     DemoMarketDataProvider,
     market_data_provider,
@@ -168,14 +169,15 @@ def current_holdings(portfolio: Portfolio) -> list[CurrentHolding]:
     for position in portfolio.positions:
         state = states.get(position.symbol)
         if state is None:
+            exposure = BROAD_MARKET_FUND_EXPOSURES.get(position.symbol)
             states[position.symbol] = CurrentHolding(
                 symbol=position.symbol,
                 quantity=position.quantity,
                 book_cost=position.quantity * position.purchase_price,
                 purchase_date=position.purchase_date,
-                asset_class=position.asset_class,
-                sector=position.sector,
-                region=position.region,
+                asset_class=exposure.asset_class if exposure else position.asset_class,
+                sector=exposure.sector if exposure else position.sector,
+                region=exposure.region if exposure else position.region,
                 currency=position.currency,
             )
         else:
@@ -202,14 +204,21 @@ def current_holdings(portfolio: Portfolio) -> list[CurrentHolding]:
         if trade.transaction_type == "security_buy":
             if state is None:
                 demo_asset = ASSETS.get(instrument.symbol)
+                exposure = BROAD_MARKET_FUND_EXPOSURES.get(instrument.symbol)
                 state = CurrentHolding(
                     symbol=instrument.symbol,
                     quantity=Decimal("0"),
                     book_cost=Decimal("0"),
                     purchase_date=trade.booked_at,
-                    asset_class=instrument.asset_class,
-                    sector=demo_asset.sector if demo_asset else instrument.asset_class,
-                    region=instrument.region or "Unknown",
+                    asset_class=exposure.asset_class if exposure else instrument.asset_class,
+                    sector=(
+                        demo_asset.sector
+                        if demo_asset
+                        else exposure.sector
+                        if exposure
+                        else instrument.asset_class
+                    ),
+                    region=exposure.region if exposure else instrument.region or "Unknown",
                     currency=instrument.currency,
                     instrument_id=instrument.id,
                 )

@@ -4,6 +4,8 @@ A full-stack portfolio intelligence platform that connects portfolio trading,
 account cash flows, deterministic risk analytics, external market data, and
 applied machine learning in one auditable system.
 
+![Portfolio summary, key metrics, and value history](docs/assets/portfolio-overview.png)
+
 ## At a glance
 
 | Aspect | Summary |
@@ -34,6 +36,12 @@ applied machine learning in one auditable system.
 | Market forecasting | Versioned historical OHLCV data, purged temporal evaluation, final-tested XGBoost, checksum-verified deployment artifact, and instrument-level forecasts in the trading workflow |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
+
+![Instrument discovery, volatility forecast, and simulated order workflow](docs/assets/trading-and-forecast.png)
+
+![Portfolio risk score, dimensions, and principal risk drivers](docs/assets/risk-analytics.png)
+
+![Unified account activity and transaction classification review](docs/assets/transaction-classification.png)
 
 Financial metrics are calculated only by deterministic backend code. A future
 LLM may select tested tools and explain their output, but must never calculate
