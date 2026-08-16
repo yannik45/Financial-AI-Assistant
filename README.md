@@ -6,6 +6,8 @@ applied machine learning in one auditable system.
 
 ![Portfolio summary, key metrics, and value history](docs/assets/portfolio-overview.png)
 
+*Portfolio overview with linked holdings, performance history, and key analytics.*
+
 ## At a glance
 
 | Aspect | Summary |
@@ -37,11 +39,25 @@ applied machine learning in one auditable system.
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
 
+## Product walkthrough
+
+### Instrument research and trading
+
 ![Instrument discovery, volatility forecast, and simulated order workflow](docs/assets/trading-and-forecast.png)
+
+*Instrument discovery combines current market data, volatility forecasts, and simulated orders.*
+
+### Portfolio risk analytics
 
 ![Portfolio risk score, dimensions, and principal risk drivers](docs/assets/risk-analytics.png)
 
+*Deterministic risk analytics separate measured market risk, diversification, and liquidity.*
+
+### Transaction intelligence
+
 ![Unified account activity and transaction classification review](docs/assets/transaction-classification.png)
+
+*Unified account activity with editable ML category suggestions and review status.*
 
 Financial metrics are calculated only by deterministic backend code. A future
 LLM may select tested tools and explain their output, but must never calculate
