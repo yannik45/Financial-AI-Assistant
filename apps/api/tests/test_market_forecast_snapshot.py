@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.snapshot import (
+from financial_ai.ml.market_forecast.data.snapshot import (
     SNAPSHOT_SCHEMA_VERSION,
     build_snapshot_metadata,
     load_market_snapshot,

@@ -1,5 +1,5 @@
 import pandas as pd
-from financial_ai.ml.transaction_classification.category_quality import (
+from financial_ai.ml.transaction_classification.data.category_quality import (
     build_category_quality_report,
 )
 

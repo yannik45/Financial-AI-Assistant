@@ -1,15 +1,15 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.dataset import (
+from financial_ai.ml.market_forecast.data.dataset import (
     MODEL_DATASET_COLUMNS,
     build_model_dataset,
     load_model_dataset,
     write_model_dataset,
 )
-from financial_ai.ml.market_forecast.features import FEATURE_COLUMNS
-from financial_ai.ml.market_forecast.splits import SPLIT_COLUMN
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.data.features import FEATURE_COLUMNS
+from financial_ai.ml.market_forecast.data.splits import SPLIT_COLUMN
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
 
 
 def daily_bars() -> pd.DataFrame:

@@ -3,12 +3,12 @@ from dataclasses import asdict
 
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.boosting import XGBoostConfig
-from financial_ai.ml.market_forecast.boosting_validation_report import (
+from financial_ai.ml.market_forecast.evaluation.boosting_validation_report import (
     build_boosting_validation_report,
     write_boosting_validation_report,
 )
-from financial_ai.ml.market_forecast.evaluation import VolatilityForecastMetrics
+from financial_ai.ml.market_forecast.evaluation.evaluation import VolatilityForecastMetrics
+from financial_ai.ml.market_forecast.modeling.boosting import XGBoostConfig
 
 
 def provenance():
@@ -52,11 +52,11 @@ def test_boosting_validation_report_uses_frozen_selection_and_excludes_test(monk
         return VolatilityForecastMetrics(0.07, 0.1, 0.25)
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting_validation_report.evaluate_ewma_validation",
+        "financial_ai.ml.market_forecast.evaluation.boosting_validation_report.evaluate_ewma_validation",
         fake_ewma,
     )
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting_validation_report.evaluate_ridge_validation",
+        "financial_ai.ml.market_forecast.evaluation.boosting_validation_report.evaluate_ridge_validation",
         lambda dataset: VolatilityForecastMetrics(0.06, 0.09, 0.24),
     )
 
@@ -66,7 +66,7 @@ def test_boosting_validation_report_uses_frozen_selection_and_excludes_test(monk
         return VolatilityForecastMetrics(0.05, 0.08, 0.2)
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting_validation_report.evaluate_xgboost_validation",
+        "financial_ai.ml.market_forecast.evaluation.boosting_validation_report.evaluate_xgboost_validation",
         fake_evaluate,
     )
 

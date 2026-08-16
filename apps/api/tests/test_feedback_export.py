@@ -8,8 +8,11 @@ from financial_ai.database import SessionLocal
 from financial_ai.ml.artifact_integrity import (
     calculate_canonical_text_sha256,
 )
-from financial_ai.ml.transaction_classification.contracts import TAXONOMY_VERSION, FeedbackStatus
-from financial_ai.ml.transaction_classification.feedback_export import (
+from financial_ai.ml.transaction_classification.core.contracts import (
+    TAXONOMY_VERSION,
+    FeedbackStatus,
+)
+from financial_ai.ml.transaction_classification.feedback.feedback_export import (
     EXPORT_COLUMNS,
     load_feedback_snapshot,
     prepare_feedback_export,

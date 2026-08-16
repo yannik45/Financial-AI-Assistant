@@ -1,4 +1,7 @@
-from financial_ai.ml.transaction_classification import category_bootstrap
+from financial_ai.ml.transaction_classification.modeling import category_bootstrap
+from financial_ai.ml.transaction_classification.modeling.category_artifact import (
+    ModelArtifactError,
+)
 
 
 def test_bootstrap_generates_training_sources_before_model(monkeypatch, tmp_path):
@@ -27,6 +30,20 @@ def test_bootstrap_generates_training_sources_before_model(monkeypatch, tmp_path
         return Metadata()
 
     monkeypatch.setattr(category_bootstrap, "build_category_model_artifact", build_model)
+    monkeypatch.setattr(
+        category_bootstrap,
+        "load_category_model_artifact",
+        lambda: (_ for _ in ()).throw(ModelArtifactError("missing")),
+    )
+
+    class SemanticMetadata:
+        training_rows = 16_500
+
+    monkeypatch.setattr(
+        category_bootstrap,
+        "load_semantic_head_artifact",
+        lambda: SemanticMetadata(),
+    )
 
     category_bootstrap.bootstrap_category_model()
 

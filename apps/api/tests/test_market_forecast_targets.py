@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.targets import (
+from financial_ai.ml.market_forecast.data.targets import (
     TARGET_COLUMN,
     build_forward_volatility_target,
 )

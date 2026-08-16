@@ -1,0 +1,145 @@
+id,text,category,language,concept_group,phrase_family,split,generalization_slice
+de_groceries_tr1,Lebensmittel,groceries,de,supermarket,grocery_word,train,training
+de_groceries_tr2,Wocheneinkauf,groceries,de,supermarket,weekly_shop,train,training
+de_groceries_va1,Essen für die Woche gekauft,groceries,de,supermarket,weekly_food,validation,known_concept_new_phrase
+de_groceries_va2,Obst und Gemüse,groceries,de,fresh_produce,produce,validation,novel_concept
+de_groceries_te1,Vorräte aufgefüllt,groceries,de,supermarket,pantry,test,known_concept_new_phrase
+de_groceries_te2,Einkauf im Biomarkt,groceries,de,organic_market,organic,test,novel_concept
+en_groceries_tr1,Groceries,groceries,en,supermarket,grocery_word,train,training
+en_groceries_tr2,Weekly food shop,groceries,en,supermarket,weekly_shop,train,training
+en_groceries_va1,Bought food for the week,groceries,en,supermarket,weekly_food,validation,known_concept_new_phrase
+en_groceries_va2,Fruit and vegetables,groceries,en,fresh_produce,produce,validation,novel_concept
+en_groceries_te1,Restocked the pantry,groceries,en,supermarket,pantry,test,known_concept_new_phrase
+en_groceries_te2,Organic market purchase,groceries,en,organic_market,organic,test,novel_concept
+de_dining_tr1,Restaurant,dining,de,restaurant,restaurant_word,train,training
+de_dining_tr2,Abendessen gehen,dining,de,restaurant,dinner_out,train,training
+de_dining_va1,Essen im Lokal,dining,de,restaurant,meal_out,validation,known_concept_new_phrase
+de_dining_va2,Kaffee und Kuchen,dining,de,cafe,cafe_visit,validation,novel_concept
+de_dining_te1,Mittagessen auswärts,dining,de,restaurant,lunch_out,test,known_concept_new_phrase
+de_dining_te2,Essen bestellt,dining,de,delivery,food_delivery,test,novel_concept
+en_dining_tr1,Restaurant,dining,en,restaurant,restaurant_word,train,training
+en_dining_tr2,Dinner out,dining,en,restaurant,dinner_out,train,training
+en_dining_va1,Ate at a local place,dining,en,restaurant,meal_out,validation,known_concept_new_phrase
+en_dining_va2,Coffee and cake,dining,en,cafe,cafe_visit,validation,novel_concept
+en_dining_te1,Lunch out,dining,en,restaurant,lunch_out,test,known_concept_new_phrase
+en_dining_te2,Ordered food,dining,en,delivery,food_delivery,test,novel_concept
+de_transport_tr1,Bahnticket,transport,de,public_transit,train_ticket,train,training
+de_transport_tr2,Monatskarte,transport,de,public_transit,monthly_pass,train,training
+de_transport_va1,Fahrkarte gekauft,transport,de,public_transit,transit_fare,validation,known_concept_new_phrase
+de_transport_va2,Auto getankt,transport,de,fuel,fuel,validation,novel_concept
+de_transport_te1,Fahrt zur Arbeit,transport,de,public_transit,commute,test,known_concept_new_phrase
+de_transport_te2,Parkhaus,transport,de,parking,parking,test,novel_concept
+en_transport_tr1,Train ticket,transport,en,public_transit,train_ticket,train,training
+en_transport_tr2,Monthly transit pass,transport,en,public_transit,monthly_pass,train,training
+en_transport_va1,Bought a local transit ticket,transport,en,public_transit,transit_fare,validation,known_concept_new_phrase
+en_transport_va2,Filled up the car,transport,en,fuel,fuel,validation,novel_concept
+en_transport_te1,Commute to work,transport,en,public_transit,commute,test,known_concept_new_phrase
+en_transport_te2,Parking garage,transport,en,parking,parking,test,novel_concept
+de_housing_tr1,Miete,housing,de,rent,rent_word,train,training
+de_housing_tr2,Wohnung bezahlt,housing,de,rent,flat_payment,train,training
+de_housing_va1,Zahlung an Vermieter,housing,de,rent,landlord,validation,known_concept_new_phrase
+de_housing_va2,Kreditrate fürs Haus,housing,de,mortgage,mortgage,validation,novel_concept
+de_housing_te1,Monatliche Wohnkosten,housing,de,rent,housing_cost,test,known_concept_new_phrase
+de_housing_te2,Nebenkostenabrechnung,housing,de,property_costs,service_charge,test,novel_concept
+en_housing_tr1,Rent,housing,en,rent,rent_word,train,training
+en_housing_tr2,Paid for the apartment,housing,en,rent,flat_payment,train,training
+en_housing_va1,Payment to landlord,housing,en,rent,landlord,validation,known_concept_new_phrase
+en_housing_va2,Home loan payment,housing,en,mortgage,mortgage,validation,novel_concept
+en_housing_te1,Monthly housing cost,housing,en,rent,housing_cost,test,known_concept_new_phrase
+en_housing_te2,Property service charge,housing,en,property_costs,service_charge,test,novel_concept
+de_utilities_tr1,Stromrechnung,utilities,de,electricity,electric_bill,train,training
+de_utilities_tr2,Stromabschlag,utilities,de,electricity,electric_payment,train,training
+de_utilities_va1,Energie bezahlt,utilities,de,electricity,energy,validation,known_concept_new_phrase
+de_utilities_va2,Internetrechnung,utilities,de,internet,internet,validation,novel_concept
+de_utilities_te1,Elektrizität,utilities,de,electricity,power,test,known_concept_new_phrase
+de_utilities_te2,Wasserrechnung,utilities,de,water,water,test,novel_concept
+en_utilities_tr1,Electricity bill,utilities,en,electricity,electric_bill,train,training
+en_utilities_tr2,Power payment,utilities,en,electricity,electric_payment,train,training
+en_utilities_va1,Paid for energy,utilities,en,electricity,energy,validation,known_concept_new_phrase
+en_utilities_va2,Internet bill,utilities,en,internet,internet,validation,novel_concept
+en_utilities_te1,Electric power,utilities,en,electricity,power,test,known_concept_new_phrase
+en_utilities_te2,Water bill,utilities,en,water,water,test,novel_concept
+de_healthcare_tr1,Apotheke,healthcare,de,pharmacy,pharmacy_word,train,training
+de_healthcare_tr2,Medikamente,healthcare,de,pharmacy,medicine,train,training
+de_healthcare_va1,Arzneimittel gekauft,healthcare,de,pharmacy,drugs,validation,known_concept_new_phrase
+de_healthcare_va2,Zahnarzt,healthcare,de,dentist,dentist,validation,novel_concept
+de_healthcare_te1,Rezept eingelöst,healthcare,de,pharmacy,prescription,test,known_concept_new_phrase
+de_healthcare_te2,Physiotherapie,healthcare,de,therapy,therapy,test,novel_concept
+en_healthcare_tr1,Pharmacy,healthcare,en,pharmacy,pharmacy_word,train,training
+en_healthcare_tr2,Medication,healthcare,en,pharmacy,medicine,train,training
+en_healthcare_va1,Bought medicine,healthcare,en,pharmacy,drugs,validation,known_concept_new_phrase
+en_healthcare_va2,Dentist,healthcare,en,dentist,dentist,validation,novel_concept
+en_healthcare_te1,Filled a prescription,healthcare,en,pharmacy,prescription,test,known_concept_new_phrase
+en_healthcare_te2,Physiotherapy,healthcare,en,therapy,therapy,test,novel_concept
+de_shopping_tr1,Klamotten,shopping,de,clothing,clothes_word,train,training
+de_shopping_tr2,Neue Kleidung,shopping,de,clothing,new_clothes,train,training
+de_shopping_va1,Hose gekauft,shopping,de,clothing,trousers,validation,known_concept_new_phrase
+de_shopping_va2,Neue Kopfhörer,shopping,de,electronics,headphones,validation,novel_concept
+de_shopping_te1,Jacke gekauft,shopping,de,clothing,jacket,test,known_concept_new_phrase
+de_shopping_te2,Neue Bettwäsche,shopping,de,home_goods,bedding,test,novel_concept
+en_shopping_tr1,Clothes,shopping,en,clothing,clothes_word,train,training
+en_shopping_tr2,New clothing,shopping,en,clothing,new_clothes,train,training
+en_shopping_va1,Bought trousers,shopping,en,clothing,trousers,validation,known_concept_new_phrase
+en_shopping_va2,New headphones,shopping,en,electronics,headphones,validation,novel_concept
+en_shopping_te1,Bought a jacket,shopping,en,clothing,jacket,test,known_concept_new_phrase
+en_shopping_te2,New bedding,shopping,en,home_goods,bedding,test,novel_concept
+de_entertainment_tr1,Streaming,entertainment,de,streaming,streaming_word,train,training
+de_entertainment_tr2,Serie schauen,entertainment,de,streaming,series,train,training
+de_entertainment_va1,Filmabo,entertainment,de,streaming,movie_subscription,validation,known_concept_new_phrase
+de_entertainment_va2,Kinokarte,entertainment,de,cinema,cinema,validation,novel_concept
+de_entertainment_te1,Musikabo,entertainment,de,streaming,music_subscription,test,known_concept_new_phrase
+de_entertainment_te2,Konzertticket,entertainment,de,concert,concert,test,novel_concept
+en_entertainment_tr1,Streaming,entertainment,en,streaming,streaming_word,train,training
+en_entertainment_tr2,Watching a series,entertainment,en,streaming,series,train,training
+en_entertainment_va1,Movie subscription,entertainment,en,streaming,movie_subscription,validation,known_concept_new_phrase
+en_entertainment_va2,Cinema ticket,entertainment,en,cinema,cinema,validation,novel_concept
+en_entertainment_te1,Music subscription,entertainment,en,streaming,music_subscription,test,known_concept_new_phrase
+en_entertainment_te2,Concert ticket,entertainment,en,concert,concert,test,novel_concept
+de_travel_tr1,Hotel,travel,de,hotel,hotel_word,train,training
+de_travel_tr2,Übernachtung,travel,de,hotel,overnight,train,training
+de_travel_va1,Unterkunft im Urlaub,travel,de,hotel,accommodation,validation,known_concept_new_phrase
+de_travel_va2,Flug gebucht,travel,de,flight,flight,validation,novel_concept
+de_travel_te1,Hotelzimmer,travel,de,hotel,hotel_room,test,known_concept_new_phrase
+de_travel_te2,Ferienwohnung,travel,de,vacation_rental,rental,test,novel_concept
+en_travel_tr1,Hotel,travel,en,hotel,hotel_word,train,training
+en_travel_tr2,Overnight stay,travel,en,hotel,overnight,train,training
+en_travel_va1,Holiday accommodation,travel,en,hotel,accommodation,validation,known_concept_new_phrase
+en_travel_va2,Booked a flight,travel,en,flight,flight,validation,novel_concept
+en_travel_te1,Hotel room,travel,en,hotel,hotel_room,test,known_concept_new_phrase
+en_travel_te2,Vacation rental,travel,en,vacation_rental,rental,test,novel_concept
+de_insurance_tr1,Autoversicherung,insurance,de,car_insurance,car_insurance_word,train,training
+de_insurance_tr2,Versicherung fürs Auto,insurance,de,car_insurance,car_cover,train,training
+de_insurance_va1,Kfz Police,insurance,de,car_insurance,car_policy,validation,known_concept_new_phrase
+de_insurance_va2,Haftpflicht,insurance,de,liability_insurance,liability,validation,novel_concept
+de_insurance_te1,Fahrzeugschutz,insurance,de,car_insurance,vehicle_cover,test,known_concept_new_phrase
+de_insurance_te2,Hausratversicherung,insurance,de,home_insurance,home_cover,test,novel_concept
+en_insurance_tr1,Car insurance,insurance,en,car_insurance,car_insurance_word,train,training
+en_insurance_tr2,Insurance for the car,insurance,en,car_insurance,car_cover,train,training
+en_insurance_va1,Vehicle policy,insurance,en,car_insurance,car_policy,validation,known_concept_new_phrase
+en_insurance_va2,Liability insurance,insurance,en,liability_insurance,liability,validation,novel_concept
+en_insurance_te1,Vehicle cover,insurance,en,car_insurance,vehicle_cover,test,known_concept_new_phrase
+en_insurance_te2,Home contents insurance,insurance,en,home_insurance,home_cover,test,novel_concept
+de_education_tr1,Onlinekurs,education,de,course,online_course,train,training
+de_education_tr2,Weiterbildung,education,de,course,training_course,train,training
+de_education_va1,Kursgebühr,education,de,course,course_fee,validation,known_concept_new_phrase
+de_education_va2,Lehrbücher,education,de,books,textbooks,validation,novel_concept
+de_education_te1,Seminar bezahlt,education,de,course,seminar,test,known_concept_new_phrase
+de_education_te2,Studiengebühren,education,de,tuition,tuition,test,novel_concept
+en_education_tr1,Online course,education,en,course,online_course,train,training
+en_education_tr2,Professional training,education,en,course,training_course,train,training
+en_education_va1,Course fee,education,en,course,course_fee,validation,known_concept_new_phrase
+en_education_va2,Textbooks,education,en,books,textbooks,validation,novel_concept
+en_education_te1,Paid for a seminar,education,en,course,seminar,test,known_concept_new_phrase
+en_education_te2,Tuition fees,education,en,tuition,tuition,test,novel_concept
+de_other_tr1,Spende,other,de,donation,donation_word,train,training
+de_other_tr2,Geld gespendet,other,de,donation,donated,train,training
+de_other_va1,Unterstützung für Verein,other,de,donation,charity,validation,known_concept_new_phrase
+de_other_va2,Postdienstleistung,other,de,postal_service,postal_service,validation,novel_concept
+de_other_te1,Beitrag für guten Zweck,other,de,donation,good_cause,test,known_concept_new_phrase
+de_other_te2,Schlüssel nachmachen,other,de,key_service,key_cutting,test,novel_concept
+en_other_tr1,Donation,other,en,donation,donation_word,train,training
+en_other_tr2,Donated money,other,en,donation,donated,train,training
+en_other_va1,Support for a charity,other,en,donation,charity,validation,known_concept_new_phrase
+en_other_va2,Post office service,other,en,postal_service,postal_service,validation,novel_concept
+en_other_te1,Contribution to a good cause,other,en,donation,good_cause,test,known_concept_new_phrase
+en_other_te2,Key cutting,other,en,key_service,key_cutting,test,novel_concept

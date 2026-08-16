@@ -1,10 +1,10 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.boosting_diagnostics import (
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.evaluation.boosting_diagnostics import (
     build_diagnostics_report,
     summarize_forecast_slice,
 )
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
 
 
 def comparison_rows() -> pd.DataFrame:

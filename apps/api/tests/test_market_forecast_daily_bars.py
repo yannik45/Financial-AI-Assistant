@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.daily_bars import (
+from financial_ai.ml.market_forecast.data.daily_bars import (
     DAILY_BAR_COLUMNS,
     DailyBarValidationError,
     validate_daily_bars,

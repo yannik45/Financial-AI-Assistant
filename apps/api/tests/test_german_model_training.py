@@ -1,13 +1,13 @@
-from financial_ai.ml.transaction_classification.german_model_training import (
+from financial_ai.ml.transaction_classification.data.german_training_generator import (
+    generate_german_training_data,
+)
+from financial_ai.ml.transaction_classification.data.german_training_generator_v2 import (
+    generate_german_training_data_v2,
+)
+from financial_ai.ml.transaction_classification.evaluation.german_model_training import (
     train_and_evaluate_controlled_validation,
     train_and_evaluate_german_v2_validation,
     train_and_evaluate_german_validation,
-)
-from financial_ai.ml.transaction_classification.german_training_generator import (
-    generate_german_training_data,
-)
-from financial_ai.ml.transaction_classification.german_training_generator_v2 import (
-    generate_german_training_data_v2,
 )
 
 

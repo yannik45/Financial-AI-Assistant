@@ -17,8 +17,8 @@ a product-level comparison of three approaches:
 2. `tfidf_only`: the bilingual character TF-IDF and Logistic Regression expense
    model without product rules, while retaining the cash-flow gate that prevents
    positive transactions from being forced into expense labels;
-3. `hybrid`: the current product routing of text rules, expense model, and
-   review for unsupported inputs.
+3. `hybrid`: the frozen v1 routing of text rules, expense model, and review for
+   unsupported inputs.
 
 The comparison deliberately reports abstention behavior. A classifier that
 returns fewer but safer automatic suggestions can be more useful than one that
@@ -66,7 +66,7 @@ uv run financial-ai-build-text-challenge
 or with an existing local environment:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.text_classification_challenge
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.evaluation.text_classification_challenge
 ```
 
 ## Evaluation design
@@ -160,8 +160,8 @@ uv run financial-ai-evaluate-text-classification
 Windows fallback:
 
 ```powershell
-.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.category_bootstrap
-.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.text_classification_evaluation
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.modeling.category_bootstrap
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.evaluation.text_classification_evaluation
 ```
 
 The generated JSON report under `data/runtime/ml/transaction_categories/`
@@ -182,7 +182,8 @@ frozen results relevant to review are recorded in this document.
 - Selective accuracy is measured on the same development benchmark and will
   need confirmation on independently collected data.
 
-This version freezes classification feature work. Reviewed feedback can enter
-the guarded offline candidate lifecycle, but must not trigger automatic online
-retraining. Containerization is complete; the next planned ML feature is
-transaction fraud/risk scoring.
+This benchmark remains the frozen v1 product reference. The subsequent semantic
+candidate, manual test, and bank agreement decision are documented in
+[transaction classification v2](transaction_classification_v2.md). Reviewed
+feedback may enter the guarded offline lifecycle but never triggers online
+retraining.

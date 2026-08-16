@@ -25,7 +25,8 @@ React dashboard ---- /api ----> FastAPI
                                 |-- linked accounts and transaction ledger
                                 |-- classification orchestrator
                                 |     |-- bilingual text rules
-                                |     `-- TF-IDF + Logistic Regression
+                                |     |-- TF-IDF + Logistic Regression
+                                |     `-- multilingual E5 + Logistic Regression
                                 |-- feedback lifecycle commands
                                 |
                                 |-- SQLite database
@@ -95,13 +96,14 @@ structured API errors, stale data, and feed mismatch remain distinct UI states.
 ### Transaction categorization
 
 The classifier receives description, optional counterparty, and signed amount.
-Small bilingual rules handle high-signal phrases. Unmatched outflows use the
-expense-only character TF-IDF and Logistic Regression model; unmatched inflows
-abstain. The user may accept, replace, or omit the suggestion.
+Small bilingual rules handle high-signal phrases and unmatched inflows abstain.
+For bank-feed outflows, TF-IDF and multilingual E5 must agree before automatic
+acceptance. Manual outflows receive an editable E5 suggestion. Missing semantic
+artifacts activate an explicit conservative TF-IDF fallback.
 
 The backend repeats classification when saving. Browser-supplied confidence or
-model metadata is therefore never trusted. Prediction, final label, method,
-versions, and review state are stored for auditability.
+model metadata is therefore never trusted. Both candidate predictions, model
+versions, agreement, final label, and review state are stored for auditability.
 
 ### Portfolio trading and cash ledger
 

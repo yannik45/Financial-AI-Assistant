@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.categories import ExpenseCategory
-from financial_ai.ml.transaction_classification.german_challenge import (
+from financial_ai.ml.transaction_classification.core.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.evaluation.german_challenge import (
     validate_german_challenge_data,
 )
 

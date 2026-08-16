@@ -168,7 +168,7 @@ Additional limitations remain:
 
 The validation contract is enforced by
 `apps/api/tests/test_market_forecast_daily_bars.py` and implemented by
-`financial_ai.ml.market_forecast.daily_bars.validate_daily_bars`.
+`financial_ai.ml.market_forecast.data.daily_bars.validate_daily_bars`.
 
 Validated input files are frozen with:
 

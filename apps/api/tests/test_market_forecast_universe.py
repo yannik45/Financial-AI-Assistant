@@ -1,7 +1,7 @@
 import json
 
 import pytest
-from financial_ai.ml.market_forecast.universe import (
+from financial_ai.ml.market_forecast.data.universe import (
     DEFAULT_UNIVERSE_PATH,
     MarketUniverseError,
     load_market_universe,

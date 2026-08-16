@@ -56,6 +56,18 @@ beforeEach(() => {
       const url = String(input);
       if (url.includes("/v1/market/status")) return jsonResponse({ demo_available: true, external_available: false, external_provider: "alpaca" });
       if (url.includes("/v1/accounts")) return jsonResponse(accounts);
+      if (url.endsWith("/v1/transactions/demo-bank-feed"))
+        return jsonResponse({
+          seed: 42,
+          year: 2026,
+          month: 8,
+          generated_count: 15,
+          created_count: 15,
+          automatically_categorized_count: 11,
+          review_count: 4,
+          correct_prediction_count: 10,
+          evaluated_count: 15,
+        });
       if (url.includes("/v1/transactions/classify"))
         return jsonResponse({
           category: "groceries",
@@ -328,6 +340,23 @@ test("opens the transaction history and add transaction form", async () => {
   expect(within(modal).queryByLabelText("Transaction type")).not.toBeInTheDocument();
   expect(within(modal).getByLabelText("Category")).toHaveValue("");
   expect(within(modal).getByRole("option", { name: "Transport" })).toBeInTheDocument();
+});
+
+test("generates a reproducible demo bank feed and shows classification results", async () => {
+  renderApp();
+  const generateButton = await screen.findByRole("button", { name: "Generate demo activity" });
+  await waitFor(() => expect(generateButton).toBeEnabled());
+  fireEvent.click(generateButton);
+
+  expect(await screen.findByText("15 synthetic bank transactions added")).toBeInTheDocument();
+  expect(screen.getByText("Seed 42 · 2026-08")).toBeInTheDocument();
+  expect(screen.getByText("67%")).toBeInTheDocument();
+  await waitFor(() => {
+    const call = vi.mocked(fetch).mock.calls.find(([input, init]) =>
+      String(input).endsWith("/v1/transactions/demo-bank-feed") && init?.method === "POST",
+    );
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({ account_id: "checking-id" });
+  });
 });
 
 test("suggests a category and preserves a user correction when saving", async () => {

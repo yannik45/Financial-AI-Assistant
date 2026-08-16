@@ -1,0 +1,23 @@
+{
+  "candidate": "frozen-multilingual-e5-small-logistic-v1",
+  "encoder_id": "intfloat/multilingual-e5-small",
+  "encoder_revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "dataset_sha256": "cfe255a96d49219b90cd94de62d5579d05a593a654eddec0e166bcd71e970887",
+  "selection_sha256": "462f153e69e812a2aa91372a636249f6b515b17bdc8bf582cde999289c23cab9",
+  "training_rows": 16500,
+  "test_rows": 48,
+  "in_scope_rows": 44,
+  "accuracy": 0.9545454545454546,
+  "macro_f1": 0.9538239538239538,
+  "threshold": 0.44150763750076294,
+  "automatic_coverage": 0.9772727272727273,
+  "automatically_accepted_accuracy": 0.9534883720930233,
+  "other_rows": 4,
+  "other_rejection_rate": 1.0,
+  "other_false_automatic_acceptance_rate": 0.0,
+  "generalization_accuracy": {
+    "known_concept_new_phrase": 0.9090909090909091,
+    "novel_concept": 1.0
+  },
+  "test_partition_used": true
+}

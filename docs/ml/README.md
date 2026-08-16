@@ -5,12 +5,17 @@ classifier with governed feedback, and offline market-volatility forecasting
 with leakage-aware temporal evaluation. Both retain transparent references,
 versioned inputs, and explicit production-readiness limits.
 
+Each track separates `data`, `modeling`, and `evaluation` modules. Transaction
+classification additionally isolates its online `core` and offline `feedback`
+lifecycle; market-forecast serving remains in `financial_ai.market_forecast_service`.
+
 ## Start here
 
 | Document | What it answers |
 |---|---|
 | [Category taxonomy](transaction_categories.md) | Which labels exist and where are their boundaries? |
 | [Classifier service](transaction_classifier_service.md) | What does the current API classifier do? |
+| [Classification v2 selection](transaction_classification_v2.md) | Why are bank and manual descriptions routed to different models? |
 | [Frozen product evaluation](text_classification_evaluation.md) | How do rules, ML, and the hybrid compare? |
 | [Feedback lifecycle](transaction_classification_feedback.md) | How are corrections exported, evaluated, and promoted safely? |
 | [Market forecast data foundation](market_forecast_data_foundation.md) | How do daily market observations become reproducible, leakage-aware datasets? |

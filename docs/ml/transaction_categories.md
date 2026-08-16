@@ -243,6 +243,11 @@ Boundary rules:
 - Ambiguous examples should be flagged for review and excluded from high-quality
   evaluation sets when no defensible ground-truth label exists.
 
+`other` is heterogeneous rather than a coherent semantic class. A later serving
+version should therefore use it as a fallback when no supported category is
+sufficiently reliable. Until then, evaluation reports must show `other`
+separately instead of treating aggregate accuracy as sufficient evidence.
+
 ## Categories outside model scope
 
 The following labels may appear in the product but are assigned by the text-rule
@@ -260,3 +265,26 @@ baseline rather than predicted by the version 1 expense model:
 Changing a label name, merging categories, splitting a category, or changing a
 boundary rule requires a new taxonomy version. Training datasets and model
 artifacts must record the taxonomy version they use.
+
+## Manual-short dataset audit
+
+`manual-short-v2` supersedes v1 after a label audit against this contract. The
+audit retained purpose-specific labels such as `healthcare` for medication and
+`insurance` for vehicle policies. It clarified one ambiguous transit phrase and
+replaced postage-product wording with an explicit postal-service description
+for the `other` boundary case.
+
+These validation changes follow the written category boundaries rather than a
+model's predictions. Comparisons must identify the dataset version and checksum,
+and the test partition remains unopened until model and threshold selection are
+complete.
+
+Because the v1 validation errors informed this audit, v1 and v2 validation
+metrics are not evidence of model improvement and must not be compared as such.
+The untouched test partition remains the independent final evaluation.
+
+In semantic-model experiments, `other` rows are excluded from multiclass
+training and category accuracy. They form a separate out-of-scope slice. Its
+rejection rate and false automatic-acceptance rate are measured using the same
+threshold selected on in-scope validation; no separate threshold is tuned on
+the `other` examples.

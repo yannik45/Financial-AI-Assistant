@@ -3,8 +3,9 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from datetime import date
+from secrets import randbelow
 from typing import Annotated, Literal
-from uuid import uuid4
+from uuid import UUID, uuid4, uuid5
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,8 +14,10 @@ from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
 from financial_ai.analytics import AnalyticsError, calculate_analytics
+from financial_ai.clock import business_today
 from financial_ai.config import get_settings
 from financial_ai.database import SessionLocal, get_session
+from financial_ai.demo_bank_feed import generate_demo_bank_feed
 from financial_ai.importer import PortfolioImportError, parse_portfolio_csv
 from financial_ai.market_data import market_data_provider
 from financial_ai.market_data_service import (
@@ -27,21 +30,22 @@ from financial_ai.market_forecast_service import (
     MarketForecastService,
     get_loaded_market_forecast_model,
 )
-from financial_ai.ml.market_forecast.daily_bars import DailyBarValidationError
-from financial_ai.ml.market_forecast.inference import InsufficientForecastHistoryError
-from financial_ai.ml.market_forecast.model_artifact import MarketForecastArtifactError
-from financial_ai.ml.transaction_classification.category_artifact import ModelArtifactError
-from financial_ai.ml.transaction_classification.category_service import (
+from financial_ai.ml.market_forecast.data.daily_bars import DailyBarValidationError
+from financial_ai.ml.market_forecast.modeling.inference import InsufficientForecastHistoryError
+from financial_ai.ml.market_forecast.modeling.model_artifact import MarketForecastArtifactError
+from financial_ai.ml.transaction_classification.core.category_service import (
     TransactionClassification,
     TransactionClassifier,
     get_transaction_classifier,
 )
-from financial_ai.ml.transaction_classification.contracts import (
+from financial_ai.ml.transaction_classification.core.contracts import (
     TAXONOMY_VERSION,
+    ClassificationInputSource,
     ClassificationMethod,
     determine_feedback_status,
     route_transaction_text,
 )
+from financial_ai.ml.transaction_classification.modeling.category_artifact import ModelArtifactError
 from financial_ai.models import (
     Account,
     MarketInstrument,
@@ -63,6 +67,8 @@ from financial_ai.schemas import (
     AccountRead,
     AnalyticsResponse,
     CatalogAsset,
+    DemoBankFeedCreate,
+    DemoBankFeedResult,
     MarketDataStatus,
     MarketHistoryRead,
     MarketInstrumentRead,
@@ -74,8 +80,10 @@ from financial_ai.schemas import (
     PortfolioSummary,
     PortfolioTradeRead,
     TradingPortfolioRead,
+    TransactionCategoryReview,
     TransactionClassificationRequest,
     TransactionClassificationResponse,
+    TransactionClassificationStatusRead,
     TransactionCreate,
     TransactionPage,
     TransactionRead,
@@ -571,6 +579,142 @@ def list_transactions(
     return TransactionPage(items=items, total=total, limit=limit, offset=offset)
 
 
+@app.post("/v1/transactions/demo-bank-feed", response_model=DemoBankFeedResult)
+def create_demo_bank_feed(
+    payload: DemoBankFeedCreate,
+    session: SessionDependency,
+    classifier: ClassifierDependency,
+) -> DemoBankFeedResult:
+    account = get_account_or_404(payload.account_id, session)
+    if account.account_type == "brokerage":
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "code": "invalid_account_type",
+                "message": "Demo bank activity requires a checking or savings account",
+            },
+        )
+
+    today = business_today()
+    year = payload.year or today.year
+    month = payload.month or today.month
+    seed = payload.seed if payload.seed is not None else randbelow(2_147_483_648)
+    generated = generate_demo_bank_feed(
+        seed=seed,
+        year=year,
+        month=month,
+        variable_count=payload.variable_count,
+    )
+    batch_key = f"{account.id}:{year:04d}-{month:02d}:{seed}"
+    batch_namespace = UUID("40b090f5-0fd3-431b-a356-a9ea61fb3a7e")
+    transaction_ids = [
+        str(uuid5(batch_namespace, f"{batch_key}:{index}")) for index in range(len(generated))
+    ]
+    existing_ids = set(
+        session.scalars(select(Transaction.id).where(Transaction.id.in_(transaction_ids))).all()
+    )
+    pending = [
+        (index, item)
+        for index, item in enumerate(generated)
+        if transaction_ids[index] not in existing_ids
+    ]
+    try:
+        classifications = classifier.classify_many(
+            [
+                (item.description, item.amount, item.counterparty)
+                for _, item in pending
+            ],
+            input_source=ClassificationInputSource.BANK_FEED,
+        )
+    except ModelArtifactError:
+        classifications = []
+        for _, item in pending:
+            route = route_transaction_text(item.description, item.amount, item.counterparty)
+            classifications.append(
+                TransactionClassification(
+                    category=route.category.value if route.category else None,
+                    route=route.route,
+                    method=route.method,
+                    confidence=None,
+                    needs_review=True,
+                    reason="Category model artifact was unavailable during demo feed import.",
+                    taxonomy_version=TAXONOMY_VERSION,
+                    model_version=None,
+                    input_source=ClassificationInputSource.BANK_FEED,
+                )
+            )
+
+    created_count = 0
+    auto_count = 0
+    review_count = 0
+    correct_count = 0
+
+    for (index, item), classification in zip(pending, classifications, strict=True):
+        transaction_id = transaction_ids[index]
+        accepted_category = classification.category if not classification.needs_review else None
+        transaction = Transaction(
+            id=transaction_id,
+            account_id=account.id,
+            booked_at=item.booked_at,
+            name=item.description,
+            amount=item.amount,
+            currency=account.currency,
+            transaction_type=item.transaction_type,
+            counterparty=item.counterparty,
+            category=accepted_category,
+            source="demo_bank_feed",
+        )
+        transaction.classifications.append(
+            TransactionClassificationRecord(
+                transaction_id=transaction.id,
+                predicted_category=classification.category,
+                final_category=None,
+                route=classification.route.value,
+                classification_method=classification.method.value,
+                confidence=classification.confidence,
+                needs_review=classification.needs_review,
+                feedback_status="unreviewed",
+                reason=classification.reason,
+                taxonomy_version=classification.taxonomy_version,
+                model_version=classification.model_version,
+                input_source=classification.input_source.value,
+                alternative_predicted_category=classification.alternative_category,
+                alternative_model_version=classification.alternative_model_version,
+                model_agreement=classification.model_agreement,
+            )
+        )
+        session.add(transaction)
+        created_count += 1
+        auto_count += int(accepted_category is not None)
+        review_count += int(classification.needs_review)
+        correct_count += int(classification.category == item.expected_category)
+
+    session.commit()
+    return DemoBankFeedResult(
+        seed=seed,
+        year=year,
+        month=month,
+        generated_count=len(generated),
+        created_count=created_count,
+        automatically_categorized_count=auto_count,
+        review_count=review_count,
+        correct_prediction_count=correct_count,
+        evaluated_count=created_count,
+    )
+
+
+@app.get(
+    "/v1/transactions/classification/status",
+    response_model=TransactionClassificationStatusRead,
+)
+def get_transaction_classification_status(
+    classifier: ClassifierDependency,
+) -> TransactionClassificationStatusRead:
+    return TransactionClassificationStatusRead.model_validate(
+        classifier.status(), from_attributes=True
+    )
+
+
 @app.get("/v1/transactions/{transaction_id}", response_model=TransactionRead)
 def get_transaction(transaction_id: str, session: SessionDependency) -> Transaction:
     transaction = session.get(Transaction, transaction_id)
@@ -579,6 +723,33 @@ def get_transaction(transaction_id: str, session: SessionDependency) -> Transact
             status_code=404,
             detail={"code": "transaction_not_found", "message": "Transaction not found"},
         )
+    return transaction
+
+
+@app.patch("/v1/transactions/{transaction_id}/category", response_model=TransactionRead)
+def review_transaction_category(
+    transaction_id: str,
+    payload: TransactionCategoryReview,
+    session: SessionDependency,
+) -> Transaction:
+    transaction = session.get(Transaction, transaction_id)
+    if transaction is None:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "transaction_not_found", "message": "Transaction not found"},
+        )
+    latest = transaction.classifications[-1] if transaction.classifications else None
+    transaction.category = payload.category
+    if latest is not None:
+        latest.final_category = payload.category
+        latest.feedback_status = (
+            "accepted_explicit"
+            if latest.predicted_category == payload.category
+            else "corrected"
+        )
+        latest.needs_review = False
+    session.commit()
+    session.refresh(transaction)
     return transaction
 
 
@@ -595,6 +766,7 @@ def classify_transaction(
             description=payload.description,
             amount=payload.amount,
             counterparty=payload.counterparty,
+            input_source=ClassificationInputSource.MANUAL_ENTRY,
         )
     except ModelArtifactError as exc:
         raise HTTPException(
@@ -615,6 +787,10 @@ def classify_transaction(
         reason=result.reason,
         taxonomy_version=result.taxonomy_version,
         model_version=result.model_version,
+        input_source=result.input_source,
+        alternative_category=result.alternative_category,
+        alternative_model_version=result.alternative_model_version,
+        model_agreement=result.model_agreement,
     )
 
 
@@ -640,6 +816,7 @@ def create_transaction(
             description=payload.name,
             amount=payload.amount,
             counterparty=payload.counterparty,
+            input_source=ClassificationInputSource.MANUAL_ENTRY,
         )
     except ModelArtifactError:
         route = route_transaction_text(payload.name, payload.amount, payload.counterparty)
@@ -688,6 +865,10 @@ def create_transaction(
             reason=classification.reason,
             taxonomy_version=classification.taxonomy_version,
             model_version=classification.model_version,
+            input_source=classification.input_source.value,
+            alternative_predicted_category=classification.alternative_category,
+            alternative_model_version=classification.alternative_model_version,
+            model_agreement=classification.model_agreement,
         )
     )
     session.commit()

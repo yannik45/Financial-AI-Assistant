@@ -6,25 +6,25 @@ import pytest
 from financial_ai.ml.artifact_integrity import (
     calculate_canonical_text_sha256,
 )
-from financial_ai.ml.transaction_classification.category_artifact import (
-    build_category_model_artifact,
-    load_category_model_artifact,
+from financial_ai.ml.transaction_classification.evaluation.text_classification_challenge import (
+    write_text_classification_challenge,
 )
-from financial_ai.ml.transaction_classification.feedback_candidate import (
+from financial_ai.ml.transaction_classification.feedback.feedback_candidate import (
     FeedbackCandidateError,
     candidate_paths,
     train_feedback_candidate,
 )
-from financial_ai.ml.transaction_classification.feedback_export import (
+from financial_ai.ml.transaction_classification.feedback.feedback_export import (
     EXPORT_COLUMNS,
     EXPORT_SCHEMA_VERSION,
 )
-from financial_ai.ml.transaction_classification.feedback_promotion import (
+from financial_ai.ml.transaction_classification.feedback.feedback_promotion import (
     FeedbackPromotionError,
     promote_feedback_candidate,
 )
-from financial_ai.ml.transaction_classification.text_classification_challenge import (
-    write_text_classification_challenge,
+from financial_ai.ml.transaction_classification.modeling.category_artifact import (
+    build_category_model_artifact,
+    load_category_model_artifact,
 )
 
 

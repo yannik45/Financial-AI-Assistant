@@ -1,16 +1,18 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.baselines import PREDICTED_VOLATILITY_COLUMN
-from financial_ai.ml.market_forecast.evaluation import calculate_volatility_forecast_metrics
-from financial_ai.ml.market_forecast.features import FEATURE_COLUMNS
-from financial_ai.ml.market_forecast.ridge import (
+from financial_ai.ml.market_forecast.data.features import FEATURE_COLUMNS
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.evaluation.evaluation import (
+    calculate_volatility_forecast_metrics,
+)
+from financial_ai.ml.market_forecast.modeling.baselines import PREDICTED_VOLATILITY_COLUMN
+from financial_ai.ml.market_forecast.modeling.ridge import (
     build_ridge_ewma_validation_predictions,
     build_ridge_validation_predictions,
     evaluate_ridge_ewma_validation,
     evaluate_ridge_validation,
 )
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
 
 
 def model_dataset() -> pd.DataFrame:

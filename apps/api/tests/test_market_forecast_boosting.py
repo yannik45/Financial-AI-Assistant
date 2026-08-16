@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.boosting import (
+from financial_ai.ml.market_forecast.data.features import FEATURE_COLUMNS
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.evaluation.evaluation import VolatilityForecastMetrics
+from financial_ai.ml.market_forecast.modeling.boosting import (
     BoostingCandidateEvaluation,
     BoostingFoldEvaluation,
     XGBoostCandidate,
@@ -11,10 +14,7 @@ from financial_ai.ml.market_forecast.boosting import (
     evaluate_xgboost_candidate,
     evaluate_xgboost_fold,
 )
-from financial_ai.ml.market_forecast.evaluation import VolatilityForecastMetrics
-from financial_ai.ml.market_forecast.features import FEATURE_COLUMNS
-from financial_ai.ml.market_forecast.model_selection import TemporalValidationFold
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.modeling.model_selection import TemporalValidationFold
 
 
 def temporal_fold() -> TemporalValidationFold:
@@ -82,7 +82,7 @@ def test_xgboost_candidate_aggregates_fold_metrics_and_median_rounds(monkeypatch
     }
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting.evaluate_xgboost_fold",
+        "financial_ai.ml.market_forecast.modeling.boosting.evaluate_xgboost_fold",
         lambda fold, config: fold_results[fold.validation_year],
     )
     candidate = XGBoostCandidate("balanced", XGBoostConfig())
@@ -114,7 +114,7 @@ def test_xgboost_comparison_evaluates_and_ranks_candidates_by_mean_mae(monkeypat
         )
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting.evaluate_xgboost_candidate",
+        "financial_ai.ml.market_forecast.modeling.boosting.evaluate_xgboost_candidate",
         fake_evaluate,
     )
 
@@ -163,7 +163,7 @@ def test_xgboost_validation_fit_uses_fixed_rounds_and_returns_validation_rows(mo
             return np.full(len(features), np.log(0.2))
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting.XGBRegressor",
+        "financial_ai.ml.market_forecast.modeling.boosting.XGBRegressor",
         FakeRegressor,
     )
 

@@ -12,11 +12,11 @@ from financial_ai.market_data_service import (
     MarketDataProviderError,
     MarketDataService,
 )
-from financial_ai.ml.market_forecast.inference import (
+from financial_ai.ml.market_forecast.modeling.inference import (
     MarketVolatilityForecast,
     forecast_volatility,
 )
-from financial_ai.ml.market_forecast.model_artifact import (
+from financial_ai.ml.market_forecast.modeling.model_artifact import (
     LoadedMarketForecastModel,
     load_market_forecast_model_artifact,
 )

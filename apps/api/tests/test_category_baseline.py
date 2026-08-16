@@ -1,5 +1,5 @@
 import pandas as pd
-from financial_ai.ml.transaction_classification.category_baseline import (
+from financial_ai.ml.transaction_classification.modeling.category_baseline import (
     train_majority_category_baseline,
 )
 

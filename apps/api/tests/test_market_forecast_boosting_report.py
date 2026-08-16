@@ -1,18 +1,18 @@
 import json
 
 import pytest
-from financial_ai.ml.market_forecast.boosting import (
+from financial_ai.ml.market_forecast.evaluation.boosting_report import (
+    _serialize_candidate_evaluation,
+    build_boosting_selection_report,
+    write_boosting_selection_report,
+)
+from financial_ai.ml.market_forecast.evaluation.evaluation import VolatilityForecastMetrics
+from financial_ai.ml.market_forecast.modeling.boosting import (
     BoostingCandidateEvaluation,
     BoostingFoldEvaluation,
     XGBoostCandidate,
     XGBoostConfig,
 )
-from financial_ai.ml.market_forecast.boosting_report import (
-    _serialize_candidate_evaluation,
-    build_boosting_selection_report,
-    write_boosting_selection_report,
-)
-from financial_ai.ml.market_forecast.evaluation import VolatilityForecastMetrics
 
 
 def candidate_evaluation() -> BoostingCandidateEvaluation:
@@ -67,11 +67,11 @@ def test_selection_report_records_inner_cv_ranking_without_outer_evaluation(monk
         return (evaluation,)
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting_report.build_expanding_training_folds",
+        "financial_ai.ml.market_forecast.evaluation.boosting_report.build_expanding_training_folds",
         fake_build_folds,
     )
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.boosting_report.compare_xgboost_candidates",
+        "financial_ai.ml.market_forecast.evaluation.boosting_report.compare_xgboost_candidates",
         fake_compare,
     )
 

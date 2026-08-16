@@ -2,12 +2,12 @@ from datetime import date
 
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.splits import (
+from financial_ai.ml.market_forecast.data.splits import (
     SPLIT_COLUMN,
     assign_chronological_splits,
     identify_purge_rows,
 )
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
 
 
 def target_frame() -> pd.DataFrame:

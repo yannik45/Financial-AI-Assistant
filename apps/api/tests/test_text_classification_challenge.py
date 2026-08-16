@@ -2,7 +2,7 @@ import json
 
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.text_classification_challenge import (
+from financial_ai.ml.transaction_classification.evaluation.text_classification_challenge import (
     DEFAULT_CHALLENGE_PATH,
     DEFAULT_METADATA_PATH,
     V1_CHALLENGE_PATH,

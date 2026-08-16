@@ -1,0 +1,19 @@
+{
+  "dataset_version": "manual-short-v1",
+  "schema_version": "manual-short-schema-v1",
+  "rows": 144,
+  "languages": ["de", "en"],
+  "categories": 12,
+  "split_rows": {
+    "train": 48,
+    "validation": 48,
+    "test": 48
+  },
+  "generalization_slices": [
+    "known_concept_new_phrase",
+    "novel_concept"
+  ],
+  "sha256": "59c629de5e0ddbab66df2d03e4491c4f21bca00036703b815413381c9cd9d77d",
+  "provenance": "Manually curated synthetic development data for short user-entered transaction descriptions.",
+  "test_policy": "The declared test partition remains unused until model and threshold selection are complete."
+}

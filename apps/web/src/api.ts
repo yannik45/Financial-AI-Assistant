@@ -1,6 +1,8 @@
 import type {
   Account,
   Analytics,
+  DemoBankFeedCreate,
+  DemoBankFeedResult,
   Portfolio,
   MarketInstrument,
   MarketDataStatus,
@@ -13,6 +15,7 @@ import type {
   TransactionCreate,
   TransactionClassification,
   TransactionClassificationRequest,
+  TransactionClassificationStatus,
   TransactionFilters,
   TransactionPage,
 } from "./types";
@@ -63,11 +66,25 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     }),
+  generateDemoBankFeed: (payload: DemoBankFeedCreate) =>
+    request<DemoBankFeedResult>("/v1/transactions/demo-bank-feed", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
   classifyTransaction: (payload: TransactionClassificationRequest) =>
     request<TransactionClassification>("/v1/transactions/classify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+    }),
+  transactionClassificationStatus: () =>
+    request<TransactionClassificationStatus>("/v1/transactions/classification/status"),
+  reviewTransactionCategory: (transactionId: string, category: string) =>
+    request<Transaction>(`/v1/transactions/${transactionId}/category`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category }),
     }),
   importPortfolio: (name: string, file: File) => {
     const body = new FormData();

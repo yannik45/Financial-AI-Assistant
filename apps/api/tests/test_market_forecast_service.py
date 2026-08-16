@@ -10,8 +10,8 @@ from financial_ai.market_forecast_service import (
     MarketForecastService,
     last_completed_us_market_date,
 )
-from financial_ai.ml.market_forecast.inference import MarketVolatilityForecast
-from financial_ai.ml.market_forecast.model_artifact import MarketForecastArtifactError
+from financial_ai.ml.market_forecast.modeling.inference import MarketVolatilityForecast
+from financial_ai.ml.market_forecast.modeling.model_artifact import MarketForecastArtifactError
 from financial_ai.schemas import MarketHistoryRead, MarketInstrumentRead, MarketPriceRead
 
 

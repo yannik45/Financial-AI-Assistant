@@ -1,0 +1,22 @@
+{
+  "dataset_version": "manual-short-v2",
+  "schema_version": "manual-short-schema-v1",
+  "taxonomy_version": "transaction-categories-v1",
+  "rows": 144,
+  "languages": ["de", "en"],
+  "categories": 12,
+  "split_rows": {
+    "train": 48,
+    "validation": 48,
+    "test": 48
+  },
+  "generalization_slices": [
+    "known_concept_new_phrase",
+    "novel_concept"
+  ],
+  "sha256": "cfe255a96d49219b90cd94de62d5579d05a593a654eddec0e166bcd71e970887",
+  "supersedes": "manual-short-v1",
+  "change_reason": "Taxonomy audit clarified an ambiguous transport phrase and the postal-service boundary case.",
+  "provenance": "Manually curated synthetic development data for short user-entered transaction descriptions.",
+  "test_policy": "The declared test partition remains unused until model and threshold selection are complete."
+}

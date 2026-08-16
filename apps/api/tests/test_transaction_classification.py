@@ -3,16 +3,10 @@ from decimal import Decimal
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.categories import ExpenseCategory
-from financial_ai.ml.transaction_classification.category_artifact import (
-    LoadedCategoryModel,
-    ModelMetadata,
-)
-from financial_ai.ml.transaction_classification.category_model import (
-    train_tfidf_category_classifier,
-)
-from financial_ai.ml.transaction_classification.category_service import TransactionClassifier
-from financial_ai.ml.transaction_classification.contracts import (
+from financial_ai.ml.transaction_classification.core.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.core.category_service import TransactionClassifier
+from financial_ai.ml.transaction_classification.core.contracts import (
+    ClassificationInputSource,
     ClassificationMethod,
     ClassificationRoute,
     FeedbackStatus,
@@ -20,6 +14,17 @@ from financial_ai.ml.transaction_classification.contracts import (
     determine_feedback_status,
     parse_product_category,
     route_transaction_text,
+)
+from financial_ai.ml.transaction_classification.modeling.category_artifact import (
+    LoadedCategoryModel,
+    ModelMetadata,
+)
+from financial_ai.ml.transaction_classification.modeling.category_model import (
+    train_tfidf_category_classifier,
+)
+from financial_ai.ml.transaction_classification.modeling.semantic_artifact import (
+    LoadedSemanticHead,
+    SemanticHeadMetadata,
 )
 
 
@@ -119,6 +124,38 @@ def _loaded_model() -> LoadedCategoryModel:
     return LoadedCategoryModel(model=model, metadata=metadata)
 
 
+class _SemanticEncoder:
+    def encode(self, texts, **_):
+        return np.asarray(
+            [
+                [5.0, 0.0]
+                if "disagree" in text
+                else ([0.0, 5.0] if "market" in text else [5.0, 0.0])
+                for text in texts
+            ],
+            dtype=np.float32,
+        )
+
+
+def _semantic_head() -> LoadedSemanticHead:
+    metadata = SemanticHeadMetadata(
+        model_version="semantic-test-v1",
+        taxonomy_version="transaction-categories-v1",
+        encoder_id="test",
+        encoder_revision="test",
+        created_at="2026-08-16T00:00:00+00:00",
+        training_rows=4,
+        embedding_dimensions=2,
+        artifact_sha256="test",
+    )
+    return LoadedSemanticHead(
+        coefficients=np.eye(2, dtype=np.float32),
+        intercepts=np.zeros(2, dtype=np.float32),
+        classes=np.asarray(["dining", "groceries"]),
+        metadata=metadata,
+    )
+
+
 def test_classifier_returns_text_rule_result_without_loading_model():
     result = TransactionClassifier().classify("Monthly salary", Decimal("2500"))
     assert result.category == "income"
@@ -129,7 +166,9 @@ def test_classifier_returns_text_rule_result_without_loading_model():
 
 
 def test_classifier_predicts_expense_and_reports_model_provenance():
-    classifier = TransactionClassifier(_loaded_model(), review_threshold=0.01)
+    classifier = TransactionClassifier(
+        _loaded_model(), review_threshold=0.01, semantic_enabled=False
+    )
     result = classifier.classify("market food purchase", Decimal("-20"))
     assert result.category == "groceries"
     assert result.method is ClassificationMethod.ML
@@ -140,12 +179,56 @@ def test_classifier_predicts_expense_and_reports_model_provenance():
 
 def test_classifier_flags_low_confidence_and_validates_expense_description():
     loaded_model = _loaded_model()
-    classifier = TransactionClassifier(loaded_model, review_threshold=1.0)
+    classifier = TransactionClassifier(
+        loaded_model, review_threshold=1.0, semantic_enabled=False
+    )
     result = classifier.classify("unknown merchant", Decimal("-20"))
     assert result.needs_review is True
-    assert result.reason == "Model confidence is below the review threshold."
+    assert result.reason == (
+        "Semantic model unavailable; conservative TF-IDF fallback requires review."
+    )
     with pytest.raises(ValueError, match="Description must not be empty"):
         classifier.classify("  ", Decimal("-20"))
+
+
+def test_bank_feed_requires_model_agreement_and_batches_semantic_inference():
+    classifier = TransactionClassifier(
+        _loaded_model(),
+        semantic_head=_semantic_head(),
+        semantic_encoder=_SemanticEncoder(),
+    )
+
+    agreed, disagreed = classifier.classify_many(
+        [
+            ("market food purchase", Decimal("-20"), None),
+            ("market food purchase disagree", Decimal("-30"), None),
+        ],
+        input_source=ClassificationInputSource.BANK_FEED,
+    )
+
+    assert agreed.category == "groceries"
+    assert agreed.alternative_category == "groceries"
+    assert agreed.model_agreement is True
+    assert agreed.needs_review is False
+    assert disagreed.category == "dining"
+    assert disagreed.alternative_category == "groceries"
+    assert disagreed.model_agreement is False
+    assert disagreed.needs_review is True
+
+
+def test_manual_semantic_suggestion_preserves_tfidf_provenance():
+    classifier = TransactionClassifier(
+        _loaded_model(),
+        semantic_head=_semantic_head(),
+        semantic_encoder=_SemanticEncoder(),
+    )
+    result = classifier.classify("market purchase", Decimal("-20"))
+
+    assert result.category == "groceries"
+    assert result.model_version == "semantic-test-v1"
+    assert result.alternative_model_version == "test-model-v1"
+    assert result.input_source is ClassificationInputSource.MANUAL_ENTRY
+    assert classifier.status().mode == "agreement_v2"
 
 
 def test_classifier_rejects_invalid_review_threshold():

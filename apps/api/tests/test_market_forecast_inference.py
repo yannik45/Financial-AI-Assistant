@@ -3,12 +3,12 @@ from decimal import Decimal
 
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.daily_bars import (
+from financial_ai.ml.market_forecast.data.daily_bars import (
     DAILY_BAR_COLUMNS,
     DailyBarValidationError,
 )
-from financial_ai.ml.market_forecast.features import FEATURE_COLUMNS, build_market_features
-from financial_ai.ml.market_forecast.inference import (
+from financial_ai.ml.market_forecast.data.features import FEATURE_COLUMNS, build_market_features
+from financial_ai.ml.market_forecast.modeling.inference import (
     FORECAST_HORIZON_TRADING_DAYS,
     InsufficientForecastHistoryError,
     build_latest_forecast_input,
@@ -123,7 +123,7 @@ def test_volatility_forecast_includes_observation_and_model_context(monkeypatch)
         {"metadata": type("MetadataStub", (), {"model_version": "model-v1"})()},
     )()
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.inference.predict_volatility",
+        "financial_ai.ml.market_forecast.modeling.inference.predict_volatility",
         lambda model, features: 0.237,
     )
 

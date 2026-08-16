@@ -4,7 +4,7 @@ from decimal import Decimal
 import pandas as pd
 import pytest
 from financial_ai.market_data_service import ProviderInstrument, ProviderPrice
-from financial_ai.ml.market_forecast.downloader import (
+from financial_ai.ml.market_forecast.data.downloader import (
     download_daily_bars,
     normalize_symbol_universe,
     resolve_download_symbols,

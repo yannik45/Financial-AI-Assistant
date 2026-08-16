@@ -3,14 +3,14 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.categories import ExpenseCategory
-from financial_ai.ml.transaction_classification.german_training_generator_v2 import (
+from financial_ai.ml.transaction_classification.core.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.data.german_training_generator_v2 import (
     GENERATOR_VERSION,
     OUTPUT_COLUMNS,
     generate_german_training_data_v2,
     write_german_training_dataset_v2,
 )
-from financial_ai.ml.transaction_classification.german_training_split_v2 import (
+from financial_ai.ml.transaction_classification.data.german_training_split_v2 import (
     split_german_training_data_v2,
 )
 

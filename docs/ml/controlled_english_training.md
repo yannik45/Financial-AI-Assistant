@@ -56,7 +56,7 @@ and compact descriptions. Merchants and references are fictional.
 ## Reproducibility
 
 ```powershell
-uv run python -m financial_ai.ml.transaction_classification.english_training_generator_v1
+uv run python -m financial_ai.ml.transaction_classification.data.english_training_generator_v1
 ```
 
 Outputs:
