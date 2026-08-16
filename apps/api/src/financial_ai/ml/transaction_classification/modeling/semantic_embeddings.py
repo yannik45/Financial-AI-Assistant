@@ -11,12 +11,8 @@ import pandas as pd
 ENCODER_ID = "intfloat/multilingual-e5-small"
 ENCODER_REVISION = "614241f622f53c4eeff9890bdc4f31cfecc418b3"
 PREPROCESSING_VERSION = "transaction-semantic-text-v1"
-DEFAULT_CACHE_DIRECTORY = Path(
-    "data/runtime/ml/transaction_categories/embedding_cache"
-)
-DEFAULT_ENCODER_DIRECTORY = Path(
-    "data/runtime/ml/transaction_categories/encoders"
-)
+DEFAULT_CACHE_DIRECTORY = Path("data/runtime/ml/transaction_categories/embedding_cache")
+DEFAULT_ENCODER_DIRECTORY = Path("data/runtime/ml/transaction_categories/encoders")
 
 
 class SentenceEncoder(Protocol):
@@ -125,9 +121,7 @@ def load_or_create_embedding_cache(
     metadata_path = cache_directory / f"{key}.metadata.json"
 
     if artifact_path.is_file() and metadata_path.is_file():
-        metadata = EmbeddingCacheMetadata(
-            **json.loads(metadata_path.read_text(encoding="utf-8"))
-        )
+        metadata = EmbeddingCacheMetadata(**json.loads(metadata_path.read_text(encoding="utf-8")))
         if (
             metadata.dataset_sha256 == dataset_sha256
             and metadata.encoder_id == encoder_id

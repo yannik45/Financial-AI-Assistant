@@ -86,9 +86,9 @@ class TransactionClassifier:
         counterparty: str | None = None,
         input_source: ClassificationInputSource = ClassificationInputSource.MANUAL_ENTRY,
     ) -> TransactionClassification:
-        return self.classify_many(
-            [(description, amount, counterparty)], input_source=input_source
-        )[0]
+        return self.classify_many([(description, amount, counterparty)], input_source=input_source)[
+            0
+        ]
 
     def classify_many(
         self,
@@ -130,9 +130,7 @@ class TransactionClassifier:
                 )
             else:
                 text = " ".join(
-                    part
-                    for part in (description.strip(), (counterparty or "").strip())
-                    if part
+                    part for part in (description.strip(), (counterparty or "").strip()) if part
                 )
                 model_rows.append((index, text))
 
@@ -145,9 +143,7 @@ class TransactionClassifier:
                 if not self._semantic_enabled:
                     raise SemanticArtifactError("Semantic classification is disabled")
                 semantic_head, semantic_encoder = self._get_semantic_model()
-                semantic_values = semantic_probabilities(
-                    texts, semantic_encoder, semantic_head
-                )
+                semantic_values = semantic_probabilities(texts, semantic_encoder, semantic_head)
             except (SemanticArtifactError, RuntimeError, OSError):
                 semantic_ready = False
                 semantic_head = None

@@ -163,12 +163,12 @@ def test_classification_endpoint_handles_deterministic_and_review_routes(client)
         "needs_review": False,
         "reason": "Category matched a reviewable text rule in the experimental baseline.",
         "taxonomy_version": "transaction-categories-v1",
-            "model_version": None,
-            "input_source": "manual_entry",
-            "alternative_category": None,
-            "alternative_model_version": None,
-            "model_agreement": None,
-        }
+        "model_version": None,
+        "input_source": "manual_entry",
+        "alternative_category": None,
+        "alternative_model_version": None,
+        "model_agreement": None,
+    }
 
     transfer = client.post(
         "/v1/transactions/classify",

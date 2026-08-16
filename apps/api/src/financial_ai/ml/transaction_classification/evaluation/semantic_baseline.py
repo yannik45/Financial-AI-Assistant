@@ -25,9 +25,7 @@ from financial_ai.ml.transaction_classification.modeling.semantic_embeddings imp
 DEFAULT_REPORT_PATH = Path(
     "data/runtime/ml/transaction_categories/semantic_baseline_validation.json"
 )
-DEFAULT_TFIDF_REPORT_PATH = Path(
-    "data/runtime/ml/transaction_categories/tfidf_v2_validation.json"
-)
+DEFAULT_TFIDF_REPORT_PATH = Path("data/runtime/ml/transaction_categories/tfidf_v2_validation.json")
 DEFAULT_MANUAL_PREDICTIONS_PATH = Path(
     "data/runtime/ml/transaction_categories/semantic_manual_validation_predictions.csv"
 )
@@ -136,9 +134,7 @@ def evaluate_validation_predictions(
     in_scope = validation["target_category"].ne("other")
     slices = {
         "all_in_scope": in_scope.to_numpy(),
-        "bank_feed_in_scope": (
-            validation["input_slice"].eq("bank_feed") & in_scope
-        ).to_numpy(),
+        "bank_feed_in_scope": (validation["input_slice"].eq("bank_feed") & in_scope).to_numpy(),
         "manual_short_in_scope": (
             validation["input_slice"].eq("manual_short") & in_scope
         ).to_numpy(),
@@ -160,8 +156,7 @@ def evaluate_validation_predictions(
         for name, mask in slices.items()
     }
     out_of_scope_mask = (
-        validation["input_slice"].eq("manual_short")
-        & validation["target_category"].eq("other")
+        validation["input_slice"].eq("manual_short") & validation["target_category"].eq("other")
     ).to_numpy()
     manual_threshold = evaluations["manual_short_in_scope"].threshold
     return evaluations, {
@@ -177,8 +172,7 @@ def run_semantic_validation_with_predictions(
     encoder: SentenceEncoder,
 ) -> SemanticValidationRun:
     training = dataset.train.loc[
-        dataset.train["input_slice"].eq("bank_feed")
-        & dataset.train["target_category"].ne("other")
+        dataset.train["input_slice"].eq("bank_feed") & dataset.train["target_category"].ne("other")
     ].reset_index(drop=True)
     validation = dataset.validation.reset_index(drop=True)
     embedding_data = pd.concat(
@@ -252,9 +246,7 @@ def write_manual_validation_diagnostics(
     predictions_destination.parent.mkdir(parents=True, exist_ok=True)
     manual.loc[:, output_columns].to_csv(predictions_destination, index=False)
 
-    labels = sorted(
-        set(manual["target_category"]).union(manual["predicted_category"])
-    )
+    labels = sorted(set(manual["target_category"]).union(manual["predicted_category"]))
     confusion = pd.crosstab(
         manual["target_category"],
         manual["predicted_category"],
@@ -270,8 +262,7 @@ def run_tfidf_validation_with_predictions(
     dataset: ClassificationV2Dataset,
 ) -> SemanticValidationRun:
     training = dataset.train.loc[
-        dataset.train["input_slice"].eq("bank_feed")
-        & dataset.train["target_category"].ne("other")
+        dataset.train["input_slice"].eq("bank_feed") & dataset.train["target_category"].ne("other")
     ].reset_index(drop=True)
     validation = dataset.validation.reset_index(drop=True)
     classifier = train_tfidf_category_classifier(
@@ -322,9 +313,7 @@ def run() -> None:
     encoder = load_sentence_encoder()
     validation_run = run_semantic_validation_with_predictions(dataset, encoder)
     destination = write_semantic_validation_report(validation_run.report)
-    predictions_path, confusion_path = write_manual_validation_diagnostics(
-        validation_run
-    )
+    predictions_path, confusion_path = write_manual_validation_diagnostics(validation_run)
     print(f"Semantic validation report: {destination}")
     print(f"Manual validation predictions: {predictions_path}")
     print(f"Manual validation confusion matrix: {confusion_path}")

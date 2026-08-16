@@ -72,8 +72,7 @@ def build_semantic_head_artifact(
 ) -> SemanticHeadMetadata:
     dataset = load_classification_v2_dataset()
     training = dataset.train.loc[
-        dataset.train["input_slice"].eq("bank_feed")
-        & dataset.train["target_category"].ne("other")
+        dataset.train["input_slice"].eq("bank_feed") & dataset.train["target_category"].ne("other")
     ].reset_index(drop=True)
     embedding_rows = training[["example_id", "description"]]
     embeddings = load_or_create_embedding_cache(embedding_rows, encoder).values

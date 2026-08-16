@@ -100,18 +100,9 @@ def evaluate_manual_test_predictions(
         other_rejection_rate=float((~other_accepted).mean()),
         other_false_automatic_acceptance_rate=float(other_accepted.mean()),
         generalization_accuracy={
-            name: float(
-                (
-                    predictions[mask]
-                    == test.loc[mask, "target_category"].to_numpy()
-                ).mean()
-            )
+            name: float((predictions[mask] == test.loc[mask, "target_category"].to_numpy()).mean())
             for name in ("known_concept_new_phrase", "novel_concept")
-            if (
-                mask := (
-                    test["generalization_slice"].eq(name).to_numpy() & in_scope
-                )
-            ).any()
+            if (mask := (test["generalization_slice"].eq(name).to_numpy() & in_scope)).any()
         },
         test_partition_used=True,
     )
@@ -129,8 +120,7 @@ def run_final_manual_test(
         raise ValueError("Unexpected manual-short candidate in model selection")
 
     training = dataset.train.loc[
-        dataset.train["input_slice"].eq("bank_feed")
-        & dataset.train["target_category"].ne("other")
+        dataset.train["input_slice"].eq("bank_feed") & dataset.train["target_category"].ne("other")
     ].reset_index(drop=True)
     validation = dataset.validation.reset_index(drop=True)
     development_embedding_rows = pd.concat(
@@ -144,9 +134,9 @@ def run_final_manual_test(
         development_embedding_rows, encoder
     ).values[: len(training)]
 
-    manual_test = dataset.test.loc[
-        dataset.test["input_slice"].eq("manual_short")
-    ].reset_index(drop=True)
+    manual_test = dataset.test.loc[dataset.test["input_slice"].eq("manual_short")].reset_index(
+        drop=True
+    )
     test_embeddings = load_or_create_embedding_cache(
         manual_test[["example_id", "description"]], encoder
     ).values

@@ -45,9 +45,7 @@ class GroupGeneralizationEvaluation:
 
 def build_bank_prediction_rows(validation_run: SemanticValidationRun) -> pd.DataFrame:
     validation = validation_run.validation
-    mask = validation["input_slice"].eq("bank_feed") & validation[
-        "target_category"
-    ].ne("other")
+    mask = validation["input_slice"].eq("bank_feed") & validation["target_category"].ne("other")
     rows = validation.loc[mask].copy()
     rows["predicted_category"] = validation_run.predictions[mask]
     rows["confidence"] = validation_run.confidence[mask]
@@ -80,14 +78,10 @@ def evaluate_hybrid_bank_predictions(rows: pd.DataFrame) -> tuple[HybridEvaluati
     evaluated["hybrid_route"] = routes
     evaluated["hybrid_prediction"] = final_predictions
     evaluated["automatically_accepted"] = automatically_accepted
-    evaluated["hybrid_correct"] = evaluated["target_category"].eq(
-        evaluated["hybrid_prediction"]
-    )
+    evaluated["hybrid_correct"] = evaluated["target_category"].eq(evaluated["hybrid_prediction"])
     accepted = evaluated["automatically_accepted"]
     accepted_accuracy = (
-        float(evaluated.loc[accepted, "hybrid_correct"].mean())
-        if accepted.any()
-        else None
+        float(evaluated.loc[accepted, "hybrid_correct"].mean()) if accepted.any() else None
     )
     report = HybridEvaluation(
         rows=len(evaluated),
@@ -155,9 +149,7 @@ def write_candidate_diagnostics(
     rows = build_bank_prediction_rows(validation_run)
     hybrid_report, hybrid_rows = evaluate_hybrid_bank_predictions(rows)
     rows.to_csv(destination / f"{name}_bank_predictions.csv", index=False)
-    build_group_diagnostics(rows).to_csv(
-        destination / f"{name}_bank_groups.csv", index=False
-    )
+    build_group_diagnostics(rows).to_csv(destination / f"{name}_bank_groups.csv", index=False)
     confusion = pd.crosstab(
         rows["target_category"],
         rows["predicted_category"],

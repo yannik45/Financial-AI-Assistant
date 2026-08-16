@@ -3,9 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-DEFAULT_MANUAL_SHORT_PATH = Path(
-    "data/development/transaction_categories/manual_short_v2.csv"
-)
+DEFAULT_MANUAL_SHORT_PATH = Path("data/development/transaction_categories/manual_short_v2.csv")
 EXPECTED_SPLITS = {"train", "validation", "test"}
 EXPECTED_SLICES = {"training", "known_concept_new_phrase", "novel_concept"}
 REQUIRED_COLUMNS = {
@@ -42,15 +40,16 @@ def validate_manual_short_dataset(data: pd.DataFrame) -> None:
         raise ValueError("Manual-short phrase families must not cross splits")
 
     novel_rows = data.loc[data["generalization_slice"].eq("novel_concept")]
-    novel_split_counts = novel_rows.groupby(
-        ["language", "category", "concept_group"]
-    )["split"].nunique()
+    novel_split_counts = novel_rows.groupby(["language", "category", "concept_group"])[
+        "split"
+    ].nunique()
     if (novel_split_counts > 1).any():
         raise ValueError("Novel concepts must not cross evaluation splits")
 
     train_concepts = set(
-        data.loc[data["split"].eq("train"), ["language", "category", "concept_group"]]
-        .itertuples(index=False, name=None)
+        data.loc[data["split"].eq("train"), ["language", "category", "concept_group"]].itertuples(
+            index=False, name=None
+        )
     )
     evaluation_rows = data.loc[~data["split"].eq("train")]
     for row in evaluation_rows.itertuples(index=False):

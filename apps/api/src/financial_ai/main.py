@@ -620,10 +620,7 @@ def create_demo_bank_feed(
     ]
     try:
         classifications = classifier.classify_many(
-            [
-                (item.description, item.amount, item.counterparty)
-                for _, item in pending
-            ],
+            [(item.description, item.amount, item.counterparty) for _, item in pending],
             input_source=ClassificationInputSource.BANK_FEED,
         )
     except ModelArtifactError:
@@ -743,9 +740,7 @@ def review_transaction_category(
     if latest is not None:
         latest.final_category = payload.category
         latest.feedback_status = (
-            "accepted_explicit"
-            if latest.predicted_category == payload.category
-            else "corrected"
+            "accepted_explicit" if latest.predicted_category == payload.category else "corrected"
         )
         latest.needs_review = False
     session.commit()

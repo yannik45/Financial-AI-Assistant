@@ -13,9 +13,7 @@ def test_fusion_classifier_combines_text_and_aligned_embeddings() -> None:
             "target_category": ["shopping", "shopping", "transport", "transport"],
         }
     )
-    embeddings = np.asarray(
-        [[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]], dtype=np.float32
-    )
+    embeddings = np.asarray([[1.0, 0.0], [0.9, 0.1], [0.0, 1.0], [0.1, 0.9]], dtype=np.float32)
     model = train_fusion_category_classifier(training, embeddings)
 
     probabilities = model.predict_proba(

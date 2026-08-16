@@ -32,9 +32,7 @@ from financial_ai.ml.transaction_classification.modeling.semantic_embeddings imp
     load_sentence_encoder,
 )
 
-DEFAULT_REPORT_PATH = Path(
-    "data/runtime/ml/transaction_categories/fusion_validation.json"
-)
+DEFAULT_REPORT_PATH = Path("data/runtime/ml/transaction_categories/fusion_validation.json")
 DEFAULT_DEMO_REPORT_PATH = Path(
     "data/runtime/ml/transaction_categories/fusion_demo_validation.json"
 )
@@ -50,8 +48,7 @@ def run_fusion_validation(
     encoder: SentenceEncoder,
 ) -> FusionValidationRun:
     training = dataset.train.loc[
-        dataset.train["input_slice"].eq("bank_feed")
-        & dataset.train["target_category"].ne("other")
+        dataset.train["input_slice"].eq("bank_feed") & dataset.train["target_category"].ne("other")
     ].reset_index(drop=True)
     validation = dataset.validation.reset_index(drop=True)
     embedding_rows = pd.concat(
@@ -70,12 +67,8 @@ def run_fusion_validation(
         random_state=RANDOM_STATE,
     )
     predictions = model.predict(validation["description"], validation_embeddings)
-    confidence = model.predict_proba(
-        validation["description"], validation_embeddings
-    ).max(axis=1)
-    evaluations, out_of_scope = evaluate_validation_predictions(
-        validation, predictions, confidence
-    )
+    confidence = model.predict_proba(validation["description"], validation_embeddings).max(axis=1)
+    evaluations, out_of_scope = evaluate_validation_predictions(validation, predictions, confidence)
     report = SemanticBaselineReport(
         candidate="character-tfidf-multilingual-e5-fusion-logistic-v1",
         encoder_id=ENCODER_ID,
@@ -84,9 +77,7 @@ def run_fusion_validation(
         training_slice="bank_feed_only",
         training_rows=len(training),
         validation_rows=len(validation),
-        embedding_dimensions=(
-            len(model.vectorizer.vocabulary_) + model.embedding_dimensions
-        ),
+        embedding_dimensions=(len(model.vectorizer.vocabulary_) + model.embedding_dimensions),
         embedding_cache_hit=cached.cache_hit,
         auto_accept_accuracy_target=AUTO_ACCEPT_ACCURACY_TARGET,
         validation=evaluations,
@@ -118,11 +109,7 @@ def evaluate_demo_feed(
     ]
     text = pd.Series(
         [
-            " ".join(
-                part
-                for part in (item.description, item.counterparty or "")
-                if part.strip()
-            )
+            " ".join(part for part in (item.description, item.counterparty or "") if part.strip())
             for item in items
         ]
     )
@@ -143,9 +130,7 @@ def evaluate_demo_feed(
             "confidence": confidence,
         }
     )
-    base_rows["correct"] = base_rows["target_category"].eq(
-        base_rows["predicted_category"]
-    )
+    base_rows["correct"] = base_rows["target_category"].eq(base_rows["predicted_category"])
     reports = {}
     for name, threshold in {
         "controlled_validation_threshold": validation_run.report.validation[

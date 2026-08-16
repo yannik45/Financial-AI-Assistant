@@ -179,9 +179,7 @@ def test_classifier_predicts_expense_and_reports_model_provenance():
 
 def test_classifier_flags_low_confidence_and_validates_expense_description():
     loaded_model = _loaded_model()
-    classifier = TransactionClassifier(
-        loaded_model, review_threshold=1.0, semantic_enabled=False
-    )
+    classifier = TransactionClassifier(loaded_model, review_threshold=1.0, semantic_enabled=False)
     result = classifier.classify("unknown merchant", Decimal("-20"))
     assert result.needs_review is True
     assert result.reason == (

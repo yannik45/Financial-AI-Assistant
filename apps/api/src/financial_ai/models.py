@@ -192,9 +192,7 @@ class TransactionClassificationRecord(Base):
     taxonomy_version: Mapped[str] = mapped_column(String(80))
     model_version: Mapped[str | None] = mapped_column(String(120), nullable=True)
     input_source: Mapped[str] = mapped_column(String(30), default="manual_entry")
-    alternative_predicted_category: Mapped[str | None] = mapped_column(
-        String(60), nullable=True
-    )
+    alternative_predicted_category: Mapped[str | None] = mapped_column(String(60), nullable=True)
     alternative_model_version: Mapped[str | None] = mapped_column(String(120), nullable=True)
     model_agreement: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
