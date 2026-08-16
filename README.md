@@ -1,4 +1,4 @@
-# Financial AI Assistant
+# Financial Intelligence Platform
 
 A full-stack portfolio intelligence platform that connects portfolio trading,
 account cash flows, deterministic risk analytics, external market data, and
@@ -6,7 +6,7 @@ applied machine learning in one auditable system.
 
 ![Portfolio summary, key metrics, and value history](docs/assets/portfolio-overview.png)
 
-*Portfolio overview with linked holdings, performance history, and key analytics.*
+*Portfolio overview with valuation, risk metrics, reconstructed value history, and allocation breakdowns.*
 
 ## At a glance
 

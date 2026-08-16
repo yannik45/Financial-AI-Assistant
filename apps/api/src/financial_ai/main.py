@@ -116,7 +116,7 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Financial AI Assistant API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Financial Intelligence Platform API", version="0.1.0", lifespan=lifespan)
 settings = get_settings()
 app.add_middleware(
     CORSMiddleware,

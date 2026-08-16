@@ -1,1 +1,1 @@
-"""Financial AI Assistant API."""
+"""Financial Intelligence Platform API."""

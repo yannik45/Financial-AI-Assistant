@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: docker/api/Dockerfile
-    image: financial-ai-api:local
+    image: financial-intelligence-api:local
     init: true
     ports:
       - "8000:8000"
@@ -11,7 +11,7 @@ services:
       FINANCIAL_AI_CORS_ORIGINS: '["http://localhost:5173"]'
       FINANCIAL_AI_ALPACA_API_KEY: ${FINANCIAL_AI_ALPACA_API_KEY:-}
       FINANCIAL_AI_ALPACA_SECRET_KEY: ${FINANCIAL_AI_ALPACA_SECRET_KEY:-}
-      FINANCIAL_AI_SEC_USER_AGENT: ${FINANCIAL_AI_SEC_USER_AGENT:-Financial-AI-Assistant/0.1 github.com/yannik45/Financial-AI-Assistant}
+      FINANCIAL_AI_SEC_USER_AGENT: ${FINANCIAL_AI_SEC_USER_AGENT:-Financial-Intelligence-Platform/0.1 github.com/yannik45/Financial-Intelligence-Platform}
       FINANCIAL_AI_MARKET_DATA_CACHE_HOURS: ${FINANCIAL_AI_MARKET_DATA_CACHE_HOURS:-24}
     volumes:
       - financial_ai_runtime:/app/data/runtime
@@ -30,7 +30,7 @@ services:
     build:
       context: .
       dockerfile: docker/web/Dockerfile
-    image: financial-ai-web:local
+    image: financial-intelligence-web:local
     init: true
     ports:
       - "5173:8080"
