@@ -470,6 +470,10 @@ function AddTransactionModal({
 
 function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
   const [showAdd, setShowAdd] = useState(false);
+  const [demoResult, setDemoResult] = useState<
+    Awaited<ReturnType<typeof api.generateDemoBankFeed>> | null
+  >(null);
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<TransactionFilters>({
     account_id: initialAccountId || undefined,
     limit: 10,
@@ -483,6 +487,35 @@ function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
   const visibleAccounts = accounts.data?.filter(
     (account) => account.account_type !== "brokerage" || account.id === initialAccountId,
   );
+  const demoFeedAccount =
+    visibleAccounts?.find((account) => account.account_type === "checking") ??
+    visibleAccounts?.find((account) => account.account_type === "savings");
+  const demoFeed = useMutation({
+    mutationFn: () => {
+      if (!demoFeedAccount) throw new Error("No cash account is available for demo activity.");
+      return api.generateDemoBankFeed({ account_id: demoFeedAccount.id });
+    },
+    onSuccess: async (result) => {
+      setDemoResult(result);
+      if (demoFeedAccount) {
+        setFilters((current) => ({ ...current, account_id: demoFeedAccount.id, offset: 0 }));
+      }
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["accounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+      ]);
+    },
+  });
+  const classificationStatus = useQuery({
+    queryKey: ["transaction-classification-status"],
+    queryFn: api.transactionClassificationStatus,
+    retry: 1,
+  });
+  const reviewCategory = useMutation({
+    mutationFn: ({ transactionId, category }: { transactionId: string; category: string }) =>
+      api.reviewTransactionCategory(transactionId, category),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["transactions"] }),
+  });
   const accountNames = new Map(accounts.data?.map((account) => [account.id, account.name]));
   const setFilter = (key: keyof TransactionFilters, value: string) =>
     setFilters((current) => ({ ...current, [key]: value || undefined, offset: 0 }));
@@ -504,14 +537,58 @@ function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
         <div>
           <span className="eyebrow">ACTIVITY</span>
           <h2>Transactions</h2>
-          <p>Portfolio orders and account cash movements in one ledger.</p>
+          <p>
+            Portfolio orders and account cash movements in one ledger.
+            {classificationStatus.data && (
+              <span className={`service-status ${classificationStatus.data.status}`}>
+                {classificationStatus.data.status === "ready"
+                  ? "AI categorization ready"
+                  : classificationStatus.data.status === "degraded"
+                    ? "AI categorization degraded"
+                    : "AI categorization unavailable"}
+              </span>
+            )}
+          </p>
         </div>
         <div className="header-actions">
+          <button
+            className="secondary"
+            onClick={() => demoFeed.mutate()}
+            disabled={!demoFeedAccount || demoFeed.isPending}
+          >
+            {demoFeed.isPending ? "Generating…" : "Generate demo activity"}
+          </button>
           <button onClick={() => setShowAdd(true)} disabled={!accounts.data?.length}>
             Add transaction
           </button>
         </div>
       </header>
+      {demoFeed.isError && <div className="error">{demoFeed.error.message}</div>}
+      {demoResult && (
+        <section className="demo-feed-result" aria-live="polite">
+          <div>
+            <b>{demoResult.created_count} synthetic bank transactions added</b>
+            <span>
+              Seed {demoResult.seed} · {demoResult.year}-
+              {String(demoResult.month).padStart(2, "0")}
+            </span>
+          </div>
+          <div className="demo-feed-metrics">
+            <span><b>{demoResult.automatically_categorized_count}</b> categorized</span>
+            <span><b>{demoResult.review_count}</b> need review</span>
+            <span>
+              <b>
+                {demoResult.evaluated_count
+                  ? Math.round(
+                      (demoResult.correct_prediction_count / demoResult.evaluated_count) * 100,
+                    )
+                  : 0}%
+              </b>{" "}
+              synthetic-label accuracy
+            </span>
+          </div>
+        </section>
+      )}
       <details className="panel filter-panel">
         <summary>Filter activity</summary>
         <div className="filter-grid">
@@ -612,7 +689,13 @@ function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
                 </tr>
               </thead>
               <tbody>
-                {transactions.data.items.map((transaction) => (
+                {transactions.data.items.map((transaction) => {
+                  const latest = transaction.classifications?.at(-1);
+                  const reviewSuggestion =
+                    !transaction.category && latest?.needs_review
+                      ? latest.predicted_category
+                      : null;
+                  return (
                   <tr key={transaction.id}>
                     <td>{transaction.booked_at}</td>
                     <td>
@@ -621,7 +704,31 @@ function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
                     </td>
                     <td>{accountNames.get(transaction.account_id) ?? "Unknown account"}</td>
                     <td>
-                      <span className="category-pill">{transaction.category ?? "Uncategorized"}</span>
+                      {reviewSuggestion ? (
+                        <select
+                          className="category-review-select"
+                          aria-label={`Review category for ${transaction.name}`}
+                          defaultValue=""
+                          disabled={reviewCategory.isPending}
+                          onChange={(event) => {
+                            if (event.target.value) {
+                              reviewCategory.mutate({
+                                transactionId: transaction.id,
+                                category: event.target.value,
+                              });
+                            }
+                          }}
+                        >
+                          <option value="">Review · {reviewSuggestion}</option>
+                          {TRANSACTION_CATEGORIES.map((category) => (
+                            <option key={category}>{category}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="category-pill">
+                          {transaction.category ?? "Uncategorized"}
+                        </span>
+                      )}
                     </td>
                     <td>{transaction.transaction_type.replaceAll("_", " ")}</td>
                     <td>{Number(transaction.amount) >= 0 ? "Incoming" : "Outgoing"}</td>
@@ -629,7 +736,8 @@ function ActivitySection({ initialAccountId }: { initialAccountId: string }) {
                       {formatMoney(transaction.amount, transaction.currency)}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {!transactions.data.items.length && (
                   <tr>
                     <td colSpan={7} className="empty-state">

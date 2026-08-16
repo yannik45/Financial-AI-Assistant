@@ -1,9 +1,10 @@
-import financial_ai.ml.market_forecast.model_artifact as model_artifact_module
+import financial_ai.ml.market_forecast.modeling.model_artifact as model_artifact_module
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.features import FEATURE_COLUMNS
-from financial_ai.ml.market_forecast.model_artifact import (
+from financial_ai.ml.market_forecast.data.features import FEATURE_COLUMNS
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.modeling.model_artifact import (
     MODEL_ARTIFACT_SCHEMA_VERSION,
     MarketForecastArtifactError,
     build_market_forecast_model_artifact,
@@ -11,7 +12,6 @@ from financial_ai.ml.market_forecast.model_artifact import (
     predict_volatility,
     prepare_deployment_training_data,
 )
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
 
 
 def model_dataset() -> pd.DataFrame:

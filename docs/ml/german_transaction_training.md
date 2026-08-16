@@ -56,7 +56,7 @@ The first learned baseline continues to use only `description` as input.
 Generate the default dataset from the repository root:
 
 ```powershell
-uv run python -m financial_ai.ml.transaction_classification.german_training_generator
+uv run python -m financial_ai.ml.transaction_classification.data.german_training_generator
 ```
 
 Outputs:

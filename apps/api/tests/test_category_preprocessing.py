@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.category_preprocessing import (
+from financial_ai.ml.transaction_classification.data.category_preprocessing import (
     prepare_category_training_data,
 )
 

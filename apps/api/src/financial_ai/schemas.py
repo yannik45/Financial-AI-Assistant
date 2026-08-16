@@ -1,10 +1,12 @@
 from datetime import date, datetime
 from decimal import Decimal
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from financial_ai.ml.transaction_classification.contracts import (
+from financial_ai.ml.transaction_classification.core.contracts import (
+    ClassificationInputSource,
     ClassificationMethod,
     ClassificationRoute,
     FeedbackStatus,
@@ -348,6 +350,10 @@ class TransactionClassificationRecordRead(BaseModel):
     reason: str
     taxonomy_version: str
     model_version: str | None
+    input_source: ClassificationInputSource
+    alternative_predicted_category: str | None
+    alternative_model_version: str | None
+    model_agreement: bool | None
     created_at: datetime
 
 
@@ -441,6 +447,43 @@ class TransactionPage(BaseModel):
     offset: int
 
 
+class DemoBankFeedCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    account_id: str
+    seed: int | None = Field(default=None, ge=0, le=2_147_483_647)
+    year: int | None = Field(default=None, ge=2000, le=2100)
+    month: int | None = Field(default=None, ge=1, le=12)
+    variable_count: int = Field(default=12, ge=1, le=40)
+
+    @model_validator(mode="after")
+    def validate_period(self) -> "DemoBankFeedCreate":
+        if (self.year is None) != (self.month is None):
+            raise ValueError("year and month must be provided together")
+        return self
+
+
+class TransactionCategoryReview(BaseModel):
+    category: str = Field(min_length=1, max_length=60)
+
+    @field_validator("category")
+    @classmethod
+    def validate_category(cls, value: str) -> str:
+        return parse_product_category(value)
+
+
+class DemoBankFeedResult(BaseModel):
+    seed: int
+    year: int
+    month: int
+    generated_count: int
+    created_count: int
+    automatically_categorized_count: int
+    review_count: int
+    correct_prediction_count: int
+    evaluated_count: int
+
+
 class TransactionClassificationRequest(BaseModel):
     description: str = Field(min_length=1, max_length=320)
     amount: Decimal = Field(max_digits=20, decimal_places=2)
@@ -456,3 +499,15 @@ class TransactionClassificationResponse(BaseModel):
     reason: str
     taxonomy_version: str
     model_version: str | None
+    input_source: ClassificationInputSource
+    alternative_category: str | None
+    alternative_model_version: str | None
+    model_agreement: bool | None
+
+
+class TransactionClassificationStatusRead(BaseModel):
+    status: Literal["ready", "degraded", "unavailable"]
+    mode: str
+    tfidf_model_version: str | None
+    semantic_model_version: str | None
+    reason: str | None

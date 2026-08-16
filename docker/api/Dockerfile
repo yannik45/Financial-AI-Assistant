@@ -6,14 +6,15 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
-RUN uv sync --locked --no-dev --no-install-project
+RUN uv sync --locked --no-dev --no-install-project --extra semantic
 
 COPY README.md alembic.ini ./
 COPY apps/api/src ./apps/api/src
 COPY apps/api/alembic ./apps/api/alembic
 COPY data/market ./data/market
+COPY data/development ./data/development
 
-RUN uv sync --locked --no-dev --no-editable
+RUN uv sync --locked --no-dev --no-editable --extra semantic
 
 ENV PATH="/app/.venv/bin:$PATH"
 
@@ -31,4 +32,4 @@ USER financial-ai
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "alembic upgrade head && if [ ! -f \"$FINANCIAL_AI_CATEGORY_MODEL_ARTIFACT_PATH\" ] || [ ! -f \"$FINANCIAL_AI_CATEGORY_MODEL_METADATA_PATH\" ]; then financial-ai-bootstrap-category-model; fi && exec uvicorn financial_ai.main:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && financial-ai-bootstrap-category-model && exec uvicorn financial_ai.main:app --host 0.0.0.0 --port 8000"]

@@ -1,0 +1,30 @@
+{
+  "selection_version": "transaction-classification-v2-bank-policy-v1",
+  "policy": "rules_then_tfidf_e5_agreement",
+  "automatic_acceptance": "A high-signal rule matches or TF-IDF and E5 predict the same category.",
+  "controlled_bank_validation": {
+    "rows": 2750,
+    "automatic_coverage": 0.7607272727272727,
+    "automatically_accepted_accuracy": 0.9789674952198852,
+    "model_agreement_rate": 0.7530909090909091
+  },
+  "seeded_demo_bank_validation": {
+    "seeds": 100,
+    "rows": 1500,
+    "automatic_coverage": 0.628,
+    "automatically_accepted_accuracy": 0.9373673036093418,
+    "model_agreement_rate": 0.46266666666666667
+  },
+  "rejected_policies": [
+    {
+      "policy": "tfidf_controlled_validation_threshold",
+      "reason": "The 0.1724 validation threshold produced only 69.94% accepted accuracy on the seeded demo-bank benchmark."
+    },
+    {
+      "policy": "tfidf_e5_feature_fusion",
+      "reason": "Fusion improved controlled bank validation but reduced manual and seeded demo-bank performance."
+    }
+  ],
+  "test_partition_used": false,
+  "serving_status": "pending_integration"
+}

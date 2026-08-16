@@ -1,5 +1,5 @@
 import pandas as pd
-from financial_ai.ml.transaction_classification.category_model import (
+from financial_ai.ml.transaction_classification.modeling.category_model import (
     train_tfidf_category_classifier,
     train_word_char_tfidf_category_classifier,
 )

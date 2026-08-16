@@ -105,7 +105,7 @@ export type Transaction = {
   counterparty: string | null;
   category: string | null;
   notes: string | null;
-  source: "demo" | "manual" | "imported" | "market_order";
+  source: "demo" | "demo_bank_feed" | "manual" | "imported" | "market_order";
   market_instrument_id: string | null;
   client_order_id: string | null;
   security_symbol: string | null;
@@ -142,11 +142,19 @@ export type TransactionClassification = {
   reason: string;
   taxonomy_version: string;
   model_version: string | null;
+  input_source: "manual_entry" | "bank_feed";
+  alternative_category: string | null;
+  alternative_model_version: string | null;
+  model_agreement: boolean | null;
 };
 
-export type TransactionClassificationRecord = Omit<TransactionClassification, "category"> & {
+export type TransactionClassificationRecord = Omit<
+  TransactionClassification,
+  "category" | "alternative_category"
+> & {
   id: string;
   predicted_category: string | null;
+  alternative_predicted_category: string | null;
   final_category: string | null;
   feedback_status: FeedbackStatus;
   created_at: string;
@@ -192,6 +200,34 @@ export type TransactionCreate = {
   unit_price?: string;
   fees?: string;
   taxes?: string;
+};
+
+export type TransactionClassificationStatus = {
+  status: "ready" | "degraded" | "unavailable";
+  mode: string;
+  tfidf_model_version: string | null;
+  semantic_model_version: string | null;
+  reason: string | null;
+};
+
+export type DemoBankFeedCreate = {
+  account_id: string;
+  seed?: number;
+  year?: number;
+  month?: number;
+  variable_count?: number;
+};
+
+export type DemoBankFeedResult = {
+  seed: number;
+  year: number;
+  month: number;
+  generated_count: number;
+  created_count: number;
+  automatically_categorized_count: number;
+  review_count: number;
+  correct_prediction_count: number;
+  evaluated_count: number;
 };
 
 export type MarketInstrument = {

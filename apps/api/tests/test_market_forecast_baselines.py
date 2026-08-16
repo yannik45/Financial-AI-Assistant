@@ -1,7 +1,11 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.baselines import (
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.evaluation.evaluation import (
+    calculate_volatility_forecast_metrics,
+)
+from financial_ai.ml.market_forecast.modeling.baselines import (
     PREDICTED_VOLATILITY_COLUMN,
     build_constant_validation_predictions,
     build_ewma_validation_predictions,
@@ -9,9 +13,10 @@ from financial_ai.ml.market_forecast.baselines import (
     evaluate_ewma_validation,
     evaluate_persistence_validation,
 )
-from financial_ai.ml.market_forecast.evaluation import calculate_volatility_forecast_metrics
-from financial_ai.ml.market_forecast.ewma import EWMA_VOLATILITY_COLUMN, build_ewma_volatility
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.modeling.ewma import (
+    EWMA_VOLATILITY_COLUMN,
+    build_ewma_volatility,
+)
 
 
 def model_dataset() -> pd.DataFrame:

@@ -4,7 +4,7 @@ from unittest.mock import Mock, mock_open
 
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification import category_dataset
+from financial_ai.ml.transaction_classification.data import category_dataset
 
 
 def test_calculate_sha256():

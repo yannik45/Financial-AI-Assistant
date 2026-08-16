@@ -1,12 +1,12 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.boosting import XGBoostConfig
-from financial_ai.ml.market_forecast.final_test_report import (
+from financial_ai.ml.market_forecast.data.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.evaluation.final_test_report import (
     build_final_test_report,
     prepare_final_test_dataset,
     summarize_test_predictions,
 )
-from financial_ai.ml.market_forecast.targets import TARGET_COLUMN
+from financial_ai.ml.market_forecast.modeling.boosting import XGBoostConfig
 
 
 def test_final_test_dataset_combines_development_splits_without_modifying_input():
@@ -63,11 +63,11 @@ def test_final_test_report_refits_frozen_models_and_reports_predeclared_years(mo
         return rows
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.final_test_report.build_ewma_validation_predictions",
+        "financial_ai.ml.market_forecast.evaluation.final_test_report.build_ewma_validation_predictions",
         lambda received_dataset, bars: predictions(received_dataset, 0.25),
     )
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.final_test_report.build_ridge_validation_predictions",
+        "financial_ai.ml.market_forecast.evaluation.final_test_report.build_ridge_validation_predictions",
         lambda received_dataset: predictions(received_dataset, 0.30),
     )
 
@@ -77,7 +77,7 @@ def test_final_test_report_refits_frozen_models_and_reports_predeclared_years(mo
         return predictions(received_dataset, 0.35)
 
     monkeypatch.setattr(
-        "financial_ai.ml.market_forecast.final_test_report.build_xgboost_validation_predictions",
+        "financial_ai.ml.market_forecast.evaluation.final_test_report.build_xgboost_validation_predictions",
         fake_xgboost,
     )
     dataset_metadata = {

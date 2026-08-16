@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.category_evaluation import (
+from financial_ai.ml.transaction_classification.evaluation.category_evaluation import (
     evaluate_category_classifier,
 )
 

@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.transaction_classification.categories import ExpenseCategory
-from financial_ai.ml.transaction_classification.german_training_split import (
+from financial_ai.ml.transaction_classification.core.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.data.german_training_split import (
     split_german_training_data_by_merchant,
 )
 

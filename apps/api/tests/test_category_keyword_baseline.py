@@ -1,5 +1,5 @@
 import pandas as pd
-from financial_ai.ml.transaction_classification.category_keyword_baseline import (
+from financial_ai.ml.transaction_classification.modeling.category_keyword_baseline import (
     KeywordCategoryClassifier,
 )
 

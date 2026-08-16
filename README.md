@@ -29,8 +29,8 @@ applied machine learning in one auditable system.
 | Portfolio analytics | Ledger-derived holdings, valuation, allocation, P&L, return, volatility, drawdown, separate market-risk, diversification, and liquidity indicators, and time series |
 | Market data | Provider-neutral instrument search and cached daily history with source and freshness metadata; deterministic demo mode and optional Alpaca adapter |
 | Portfolio trading | Buy/sell simulation inside the selected portfolio with server pricing, derived holdings, and realized/unrealized P&L |
-| Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, and manual entry |
-| Classification | Editable English/German category suggestions using auditable rules plus character TF-IDF and Logistic Regression |
+| Transaction ledger | Checking, savings, and portfolio-linked brokerage accounts; signed cash flows, filters, manual entry, and reproducible synthetic bank-feed scenarios |
+| Classification | Experimental editable English/German suggestions using rules, character TF-IDF, and multilingual E5 with selective auto-acceptance |
 | Market forecasting | Versioned historical OHLCV data, purged temporal evaluation, final-tested XGBoost, checksum-verified deployment artifact, and instrument-level forecasts in the trading workflow |
 | ML lifecycle | Frozen evaluation sets, abstention metrics, feedback capture, immutable exports, candidate gates, explicit promotion, and rollback artifacts |
 | Delivery | Backend/frontend tests, GitHub Actions, multi-stage images, health checks, reverse proxy, and persistent Compose storage |
@@ -44,7 +44,7 @@ financial metrics itself. RAG and LLM integration are not implemented yet.
 ```text
 Browser -> React / Nginx -> FastAPI -> SQLite + cached market data
                               |----> deterministic portfolio analytics
-                              `----> rules + bilingual expense classifier
+                              `----> rules + lexical/semantic classifiers
 
 Offline ML commands -> versioned snapshots -> features -> evaluation reports
 ```
@@ -82,7 +82,7 @@ Requires Python 3.12, [uv](https://docs.astral.sh/uv/), Node.js 22+, and npm.
 From the repository root:
 
 ```powershell
-uv sync --all-groups
+uv sync --all-groups --extra semantic
 uv run alembic upgrade head
 uv run financial-ai-bootstrap-category-model
 uv run financial-ai-api
@@ -100,7 +100,7 @@ If `uv` is not available but the synchronized `.venv` already exists:
 
 ```powershell
 .\.venv\Scripts\python.exe -m alembic upgrade head
-.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.category_bootstrap
+.\.venv\Scripts\python.exe -m financial_ai.ml.transaction_classification.modeling.category_bootstrap
 .\.venv\Scripts\python.exe -m uvicorn financial_ai.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
@@ -156,7 +156,6 @@ and an end-to-end proxy smoke test. Generated content in `.venv`,
   experiment records.
 - [Data notes](data/README.md): synthetic data boundaries and ECB provenance.
 
-The volatility model has completed its frozen 2024–2025 final test and has a
-checksum-verified native XGBoost deployment artifact. API/UI integration,
-broader risk modeling, and an assistant with deterministic tool calling remain
-later increments.
+The volatility model has completed its frozen 2024–2025 final test and is
+integrated through a checksum-verified native XGBoost artifact. Broader risk
+modeling and an assistant with deterministic tool calling remain later increments.

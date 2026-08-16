@@ -113,7 +113,7 @@ The evaluation is reproducible from the repository root after the pinned source
 dataset is available locally:
 
 ```powershell
-uv run python -m financial_ai.ml.transaction_classification.german_evaluation
+uv run python -m financial_ai.ml.transaction_classification.evaluation.german_evaluation
 ```
 
 ## Known limitations

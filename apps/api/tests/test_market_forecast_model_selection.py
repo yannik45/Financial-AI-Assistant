@@ -1,6 +1,6 @@
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.model_selection import build_expanding_training_folds
+from financial_ai.ml.market_forecast.modeling.model_selection import build_expanding_training_folds
 
 
 def model_dataset() -> pd.DataFrame:

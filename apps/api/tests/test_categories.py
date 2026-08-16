@@ -1,5 +1,5 @@
 import pytest
-from financial_ai.ml.transaction_classification.categories import (
+from financial_ai.ml.transaction_classification.core.categories import (
     ExpenseCategory,
     parse_expense_category,
 )

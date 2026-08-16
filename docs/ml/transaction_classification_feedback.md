@@ -16,8 +16,9 @@ saved feedback -> immutable export -> human review -> isolated candidate
 
 `POST /v1/transactions` repeats classification on the backend before saving, so
 browser-supplied confidence, versions, or predictions are not trusted. The
-database records predicted and final categories, route, method, confidence
-proxy, review reason, feedback status, taxonomy/model versions, and timestamp.
+database records predicted and final categories, input source, route, method,
+confidence proxy, both model predictions and versions, agreement, review reason,
+feedback status, taxonomy version, and timestamp.
 
 | Status | Exported | Meaning |
 |---|---|---|
@@ -80,7 +81,7 @@ report under `data/runtime/ml/candidates`. Promotion requires all gates:
 - automatically accepted challenge accuracy regression no greater than `0.01`;
 - feedback-holdout macro-F1 at least equal to the active model.
 
-These thresholds are a learning-project policy, not production evidence.
+These thresholds are an experimental governance policy, not production evidence.
 Repeated tuning against the frozen challenge would overfit the evaluation and
 requires a new versioned protocol.
 
@@ -103,8 +104,10 @@ Missing model artifacts do not block manual transaction creation; unresolved
 classification is stored for review. Categories remain restricted to the
 versioned taxonomy.
 
-Feedback currently comes only from transaction creation, not later edits. A
-small local sample should fail the minimum-data gate. The privacy-reduced export
+Feedback comes from explicit creation-time confirmation and later category
+review. The current candidate pipeline promotes only the lexical expense model;
+the semantic head requires its own future governed promotion protocol. A small
+local sample should fail the minimum-data gate. The privacy-reduced export
 cannot provide merchant-group isolation, there is no authenticated reviewer,
 and confidence remains uncalibrated. Before production use, add authenticated
 review, formal de-identification, poisoning controls, representative data,

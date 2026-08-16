@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from financial_ai.ml.market_forecast.features import (
+from financial_ai.ml.market_forecast.data.features import (
     FEATURE_COLUMNS,
     build_market_features,
 )

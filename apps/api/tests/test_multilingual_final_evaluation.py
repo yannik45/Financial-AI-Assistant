@@ -1,12 +1,12 @@
 import pandas as pd
-from financial_ai.ml.transaction_classification.categories import ExpenseCategory
-from financial_ai.ml.transaction_classification.english_training_generator_v1 import (
+from financial_ai.ml.transaction_classification.core.categories import ExpenseCategory
+from financial_ai.ml.transaction_classification.data.english_training_generator_v1 import (
     generate_english_training_data_v1,
 )
-from financial_ai.ml.transaction_classification.german_training_generator_v2 import (
+from financial_ai.ml.transaction_classification.data.german_training_generator_v2 import (
     generate_german_training_data_v2,
 )
-from financial_ai.ml.transaction_classification.multilingual_final_evaluation import (
+from financial_ai.ml.transaction_classification.evaluation.multilingual_final_evaluation import (
     build_final_report,
     run_final_model_comparison,
 )

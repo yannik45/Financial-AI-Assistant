@@ -1,13 +1,15 @@
 from financial_ai.main import app
-from financial_ai.ml.transaction_classification.category_artifact import ModelArtifactError
-from financial_ai.ml.transaction_classification.category_service import (
+from financial_ai.ml.transaction_classification.core.category_service import (
+    ClassificationServiceStatus,
     TransactionClassification,
     get_transaction_classifier,
 )
-from financial_ai.ml.transaction_classification.contracts import (
+from financial_ai.ml.transaction_classification.core.contracts import (
+    ClassificationInputSource,
     ClassificationMethod,
     ClassificationRoute,
 )
+from financial_ai.ml.transaction_classification.modeling.category_artifact import ModelArtifactError
 
 
 def test_demo_accounts_and_transactions_are_seeded(client):
@@ -162,6 +164,10 @@ def test_classification_endpoint_handles_deterministic_and_review_routes(client)
         "reason": "Category matched a reviewable text rule in the experimental baseline.",
         "taxonomy_version": "transaction-categories-v1",
         "model_version": None,
+        "input_source": "manual_entry",
+        "alternative_category": None,
+        "alternative_model_version": None,
+        "model_agreement": None,
     }
 
     transfer = client.post(
@@ -229,6 +235,28 @@ def test_classification_endpoint_reports_unavailable_model(client):
     assert response.json()["detail"]["code"] == "category_model_unavailable"
 
 
+def test_classification_status_exposes_degraded_fallback(client):
+    class StatusClassifier:
+        def status(self):
+            return ClassificationServiceStatus(
+                status="degraded",
+                mode="tfidf_v1_fallback",
+                tfidf_model_version="test-model-v1",
+                semantic_model_version=None,
+                reason="semantic_artifact_unavailable",
+            )
+
+    app.dependency_overrides[get_transaction_classifier] = lambda: StatusClassifier()
+    try:
+        response = client.get("/v1/transactions/classification/status")
+    finally:
+        app.dependency_overrides.pop(get_transaction_classifier, None)
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "degraded"
+    assert response.json()["mode"] == "tfidf_v1_fallback"
+
+
 def test_transaction_creation_persists_corrected_model_feedback(client):
     class GroceryClassifier:
         def classify(self, **_):
@@ -274,6 +302,35 @@ def test_transaction_creation_persists_corrected_model_feedback(client):
     assert feedback["final_category"] == "dining"
     assert feedback["feedback_status"] == "corrected"
     assert feedback["model_version"] == "test-model-v1"
+
+
+def test_reviewing_a_transaction_category_persists_strong_feedback(client):
+    checking = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "checking"
+    )
+    transaction = client.post(
+        "/v1/transactions",
+        json={
+            "account_id": checking["id"],
+            "booked_at": "2026-08-16",
+            "name": "House Payment",
+            "amount": "-950.00",
+        },
+    ).json()
+
+    response = client.patch(
+        f"/v1/transactions/{transaction['id']}/category",
+        json={"category": "Groceries"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["category"] == "groceries"
+    latest = response.json()["classifications"][-1]
+    assert latest["final_category"] == "groceries"
+    assert latest["feedback_status"] in {"accepted_explicit", "corrected"}
+    assert latest["needs_review"] is False
 
 
 def test_matching_category_tracks_explicit_confirmation(client):
@@ -341,3 +398,75 @@ def test_transaction_text_not_transaction_type_drives_saved_suggestion(client):
     assert feedback["predicted_category"] == "housing"
     assert feedback["route"] == "text_rule"
     assert feedback["classification_method"] == "keyword_rule"
+
+
+def test_demo_bank_feed_import_is_reproducible_and_idempotent(client):
+    class DemoClassifier:
+        def classify_many(self, inputs, **_):
+            return [
+                TransactionClassification(
+                    category="income" if "GEHALT" in description else "shopping",
+                    route=ClassificationRoute.TEXT_RULE,
+                    method=ClassificationMethod.KEYWORD_RULE,
+                    confidence=None,
+                    needs_review=False,
+                    reason="Test classification",
+                    taxonomy_version="transaction-categories-v1",
+                    model_version=None,
+                    input_source=ClassificationInputSource.BANK_FEED,
+                )
+                for description, _, _ in inputs
+            ]
+
+    checking = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "checking"
+    )
+    payload = {
+        "account_id": checking["id"],
+        "seed": 42,
+        "year": 2026,
+        "month": 8,
+        "variable_count": 4,
+    }
+    app.dependency_overrides[get_transaction_classifier] = lambda: DemoClassifier()
+    try:
+        first = client.post("/v1/transactions/demo-bank-feed", json=payload)
+        repeated = client.post("/v1/transactions/demo-bank-feed", json=payload)
+    finally:
+        app.dependency_overrides.pop(get_transaction_classifier, None)
+
+    assert first.status_code == 200
+    assert first.json() == {
+        "seed": 42,
+        "year": 2026,
+        "month": 8,
+        "generated_count": 7,
+        "created_count": 7,
+        "automatically_categorized_count": 7,
+        "review_count": 0,
+        "correct_prediction_count": first.json()["correct_prediction_count"],
+        "evaluated_count": 7,
+    }
+    assert 1 <= first.json()["correct_prediction_count"] <= 7
+    assert repeated.status_code == 200
+    assert repeated.json()["created_count"] == 0
+    assert (
+        client.get("/v1/transactions", params={"account_id": checking["id"]}).json()["total"] == 19
+    )
+
+
+def test_demo_bank_feed_rejects_brokerage_accounts(client):
+    brokerage = next(
+        account
+        for account in client.get("/v1/accounts").json()
+        if account["account_type"] == "brokerage"
+    )
+    response = client.post(
+        "/v1/transactions/demo-bank-feed",
+        json={"account_id": brokerage["id"], "seed": 1},
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "invalid_account_type"

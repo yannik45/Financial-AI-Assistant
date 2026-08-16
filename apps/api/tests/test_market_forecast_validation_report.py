@@ -3,8 +3,8 @@ import json
 import numpy as np
 import pandas as pd
 import pytest
-from financial_ai.ml.market_forecast.dataset import build_model_dataset
-from financial_ai.ml.market_forecast.validation_report import (
+from financial_ai.ml.market_forecast.data.dataset import build_model_dataset
+from financial_ai.ml.market_forecast.evaluation.validation_report import (
     build_validation_report,
     write_validation_report,
 )

@@ -1,6 +1,8 @@
 import numpy as np
 import pytest
-from financial_ai.ml.market_forecast.evaluation import calculate_volatility_forecast_metrics
+from financial_ai.ml.market_forecast.evaluation.evaluation import (
+    calculate_volatility_forecast_metrics,
+)
 
 
 def test_volatility_forecast_metrics_are_zero_for_perfect_predictions():
