@@ -213,7 +213,7 @@ wheels = [
 ]
 
 [[package]]
-name = "financial-ai-assistant"
+name = "financial-intelligence-platform"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

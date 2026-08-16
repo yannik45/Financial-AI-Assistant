@@ -2,7 +2,7 @@
 
 ## Purpose and principles
 
-Financial AI Assistant is a local-first portfolio project that demonstrates
+Financial Intelligence Platform is a local-first portfolio project that demonstrates
 backend financial analytics, an account and transaction ledger, applied text
 classification, and a guarded offline ML lifecycle.
 
