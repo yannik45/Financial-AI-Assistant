@@ -170,8 +170,9 @@ def calculate_risk_score(
             "Historical measures reconstruct current quantities backwards and are not actual "
             "account performance.",
             "The score uses historical observations and cannot predict future losses.",
-            "Broad-market funds receive a limited diversification credit, but full fund "
-            "holdings, credit quality, duration, and derivatives are unavailable.",
+            "Broad-market funds receive a limited diversification credit. External "
+            "listing data does not include fund holdings, so only explicitly curated "
+            "broad-market instruments receive this treatment.",
             "Currency denomination is shown as context and is not treated as market risk; "
             "hedging and economic revenue exposure are unknown.",
             "Investment horizon changes a person's capacity to tolerate losses, not the "

@@ -88,13 +88,22 @@ function MetricCard({
   );
 }
 
-function AllocationChart({ title, data }: { title: string; data: Allocation[] }) {
+function AllocationChart({
+  title,
+  data,
+  description,
+}: {
+  title: string;
+  data: Allocation[];
+  description?: string;
+}) {
   return (
     <section className="panel allocation">
       <div className="panel-title">
         <div>
           <span className="eyebrow">EXPOSURE</span>
           <h3>{title}</h3>
+          {description ? <small>{description}</small> : null}
         </div>
       </div>
       <div className="allocation-body">
@@ -129,8 +138,19 @@ function AllocationChart({ title, data }: { title: string; data: Allocation[] })
   );
 }
 
-function Dashboard({ analytics }: { analytics: Analytics }) {
+function Dashboard({
+  analytics,
+  marketDataMode,
+}: {
+  analytics: Analytics;
+  marketDataMode: "demo" | "external";
+}) {
   const positive = Number(analytics.unrealized_pnl_eur) >= 0;
+  const positionAllocation = analytics.positions.map((position) => ({
+    label: position.symbol,
+    value_eur: position.market_value_eur,
+    weight: position.weight,
+  }));
   return (
     <>
       <div className="metrics-grid">
@@ -201,8 +221,27 @@ function Dashboard({ analytics }: { analytics: Analytics }) {
         </ResponsiveContainer>
       </section>
       <div className="chart-grid">
-        <AllocationChart title="Asset class allocation" data={analytics.allocations.asset_class} />
-        <AllocationChart title="Regional allocation" data={analytics.allocations.region} />
+        {marketDataMode === "external" ? (
+          <>
+            <AllocationChart title="Position allocation" data={positionAllocation} />
+            <AllocationChart
+              title="Listing region"
+              data={analytics.allocations.region}
+              description="Provider listing metadata, not economic exposure."
+            />
+          </>
+        ) : (
+          <>
+            <AllocationChart
+              title="Asset class allocation"
+              data={analytics.allocations.asset_class}
+            />
+            <AllocationChart
+              title="Regional allocation"
+              data={analytics.allocations.region}
+            />
+          </>
+        )}
       </div>
       {analytics.risk_score ? <RiskScorePanel risk={analytics.risk_score} /> : null}
       <div className="warnings">
@@ -893,7 +932,12 @@ function PortfolioView() {
       )}
       {analytics.isLoading && <div className="loading">Calculating portfolio analytics…</div>}
       {analytics.isError && <div className="error">{analytics.error.message}</div>}
-      {analytics.data && <Dashboard analytics={analytics.data} />}
+      {analytics.data && selectedPortfolio && (
+        <Dashboard
+          analytics={analytics.data}
+          marketDataMode={selectedPortfolio.market_data_mode}
+        />
+      )}
       {selected && <PortfolioTradingPanel portfolioId={selected} />}
       <ActivitySection initialAccountId={selectedPortfolio?.account_id ?? ""} />
       {showCreate && (

@@ -342,6 +342,70 @@ test("opens the transaction history and add transaction form", async () => {
   expect(within(modal).getByRole("option", { name: "Transport" })).toBeInTheDocument();
 });
 
+test("uses position weights instead of provider asset classes for external portfolios", async () => {
+  const portfolio = {
+    id: "external-portfolio",
+    name: "External Portfolio",
+    kind: "manual",
+    market_data_mode: "external",
+    base_currency: "EUR",
+    created_at: "2026-08-01T00:00:00",
+    position_count: 2,
+    account_id: "brokerage-id",
+  };
+  const analytics = {
+    portfolio_id: portfolio.id,
+    as_of: "2026-08-15",
+    data_version: "test-v1",
+    market_value_eur: "1000.00",
+    cost_basis_eur: "900.00",
+    unrealized_pnl_eur: "100.00",
+    unrealized_pnl_percent: 11.11,
+    trailing_return_percent: 4,
+    annualized_volatility_percent: 18,
+    max_drawdown_percent: -8,
+    concentration_hhi: 0.52,
+    largest_position_symbol: "AAPL",
+    largest_position_weight: 0.6,
+    positions: [
+      { symbol: "AAPL", market_value_eur: "600.00", cost_basis_eur: "520.00", pnl_eur: "80.00", weight: 0.6 },
+      { symbol: "MSFT", market_value_eur: "400.00", cost_basis_eur: "380.00", pnl_eur: "20.00", weight: 0.4 },
+    ],
+    allocations: {
+      asset_class: [{ label: "US Equity", value_eur: "1000.00", weight: 1 }],
+      sector: [],
+      region: [{ label: "United States", value_eur: "1000.00", weight: 1 }],
+      currency: [{ label: "USD", value_eur: "1000.00", weight: 1 }],
+    },
+    value_series: [{ date: "2026-08-15", value_eur: "1000.00" }],
+    risk_score: null,
+    warnings: [],
+  };
+  vi.mocked(fetch).mockImplementation((input: string | URL | Request) => {
+    const url = String(input);
+    if (url.endsWith("/v1/portfolios")) return jsonResponse([portfolio]);
+    if (url.endsWith(`/v1/portfolios/${portfolio.id}/analytics`)) return jsonResponse(analytics);
+    if (url.endsWith(`/v1/portfolios/${portfolio.id}/overview`)) {
+      return new Promise<Response>(() => undefined);
+    }
+    if (url.includes("/v1/accounts")) return jsonResponse(accounts);
+    if (url.includes("/v1/transactions")) return jsonResponse(transactions);
+    if (url.includes("/v1/market/status")) {
+      return jsonResponse({ demo_available: true, external_available: true, external_provider: "alpaca" });
+    }
+    return jsonResponse([]);
+  });
+
+  renderApp();
+
+  expect(await screen.findByText("Position allocation")).toBeInTheDocument();
+  expect(screen.getByText("Listing region")).toBeInTheDocument();
+  expect(screen.getByText("Provider listing metadata, not economic exposure.")).toBeInTheDocument();
+  expect(screen.queryByText("Asset class allocation")).not.toBeInTheDocument();
+  expect(screen.getByText("AAPL")).toBeInTheDocument();
+  expect(screen.getByText("MSFT")).toBeInTheDocument();
+});
+
 test("generates a reproducible demo bank feed and shows classification results", async () => {
   renderApp();
   const generateButton = await screen.findByRole("button", { name: "Generate demo activity" });
